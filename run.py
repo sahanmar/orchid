@@ -73,8 +73,12 @@ if __name__ == "__main__":
         sys.exit(1)
 
     seed(2020)
-    model = CorefModel(args.config_file, args.experiment)
+    # TODO Make the model take the config but not a path
+    # TODO "Experiment" is not cool. This must be a different config 
+    config  = CorefModel._load_config(args.config_file, args.experiment)
+    model = CorefModel(config)
 
+    # TODO must be also in config
     if args.batch_size:
         model.config.a_scoring_batch_size = args.batch_size
 
@@ -88,5 +92,6 @@ if __name__ == "__main__":
         model.load_weights(path=args.weights, map_location="cpu",
                            ignore={"bert_optimizer", "general_optimizer",
                                    "bert_scheduler", "general_scheduler"})
+        # TODO Data split and word level must be in config too
         model.evaluate(data_split=args.data_split,
                        word_level_conll=args.word_level)
