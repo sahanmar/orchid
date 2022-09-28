@@ -13,8 +13,12 @@ if __name__ == "__main__":
     args = argparser.parse_args()
 
     state_dict = torch.load(args.path)
-    for key in ("general_optimizer", "general_scheduler",
-                "bert_optimizer", "bert_scheduler"):
+    for key in (
+        "general_optimizer",
+        "general_scheduler",
+        "bert_optimizer",
+        "bert_scheduler",
+    ):
         state_dict.pop(key, None)
 
     dirname = os.path.dirname(args.path)

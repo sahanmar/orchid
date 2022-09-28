@@ -15,6 +15,7 @@ class RoughScorer(torch.nn.Module):
     only top scoring candidates are considered on later steps to reduce
     computational complexity.
     """
+
     def __init__(self, features: int, config: Config):
         super().__init__()
         self.dropout = torch.nn.Dropout(config.dropout_rate)
@@ -22,9 +23,10 @@ class RoughScorer(torch.nn.Module):
 
         self.k = config.rough_k
 
-    def forward(self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
-                mentions: torch.Tensor,
-                ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
+        mentions: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Returns rough anaphoricity scores for candidates, which consist of
         the bilinear output of the current model summed with mention scores.
@@ -41,9 +43,9 @@ class RoughScorer(torch.nn.Module):
 
         return self._prune(rough_scores)
 
-    def _prune(self,
-               rough_scores: torch.Tensor
-               ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _prune(
+        self, rough_scores: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Selects top-k rough antecedent scores for each mention.
 
@@ -55,7 +57,7 @@ class RoughScorer(torch.nn.Module):
             FloatTensor of shape [n_mentions, k], top rough scores
             LongTensor of shape [n_mentions, k], top indices
         """
-        top_scores, indices = torch.topk(rough_scores,
-                                         k=min(self.k, len(rough_scores)),
-                                         dim=1, sorted=False)
+        top_scores, indices = torch.topk(
+            rough_scores, k=min(self.k, len(rough_scores)), dim=1, sorted=False
+        )
         return top_scores, indices

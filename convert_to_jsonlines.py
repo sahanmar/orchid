@@ -29,6 +29,7 @@ class CorefSpansHolder:
 
     Both dictionaries use entity indices as keys.
     """
+
     def __init__(self):
         self.starts = defaultdict(lambda: [])
         self.spans = defaultdict(lambda: [])
@@ -57,14 +58,13 @@ class CorefSpansHolder:
         elif coref_info[-1] == ")":
             entity_id = int(coref_info[:-1])
             self.spans[entity_id].append(
-                [self.starts[entity_id].pop(), word_id + 1])
+                [self.starts[entity_id].pop(), word_id + 1]
+            )
         else:
             raise ValueError(f"Invalid coref_info: {coref_info}")
 
 
-def build_jsonlines(data_dir: str,
-                    out_dir: str,
-                    tmp_dir: str) -> None:
+def build_jsonlines(data_dir: str, out_dir: str, tmp_dir: str) -> None:
     """
     Builds a file for each data split where each line corresponds
     to a document.
@@ -72,16 +72,22 @@ def build_jsonlines(data_dir: str,
     print("Building jsonlines...")
     data_dir = os.path.normpath(data_dir)
 
-    fidx = open(os.path.join(tmp_dir, DEPS_IDX_FILENAME),
-                mode="r", encoding="utf8")
-    out = {split_type: jsonlines.open(
+    fidx = open(
+        os.path.join(tmp_dir, DEPS_IDX_FILENAME), mode="r", encoding="utf8"
+    )
+    out = {
+        split_type: jsonlines.open(
             os.path.join(out_dir, f"english_{split_type}.jsonlines"),
-            mode="w", compact=True
-            ) for split_type in DATA_SPLITS}
+            mode="w",
+            compact=True,
+        )
+        for split_type in DATA_SPLITS
+    }
 
     # This here is memory-unfriendly, but should be fine for most
-    with open(os.path.join(tmp_dir, DEPS_FILENAME),
-              mode="r", encoding="utf8") as fgold:
+    with open(
+        os.path.join(tmp_dir, DEPS_FILENAME), mode="r", encoding="utf8"
+    ) as fgold:
         gold_sents_gen = re.finditer(DEP_SENT_PATTERN, fgold.read())
 
     for line in fidx:
@@ -96,8 +102,9 @@ def build_jsonlines(data_dir: str,
         fileobj.close()
 
 
-def build_one_jsonline(filename: str,
-                       parsed_sents: List[str]) -> Dict[str, Union[list, str]]:
+def build_one_jsonline(
+    filename: str, parsed_sents: List[str]
+) -> Dict[str, Union[list, str]]:
     """
     Returns a dictionary of the following structure:
 
@@ -119,15 +126,15 @@ def build_one_jsonline(filename: str,
         assert len(sents) == len(parsed_sents)
 
     data = {
-        "document_id":      None,
-        "cased_words":      [],
-        "sent_id":          [],
-        "part_id":          [],
-        "speaker":          [],
-        "pos":              [],
-        "deprel":           [],
-        "head":             [],
-        "clusters":         []
+        "document_id": None,
+        "cased_words": [],
+        "sent_id": [],
+        "part_id": [],
+        "speaker": [],
+        "pos": [],
+        "deprel": [],
+        "head": [],
+        "clusters": [],
     }
     coref_spans = CorefSpansHolder()
     total_words = 0
@@ -137,7 +144,7 @@ def build_one_jsonline(filename: str,
 
         for s_word, p_word in zip(sent, parsed_sent):
             s_cols = s_word.split()
-            p_cols = p_word.split('\t')
+            p_cols = p_word.split("\t")
 
             document_id = s_cols[0]
             part_id = int(s_cols[1])
@@ -183,10 +190,12 @@ def convert_con_to_dep(temp_dir: str, filenames: Dict[str, List[str]]) -> None:
     consituency trees to Universal Dependencies.
     """
     print("Converting constituents to dependencies...")
-    cmd = ("java -cp downloads/stanford-parser.jar"
-           " edu.stanford.nlp.trees.EnglishGrammaticalStructure"
-           " -basic -keepPunct -conllx -treeFile"
-           " FILENAME").split()
+    cmd = (
+        "java -cp downloads/stanford-parser.jar"
+        " edu.stanford.nlp.trees.EnglishGrammaticalStructure"
+        " -basic -keepPunct -conllx -treeFile"
+        " FILENAME"
+    ).split()
     for data_split, filelist in filenames.items():
         for filename in tqdm(filelist, ncols=0, desc=data_split, unit="docs"):
             temp_filename = os.path.join(temp_dir, filename)
@@ -211,13 +220,14 @@ def extract_trees_from_file(fileobj: TextIO) -> Generator[str, None, None]:
             yield "".join(current_parse)
             current_parse = []
         i = parse_bit.index("*")
-        new_parse_bit = parse_bit[:i] + f"({pos} {word})" + parse_bit[i + 1:]
+        new_parse_bit = parse_bit[:i] + f"({pos} {word})" + parse_bit[i + 1 :]
         current_parse.append(new_parse_bit)
     yield "".join(current_parse)
 
 
-def extract_trees_to_files(dest_dir: str,
-                           filenames: Dict[str, List[str]]) -> None:
+def extract_trees_to_files(
+    dest_dir: str, filenames: Dict[str, List[str]]
+) -> None:
     """
     Creates files names like filenames in dest_dir, writing to each file
     constituency trees line by line.
@@ -256,9 +266,10 @@ def get_conll_filenames(data_dir: str, language: str) -> Dict[str, List[str]]:
     for data_split in DATA_SPLITS:
         data_split_dir = os.path.join(data_dir, data_split, "data", language)
         conll_filenames[data_split] = [
-            filename for filename in get_filenames(data_split_dir)
+            filename
+            for filename in get_filenames(data_split_dir)
             if filename.endswith("gold_conll")
-            ]
+        ]
     return conll_filenames
 
 
@@ -269,7 +280,7 @@ def get_split_type(data_dir: str, query_path: str) -> str:
     """
     query_path = os.path.normpath(query_path)
     for split_type in DATA_SPLITS:
-        if query_path[len(data_dir) + 1:].startswith(split_type):
+        if query_path[len(data_dir) + 1 :].startswith(split_type):
             return split_type
     raise ValueError("Query path does not contain split type information!")
 
@@ -295,19 +306,27 @@ def merge_dep_files(temp_dir: str, filenames: Dict[str, List[str]]) -> None:
     fidx.close()
 
 
-def split_jsonlines(out_dir: str,
-                    tmp_dir: str,
-                    language: str = "english") -> None:
-    """ Splits jsonlines located in tmp_dir and writes them to out_dir.
+def split_jsonlines(
+    out_dir: str, tmp_dir: str, language: str = "english"
+) -> None:
+    """Splits jsonlines located in tmp_dir and writes them to out_dir.
     Splitting means separating different parts of the same document into
-    multiple jsonlines. """
-    to_split = {split_type: jsonlines.open(
-                os.path.join(tmp_dir, f"{language}_{split_type}.jsonlines"),
-                mode="r") for split_type in DATA_SPLITS}
-    out = {split_type: jsonlines.open(
+    multiple jsonlines."""
+    to_split = {
+        split_type: jsonlines.open(
+            os.path.join(tmp_dir, f"{language}_{split_type}.jsonlines"),
+            mode="r",
+        )
+        for split_type in DATA_SPLITS
+    }
+    out = {
+        split_type: jsonlines.open(
             os.path.join(out_dir, f"{language}_{split_type}.jsonlines"),
-            mode="w", compact=True
-            ) for split_type in DATA_SPLITS}
+            mode="w",
+            compact=True,
+        )
+        for split_type in DATA_SPLITS
+    }
 
     for split_type, jsonlines_to_split in to_split.items():
         for doc in jsonlines_to_split:
@@ -347,17 +366,18 @@ def split_one_jsonline(doc: dict):
             "speaker": doc["speaker"][start:end],
             "pos": doc["pos"][start:end],
             "deprel": doc["deprel"][start:end],
-            "head": [(h - start) if h is not None else h
-                     for h in doc["head"][start:end]],
-            "clusters": []
+            "head": [
+                (h - start) if h is not None else h
+                for h in doc["head"][start:end]
+            ],
+            "clusters": [],
         }
         for cluster in doc["clusters"]:
             split_cluster = []
             for span_start, span_end in cluster:
                 if span_start >= start and span_start < end:
                     assert span_end > span_start and span_end <= end
-                    split_cluster.append([span_start - start,
-                                          span_end - start])
+                    split_cluster.append([span_start - start, span_end - start])
             if split_cluster:
                 split_doc["clusters"].append(split_cluster)
         split_docs.append(split_doc)
@@ -366,21 +386,36 @@ def split_one_jsonline(doc: dict):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
-        description="Converts conll-formatted files to json.")
-    argparser.add_argument("conll_dir", help="The root directory of"
-                           " conll-formatted OntoNotes corpus.")
-    argparser.add_argument("--out-dir", default=".", help="The directory where"
-                           " the output jsonlines will be written.")
-    argparser.add_argument("--tmp-dir", default="temp", help="A directory to"
-                           " keep temporary files in."
-                           " Defaults to 'temp'.")
-    argparser.add_argument("--keep-tmp-dir", action="store_true", help="If set"
-                           ", the temporary directory will not be deleted.")
+        description="Converts conll-formatted files to json."
+    )
+    argparser.add_argument(
+        "conll_dir",
+        help="The root directory of" " conll-formatted OntoNotes corpus.",
+    )
+    argparser.add_argument(
+        "--out-dir",
+        default=".",
+        help="The directory where" " the output jsonlines will be written.",
+    )
+    argparser.add_argument(
+        "--tmp-dir",
+        default="temp",
+        help="A directory to"
+        " keep temporary files in."
+        " Defaults to 'temp'.",
+    )
+    argparser.add_argument(
+        "--keep-tmp-dir",
+        action="store_true",
+        help="If set" ", the temporary directory will not be deleted.",
+    )
     args = argparser.parse_args()
 
     if os.path.exists(args.tmp_dir):
-        response = input(f"{args.tmp_dir} already exists!"
-                         f" Enter 'yes' to delete it or anything to exit: ")
+        response = input(
+            f"{args.tmp_dir} already exists!"
+            f" Enter 'yes' to delete it or anything to exit: "
+        )
         if response != "yes":
             sys.exit()
         shutil.rmtree(args.tmp_dir)

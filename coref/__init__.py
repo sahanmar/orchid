@@ -9,6 +9,4 @@
 from .coref_model import CorefModel
 
 
-__all__ = [
-    "CorefModel"
-]
+__all__ = ["CorefModel"]

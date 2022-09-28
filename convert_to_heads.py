@@ -48,7 +48,9 @@ if __name__ == "__main__":
 
                 for doc in inf:
 
-                    total_spans += sum(len(cluster) for cluster in doc["clusters"])
+                    total_spans += sum(
+                        len(cluster) for cluster in doc["clusters"]
+                    )
                     total_clusters += len(doc["clusters"])
 
                     head_clusters = [
@@ -58,35 +60,49 @@ if __name__ == "__main__":
 
                     # check for duplicates
                     head2spans = defaultdict(list)
-                    for cluster, head_cluster in zip(doc["clusters"], head_clusters):
+                    for cluster, head_cluster in zip(
+                        doc["clusters"], head_clusters
+                    ):
                         for span, span_head in zip(cluster, head_cluster):
                             head2spans[span_head].append((span, head_cluster))
 
                     doc["head2span"] = []
 
                     for head, spans in head2spans.items():
-                        spans.sort(key=lambda x: x[0][1] - x[0][0])  # shortest spans first
+                        spans.sort(
+                            key=lambda x: x[0][1] - x[0][0]
+                        )  # shortest spans first
                         doc["head2span"].append((head, *spans[0][0]))
 
                         if len(spans) > 1:
-                            logging.debug(f'{split} {doc["document_id"]} {doc["cased_words"][head]}')
+                            logging.debug(
+                                f'{split} {doc["document_id"]} {doc["cased_words"][head]}'
+                            )
                             for span, cluster in spans:
-                                logging.debug(f'{id(cluster)} {" ".join(doc["cased_words"][slice(*span)])}')
+                                logging.debug(
+                                    f'{id(cluster)} {" ".join(doc["cased_words"][slice(*span)])}'
+                                )
                             logging.debug("=====")
 
                             for _, cluster in spans[1:]:
                                 cluster.remove(head)
                                 deleted_spans += 1
 
-                    filtered_head_clusters = [cluster for cluster in head_clusters if len(cluster) > 1]
-                    deleted_clusters += len(head_clusters) - len(filtered_head_clusters)
+                    filtered_head_clusters = [
+                        cluster for cluster in head_clusters if len(cluster) > 1
+                    ]
+                    deleted_clusters += len(head_clusters) - len(
+                        filtered_head_clusters
+                    )
                     doc["word_clusters"] = filtered_head_clusters
                     doc["span_clusters"] = doc["clusters"]
                     del doc["clusters"]
 
                     outf.write(doc)
 
-                print(f"Deleted in {split}:"
-                      f"\n\t{deleted_spans}/{total_spans} ({deleted_spans/total_spans:.2%}) spans"
-                      f"\n\t{deleted_clusters}/{total_clusters} ({deleted_clusters/total_clusters:.2%}) clusters"
-                      f"\n")
+                print(
+                    f"Deleted in {split}:"
+                    f"\n\t{deleted_spans}/{total_spans} ({deleted_spans/total_spans:.2%}) spans"
+                    f"\n\t{deleted_clusters}/{total_clusters} ({deleted_clusters/total_clusters:.2%}) clusters"
+                    f"\n"
+                )

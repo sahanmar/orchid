@@ -10,7 +10,8 @@ from pathlib import Path
 
 @dataclass
 class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-methods
-    """ Contains values needed to set up the coreference model. """
+    """Contains values needed to set up the coreference model."""
+
     section: str
 
     data_dir: str
@@ -50,5 +51,4 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
     def __post_init__(self):
         with open(Path(self.train_data), "r") as f:
-            self.num_of_training_docs =  sum(1 for _ in f)
-        
+            self.num_of_training_docs = sum(1 for _ in f)
