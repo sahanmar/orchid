@@ -76,9 +76,7 @@ def open_(config: Config, epochs: int, data_split: str):
         **kwargs,
     ) as gold_f:
         with open(
-            os.path.join(  # type: ignore
-                conll_dir, f"{base_filename}.pred.conll"
-            ),
+            os.path.join(conll_dir, f"{base_filename}.pred.conll"),  # type: ignore
             **kwargs,
         ) as pred_f:
             yield (gold_f, pred_f)

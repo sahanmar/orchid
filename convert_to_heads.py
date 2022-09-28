@@ -48,9 +48,7 @@ if __name__ == "__main__":
 
                 for doc in inf:
 
-                    total_spans += sum(
-                        len(cluster) for cluster in doc["clusters"]
-                    )
+                    total_spans += sum(len(cluster) for cluster in doc["clusters"])
                     total_clusters += len(doc["clusters"])
 
                     head_clusters = [
@@ -60,9 +58,7 @@ if __name__ == "__main__":
 
                     # check for duplicates
                     head2spans = defaultdict(list)
-                    for cluster, head_cluster in zip(
-                        doc["clusters"], head_clusters
-                    ):
+                    for cluster, head_cluster in zip(doc["clusters"], head_clusters):
                         for span, span_head in zip(cluster, head_cluster):
                             head2spans[span_head].append((span, head_cluster))
 
@@ -91,9 +87,7 @@ if __name__ == "__main__":
                     filtered_head_clusters = [
                         cluster for cluster in head_clusters if len(cluster) > 1
                     ]
-                    deleted_clusters += len(head_clusters) - len(
-                        filtered_head_clusters
-                    )
+                    deleted_clusters += len(head_clusters) - len(filtered_head_clusters)
                     doc["word_clusters"] = filtered_head_clusters
                     doc["span_clusters"] = doc["clusters"]
                     del doc["clusters"]

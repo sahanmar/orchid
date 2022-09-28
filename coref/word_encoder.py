@@ -9,9 +9,7 @@ from coref.config import Config
 from coref.const import Doc
 
 
-class WordEncoder(
-    torch.nn.Module
-):  # pylint: disable=too-many-instance-attributes
+class WordEncoder(torch.nn.Module):  # pylint: disable=too-many-instance-attributes
     """Receives bert contextual embeddings of a text, extracts all the
     possible mentions in that text."""
 
@@ -112,9 +110,6 @@ class WordEncoder(
         }
 
         return torch.tensor(
-            [
-                word2cluster.get(word_i, 0)
-                for word_i in range(len(doc["cased_words"]))
-            ],
+            [word2cluster.get(word_i, 0) for word_i in range(len(doc["cased_words"]))],
             device=self.device,
         )

@@ -34,9 +34,7 @@ if __name__ == "__main__":
 
     results = []
     for metric in "muc", "ceafe", "bcub":
-        results.append(
-            extract_f1(subprocess.run(part_a + [metric] + part_b, **kwargs))
-        )
+        results.append(extract_f1(subprocess.run(part_a + [metric] + part_b, **kwargs)))
         print(metric, results[-1])
 
     print("avg", sum(results) / len(results))
