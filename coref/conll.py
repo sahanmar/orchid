@@ -11,11 +11,9 @@ from coref.const import Doc, Span
 
 
 # pylint: disable=too-many-locals
-def write_conll(doc: Doc,
-                clusters: List[List[Span]],
-                f_obj: TextIO):
-    """ Writes span/cluster information to f_obj, which is assumed to be a file
-    object open for writing """
+def write_conll(doc: Doc, clusters: List[List[Span]], f_obj: TextIO):
+    """Writes span/cluster information to f_obj, which is assumed to be a file
+    object open for writing"""
     placeholder = "  -" * 7
     doc_id = doc["document_id"]
     words = doc["cased_words"]
@@ -54,8 +52,10 @@ def write_conll(doc: Doc,
             f_obj.write("\n")
             word_number = 0
 
-        f_obj.write(f"{doc_id}  {part_id}  {word_number:>2}"
-                    f"  {word:>{max_word_len}}{placeholder}  {cluster_info}\n")
+        f_obj.write(
+            f"{doc_id}  {part_id}  {word_number:>2}"
+            f"  {word:>{max_word_len}}{placeholder}  {cluster_info}\n"
+        )
 
         word_number += 1
 
@@ -64,15 +64,19 @@ def write_conll(doc: Doc,
 
 @contextmanager
 def open_(config: Config, epochs: int, data_split: str):
-    """ Opens conll log files for writing in a safe way. """
+    """Opens conll log files for writing in a safe way."""
     base_filename = f"{config.section}_{data_split}_e{epochs}"
     conll_dir = config.conll_log_dir
     kwargs = {"mode": "w", "encoding": "utf8"}
 
     os.makedirs(conll_dir, exist_ok=True)
 
-    with open(os.path.join(  # type: ignore
-            conll_dir, f"{base_filename}.gold.conll"), **kwargs) as gold_f:
-        with open(os.path.join(  # type: ignore
-                conll_dir, f"{base_filename}.pred.conll"), **kwargs) as pred_f:
+    with open(
+        os.path.join(conll_dir, f"{base_filename}.gold.conll"),  # type: ignore
+        **kwargs,
+    ) as gold_f:
+        with open(
+            os.path.join(conll_dir, f"{base_filename}.pred.conll"),  # type: ignore
+            **kwargs,
+        ) as pred_f:
             yield (gold_f, pred_f)

@@ -10,8 +10,8 @@ from coref.const import Doc
 
 
 class WordEncoder(torch.nn.Module):  # pylint: disable=too-many-instance-attributes
-    """ Receives bert contextual embeddings of a text, extracts all the
-    possible mentions in that text. """
+    """Receives bert contextual embeddings of a text, extracts all the
+    possible mentions in that text."""
 
     def __init__(self, features: int, config: Config):
         """
@@ -25,14 +25,15 @@ class WordEncoder(torch.nn.Module):  # pylint: disable=too-many-instance-attribu
 
     @property
     def device(self) -> torch.device:
-        """ A workaround to get current device (which is assumed to be the
-        device of the first parameter of one of the submodules) """
+        """A workaround to get current device (which is assumed to be the
+        device of the first parameter of one of the submodules)"""
         return next(self.attn.parameters()).device
 
-    def forward(self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
-                doc: Doc,
-                x: torch.Tensor,
-                ) -> Tuple[torch.Tensor, ...]:
+    def forward(
+        self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
+        doc: Doc,
+        x: torch.Tensor,
+    ) -> Tuple[torch.Tensor, ...]:
         """
         Extracts word representations from text.
 
@@ -57,11 +58,13 @@ class WordEncoder(torch.nn.Module):  # pylint: disable=too-many-instance-attribu
 
         return (words, self._cluster_ids(doc))
 
-    def _attn_scores(self,
-                     bert_out: torch.Tensor,
-                     word_starts: torch.Tensor,
-                     word_ends: torch.Tensor) -> torch.Tensor:
-        """ Calculates attention scores for each of the mentions.
+    def _attn_scores(
+        self,
+        bert_out: torch.Tensor,
+        word_starts: torch.Tensor,
+        word_ends: torch.Tensor,
+    ) -> torch.Tensor:
+        """Calculates attention scores for each of the mentions.
 
         Args:
             bert_out (torch.Tensor): [n_subwords, bert_emb], bert embeddings
@@ -77,9 +80,12 @@ class WordEncoder(torch.nn.Module):  # pylint: disable=too-many-instance-attribu
 
         # [n_mentions, n_subtokens]
         # with 0 at positions belonging to the words and -inf elsewhere
-        attn_mask = torch.arange(0, n_subtokens, device=self.device).expand((n_words, n_subtokens))
-        attn_mask = ((attn_mask >= word_starts.unsqueeze(1))
-                     * (attn_mask < word_ends.unsqueeze(1)))
+        attn_mask = torch.arange(0, n_subtokens, device=self.device).expand(
+            (n_words, n_subtokens)
+        )
+        attn_mask = (attn_mask >= word_starts.unsqueeze(1)) * (
+            attn_mask < word_ends.unsqueeze(1)
+        )
         attn_mask = torch.log(attn_mask.to(torch.float))
 
         attn_scores = self.attn(bert_out).T  # [1, n_subtokens]
@@ -97,12 +103,13 @@ class WordEncoder(torch.nn.Module):  # pylint: disable=too-many-instance-attribu
             torch.Tensor of shape [n_word], containing cluster indices for
                 each word. Non-coreferent words have cluster id of zero.
         """
-        word2cluster = {word_i: i
-                        for i, cluster in enumerate(doc["word_clusters"], start=1)
-                        for word_i in cluster}
+        word2cluster = {
+            word_i: i
+            for i, cluster in enumerate(doc["word_clusters"], start=1)
+            for word_i in cluster
+        }
 
         return torch.tensor(
-            [word2cluster.get(word_i, 0)
-             for word_i in range(len(doc["cased_words"]))],
-            device=self.device
+            [word2cluster.get(word_i, 0) for word_i in range(len(doc["cased_words"]))],
+            device=self.device,
         )

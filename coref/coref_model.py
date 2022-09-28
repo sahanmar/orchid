@@ -7,12 +7,12 @@ import random
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import numpy as np      # type: ignore
-import jsonlines        # type: ignore
+import numpy as np  # type: ignore
+import jsonlines  # type: ignore
 import toml
 import torch
-from tqdm import tqdm   # type: ignore
-import transformers     # type: ignore
+from tqdm import tqdm  # type: ignore
+import transformers  # type: ignore
 
 from coref import bert, conll, utils
 from coref.anaphoricity_scorer import AnaphoricityScorer
@@ -48,9 +48,8 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         a_scorer (AnaphoricityScorer)
         sp (SpanPredictor)
     """
-    def __init__(self,
-                 config: Config,
-                 epochs_trained: int = 0):
+
+    def __init__(self, config: Config, epochs_trained: int = 0):
         """
         A newly created model is set to evaluation mode.
 
@@ -71,7 +70,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
     @property
     def training(self) -> bool:
-        """ Represents whether the model is in the training mode """
+        """Represents whether the model is in the training mode"""
         return self._training
 
     @training.setter
@@ -83,11 +82,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     # ========================================================== Public methods
 
     @torch.no_grad()
-    def evaluate(self,
-                 data_split: str = "dev",
-                 word_level_conll: bool = False
-                 ) -> Tuple[float, Tuple[float, float, float]]:
-        """ Evaluates the modes on the data split provided.
+    def evaluate(
+        self, data_split: str = "dev", word_level_conll: bool = False
+    ) -> Tuple[float, Tuple[float, float, float]]:
+        """Evaluates the modes on the data split provided.
 
         Args:
             data_split (str): one of 'dev'/'test'/'train'
@@ -106,29 +104,45 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         s_correct = 0
         s_total = 0
 
-        with conll.open_(self.config, self.epochs_trained, data_split) \
-                as (gold_f, pred_f):
+        with conll.open_(self.config, self.epochs_trained, data_split) as (
+            gold_f,
+            pred_f,
+        ):
             pbar = tqdm(docs, unit="docs", ncols=0)
             for doc in pbar:
                 res = self.run(doc)
 
-                running_loss += self._coref_criterion(res.coref_scores, res.coref_y).item()
+                running_loss += self._coref_criterion(
+                    res.coref_scores, res.coref_y
+                ).item()
 
                 if res.span_y:
                     pred_starts = res.span_scores[:, :, 0].argmax(dim=1)
                     pred_ends = res.span_scores[:, :, 1].argmax(dim=1)
-                    s_correct += ((res.span_y[0] == pred_starts) * (res.span_y[1] == pred_ends)).sum().item()
+                    s_correct += (
+                        ((res.span_y[0] == pred_starts) * (res.span_y[1] == pred_ends))
+                        .sum()
+                        .item()
+                    )
                     s_total += len(pred_starts)
 
                 if word_level_conll:
-                    conll.write_conll(doc,
-                                      [[(i, i + 1) for i in cluster]
-                                       for cluster in doc["word_clusters"]],
-                                      gold_f)
-                    conll.write_conll(doc,
-                                      [[(i, i + 1) for i in cluster]
-                                       for cluster in res.word_clusters],
-                                      pred_f)
+                    conll.write_conll(
+                        doc,
+                        [
+                            [(i, i + 1) for i in cluster]
+                            for cluster in doc["word_clusters"]
+                        ],
+                        gold_f,
+                    )
+                    conll.write_conll(
+                        doc,
+                        [
+                            [(i, i + 1) for i in cluster]
+                            for cluster in res.word_clusters
+                        ],
+                        pred_f,
+                    )
                 else:
                     conll.write_conll(doc, doc["span_clusters"], gold_f)
                     conll.write_conll(doc, res.span_clusters, pred_f)
@@ -158,11 +172,13 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
         return (running_loss / len(docs), *s_checker.total_lea)
 
-    def load_weights(self,
-                     path: Optional[str] = None,
-                     ignore: Optional[Set[str]] = None,
-                     map_location: Optional[str] = None,
-                     noexception: bool = False) -> None:
+    def load_weights(
+        self,
+        path: Optional[str] = None,
+        ignore: Optional[Set[str]] = None,
+        map_location: Optional[str] = None,
+        noexception: bool = False,
+    ) -> None:
         """
         Loads pretrained weights of modules saved in a file located at path.
         If path is None, the last saved model with current configuration
@@ -199,9 +215,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     self.trainable[key].load_state_dict(state_dict)
                 print(f"Loaded {key}")
 
-    def run(self,  # pylint: disable=too-many-locals
-            doc: Doc,
-            ) -> CorefResult:
+    def run(
+        self,  # pylint: disable=too-many-locals
+        doc: Doc,
+    ) -> CorefResult:
         """
         This is a massive method, but it made sense to me to not split it into
         several ones to let one see the data flow.
@@ -229,16 +246,18 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         a_scores_lst: List[torch.Tensor] = []
 
         for i in range(0, len(words), batch_size):
-            pw_batch = pw[i:i + batch_size]
-            words_batch = words[i:i + batch_size]
-            top_indices_batch = top_indices[i:i + batch_size]
-            top_rough_scores_batch = top_rough_scores[i:i + batch_size]
+            pw_batch = pw[i : i + batch_size]
+            words_batch = words[i : i + batch_size]
+            top_indices_batch = top_indices[i : i + batch_size]
+            top_rough_scores_batch = top_rough_scores[i : i + batch_size]
 
             # a_scores_batch    [batch_size, n_ants]
             a_scores_batch = self.a_scorer(
-                all_mentions=words, mentions_batch=words_batch,
-                pw_batch=pw_batch, top_indices_batch=top_indices_batch,
-                top_rough_scores_batch=top_rough_scores_batch
+                all_mentions=words,
+                mentions_batch=words_batch,
+                pw_batch=pw_batch,
+                top_indices_batch=top_indices_batch,
+                top_rough_scores_batch=top_rough_scores_batch,
             )
             a_scores_lst.append(a_scores_batch)
 
@@ -248,9 +267,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         res.coref_scores = torch.cat(a_scores_lst, dim=0)
 
         res.coref_y = self._get_ground_truth(
-            cluster_ids, top_indices, (top_rough_scores > float("-inf")))
-        res.word_clusters = self._clusterize(doc, res.coref_scores,
-                                             top_indices)
+            cluster_ids, top_indices, (top_rough_scores > float("-inf"))
+        )
+        res.word_clusters = self._clusterize(doc, res.coref_scores, top_indices)
         res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
 
         if not self.training:
@@ -259,17 +278,20 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         return res
 
     def save_weights(self):
-        """ Saves trainable models as state dicts. """
-        to_save: List[Tuple[str, Any]] = \
-            [(key, value) for key, value in self.trainable.items()
-             if self.config.bert_finetune or key != "bert"]
+        """Saves trainable models as state dicts."""
+        to_save: List[Tuple[str, Any]] = [
+            (key, value)
+            for key, value in self.trainable.items()
+            if self.config.bert_finetune or key != "bert"
+        ]
         to_save.extend(self.optimizers.items())
         to_save.extend(self.schedulers.items())
 
         time = datetime.strftime(datetime.now(), "%Y.%m.%d_%H.%M")
-        path = os.path.join(self.config.data_dir,
-                            f"{self.config.section}"
-                            f"_(e{self.epochs_trained}_{time}).pt")
+        path = os.path.join(
+            self.config.data_dir,
+            f"{self.config.section}" f"_(e{self.epochs_trained}_{time}).pt",
+        )
         savedict = {name: module.state_dict() for name, module in to_save}
         savedict["epochs_trained"] = self.epochs_trained  # type: ignore
         torch.save(savedict, path)
@@ -298,8 +320,18 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
                 c_loss = self._coref_criterion(res.coref_scores, res.coref_y)
                 if res.span_y:
-                    s_loss = (self._span_criterion(res.span_scores[:, :, 0], res.span_y[0])
-                              + self._span_criterion(res.span_scores[:, :, 1], res.span_y[1])) / avg_spans / 2
+                    s_loss = (
+                        (
+                            self._span_criterion(
+                                res.span_scores[:, :, 0], res.span_y[0]
+                            )
+                            + self._span_criterion(
+                                res.span_scores[:, :, 1], res.span_y[1]
+                            )
+                        )
+                        / avg_spans
+                        / 2
+                    )
                 else:
                     s_loss = torch.zeros_like(c_loss)
 
@@ -330,26 +362,28 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     # ========================================================= Private methods
 
     def _bertify(self, doc: Doc) -> torch.Tensor:
-        subwords_batches = bert.get_subwords_batches(doc, self.config,
-                                                     self.tokenizer)
+        subwords_batches = bert.get_subwords_batches(doc, self.config, self.tokenizer)
 
-        special_tokens = np.array([self.tokenizer.cls_token_id,
-                                   self.tokenizer.sep_token_id,
-                                   self.tokenizer.pad_token_id])
+        special_tokens = np.array(
+            [
+                self.tokenizer.cls_token_id,
+                self.tokenizer.sep_token_id,
+                self.tokenizer.pad_token_id,
+            ]
+        )
         subword_mask = ~(np.isin(subwords_batches, special_tokens))
 
-        subwords_batches_tensor = torch.tensor(subwords_batches,
-                                               device=self.config.device,
-                                               dtype=torch.long)
-        subword_mask_tensor = torch.tensor(subword_mask,
-                                           device=self.config.device)
+        subwords_batches_tensor = torch.tensor(
+            subwords_batches, device=self.config.device, dtype=torch.long
+        )
+        subword_mask_tensor = torch.tensor(subword_mask, device=self.config.device)
 
         # Obtain bert output for selected batches only
-        attention_mask = (subwords_batches != self.tokenizer.pad_token_id)
+        attention_mask = subwords_batches != self.tokenizer.pad_token_id
         out, _ = self.bert(
             subwords_batches_tensor,
-            attention_mask=torch.tensor(
-                attention_mask, device=self.config.device))
+            attention_mask=torch.tensor(attention_mask, device=self.config.device),
+        )
         del _
 
         # [n_subwords, bert_emb]
@@ -366,20 +400,24 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(self.config.device)
         self.we = WordEncoder(bert_emb, self.config).to(self.config.device)
         self.rough_scorer = RoughScorer(bert_emb, self.config).to(self.config.device)
-        self.sp = SpanPredictor(bert_emb, self.config.sp_embedding_size).to(self.config.device)
+        self.sp = SpanPredictor(bert_emb, self.config.sp_embedding_size).to(
+            self.config.device
+        )
 
         self.trainable: Dict[str, torch.nn.Module] = {
-            "bert": self.bert, "we": self.we,
+            "bert": self.bert,
+            "we": self.we,
             "rough_scorer": self.rough_scorer,
-            "pw": self.pw, "a_scorer": self.a_scorer,
-            "sp": self.sp
+            "pw": self.pw,
+            "a_scorer": self.a_scorer,
+            "sp": self.sp,
         }
 
     def _build_optimizers(self):
         # This is very bad. Caching the entire dataset in order to get
-        # the number of docs. 
+        # the number of docs.
         # TODO see if this doesn't break smth
-        #n_docs = len(self._get_docs(self.config.train_data))
+        # n_docs = len(self._get_docs(self.config.train_data))
         n_docs = self.config.num_of_training_docs
         self.optimizers: Dict[str, torch.optim.Optimizer] = {}
         self.schedulers: Dict[str, torch.optim.lr_scheduler.LambdaLR] = {}
@@ -391,15 +429,18 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             self.optimizers["bert_optimizer"] = torch.optim.Adam(
                 self.bert.parameters(), lr=self.config.bert_learning_rate
             )
-            self.schedulers["bert_scheduler"] = \
-                transformers.get_linear_schedule_with_warmup(
-                    self.optimizers["bert_optimizer"],
-                    n_docs, n_docs * self.config.train_epochs
-                )
+            self.schedulers[
+                "bert_scheduler"
+            ] = transformers.get_linear_schedule_with_warmup(
+                self.optimizers["bert_optimizer"],
+                n_docs,
+                n_docs * self.config.train_epochs,
+            )
 
         # Must ensure the same ordering of parameters between launches
-        modules = sorted((key, value) for key, value in self.trainable.items()
-                         if key != "bert")
+        modules = sorted(
+            (key, value) for key, value in self.trainable.items() if key != "bert"
+        )
         params = []
         for _, module in modules:
             for param in module.parameters():
@@ -407,12 +448,15 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 params.append(param)
 
         self.optimizers["general_optimizer"] = torch.optim.Adam(
-            params, lr=self.config.learning_rate)
-        self.schedulers["general_scheduler"] = \
-            transformers.get_linear_schedule_with_warmup(
-                self.optimizers["general_optimizer"],
-                0, n_docs * self.config.train_epochs
-            )
+            params, lr=self.config.learning_rate
+        )
+        self.schedulers[
+            "general_scheduler"
+        ] = transformers.get_linear_schedule_with_warmup(
+            self.optimizers["general_optimizer"],
+            0,
+            n_docs * self.config.train_epochs,
+        )
 
     def _clusterize(self, doc: Doc, scores: torch.Tensor, top_indices: torch.Tensor):
         antecedents = scores.argmax(dim=1) - 1
@@ -434,7 +478,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     current_node = stack.pop()
                     current_node.visited = True
                     cluster.append(current_node.id)
-                    stack.extend(link for link in current_node.links if not link.visited)
+                    stack.extend(
+                        link for link in current_node.links if not link.visited
+                    )
                 assert len(cluster) > 1
                 clusters.append(sorted(cluster))
         return sorted(clusters)
@@ -454,9 +500,11 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         return self._docs[path]
 
     @staticmethod
-    def _get_ground_truth(cluster_ids: torch.Tensor,
-                          top_indices: torch.Tensor,
-                          valid_pair_map: torch.Tensor) -> torch.Tensor:
+    def _get_ground_truth(
+        cluster_ids: torch.Tensor,
+        top_indices: torch.Tensor,
+        valid_pair_map: torch.Tensor,
+    ) -> torch.Tensor:
         """
         Args:
             cluster_ids: tensor of shape [n_words], containing cluster indices
@@ -472,21 +520,19 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 containing 1 at position [i, j] if i-th and j-th words corefer.
         """
         y = cluster_ids[top_indices] * valid_pair_map  # [n_words, n_ants]
-        y[y == 0] = -1                                 # -1 for non-gold words
-        y = utils.add_dummy(y)                         # [n_words, n_cands + 1]
-        y = (y == cluster_ids.unsqueeze(1))            # True if coreferent
+        y[y == 0] = -1  # -1 for non-gold words
+        y = utils.add_dummy(y)  # [n_words, n_cands + 1]
+        y = y == cluster_ids.unsqueeze(1)  # True if coreferent
         # For all rows with no gold antecedents setting dummy to True
         y[y.sum(dim=1) == 0, 0] = True
         return y.to(torch.float)
 
     @staticmethod
-    def _load_config(config_path: str,
-                     section: str) -> Config:
+    def _load_config(config_path: str, section: str) -> Config:
         config = toml.load(config_path)
         default_section = config["DEFAULT"]
         current_section = config[section]
-        unknown_keys = (set(current_section.keys())
-                        - set(default_section.keys()))
+        unknown_keys = set(current_section.keys()) - set(default_section.keys())
         if unknown_keys:
             raise ValueError(f"Unexpected config keys: {unknown_keys}")
         return Config(section, **{**default_section, **current_section})
@@ -499,22 +545,27 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     def _tokenize_docs(self, path: str) -> List[Doc]:
         print(f"Tokenizing documents at {path}...", flush=True)
         out: List[Doc] = []
-        filter_func = TOKENIZER_FILTERS.get(self.config.bert_model,
-                                            lambda _: True)
+        filter_func = TOKENIZER_FILTERS.get(self.config.bert_model, lambda _: True)
         token_map = TOKENIZER_MAPS.get(self.config.bert_model, {})
         with jsonlines.open(path, mode="r") as data_f:
             for doc in data_f:
-                doc["span_clusters"] = [[tuple(mention) for mention in cluster]
-                                   for cluster in doc["span_clusters"]]
+                doc["span_clusters"] = [
+                    [tuple(mention) for mention in cluster]
+                    for cluster in doc["span_clusters"]
+                ]
                 word2subword = []
                 subwords = []
                 word_id = []
                 for i, word in enumerate(doc["cased_words"]):
-                    tokenized_word = (token_map[word]
-                                      if word in token_map
-                                      else self.tokenizer.tokenize(word))
+                    tokenized_word = (
+                        token_map[word]
+                        if word in token_map
+                        else self.tokenizer.tokenize(word)
+                    )
                     tokenized_word = list(filter(filter_func, tokenized_word))
-                    word2subword.append((len(subwords), len(subwords) + len(tokenized_word)))
+                    word2subword.append(
+                        (len(subwords), len(subwords) + len(tokenized_word))
+                    )
                     subwords.extend(tokenized_word)
                     word_id.extend([i] * len(tokenized_word))
                 doc["word2subword"] = word2subword

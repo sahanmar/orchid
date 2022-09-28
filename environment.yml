@@ -4,6 +4,8 @@ dependencies:
   - python=3.7
   - openjdk
   - perl
+  - black
+  - mypy
   - pip:
     - -f https://download.pytorch.org/whl/torch_stable.html
     - torch==1.4.0

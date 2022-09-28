@@ -9,17 +9,16 @@ from coref.tokenizer_customization import *
 
 
 def build_doc(doc: dict, model: CorefModel) -> dict:
-    filter_func = TOKENIZER_FILTERS.get(model.config.bert_model,
-                                        lambda _: True)
+    filter_func = TOKENIZER_FILTERS.get(model.config.bert_model, lambda _: True)
     token_map = TOKENIZER_MAPS.get(model.config.bert_model, {})
 
     word2subword = []
     subwords = []
     word_id = []
     for i, word in enumerate(doc["cased_words"]):
-        tokenized_word = (token_map[word]
-                          if word in token_map
-                          else model.tokenizer.tokenize(word))
+        tokenized_word = (
+            token_map[word] if word in token_map else model.tokenizer.tokenize(word)
+        )
         tokenized_word = list(filter(filter_func, tokenized_word))
         word2subword.append((len(subwords), len(subwords) + len(tokenized_word)))
         subwords.extend(tokenized_word)
@@ -43,14 +42,19 @@ if __name__ == "__main__":
     argparser.add_argument("input_file")
     argparser.add_argument("output_file")
     argparser.add_argument("--config-file", default="config.toml")
-    argparser.add_argument("--batch-size", type=int,
-                           help="Adjust to override the config value if you're"
-                                " experiencing out-of-memory issues")
-    argparser.add_argument("--weights",
-                           help="Path to file with weights to load."
-                                " If not supplied, in the latest"
-                                " weights of the experiment will be loaded;"
-                                " if there aren't any, an error is raised.")
+    argparser.add_argument(
+        "--batch-size",
+        type=int,
+        help="Adjust to override the config value if you're"
+        " experiencing out-of-memory issues",
+    )
+    argparser.add_argument(
+        "--weights",
+        help="Path to file with weights to load."
+        " If not supplied, in the latest"
+        " weights of the experiment will be loaded;"
+        " if there aren't any, an error is raised.",
+    )
     args = argparser.parse_args()
 
     model = CorefModel(args.config_file, args.experiment)
@@ -58,9 +62,16 @@ if __name__ == "__main__":
     if args.batch_size:
         model.config.a_scoring_batch_size = args.batch_size
 
-    model.load_weights(path=args.weights, map_location="cpu",
-                       ignore={"bert_optimizer", "general_optimizer",
-                               "bert_scheduler", "general_scheduler"})
+    model.load_weights(
+        path=args.weights,
+        map_location="cpu",
+        ignore={
+            "bert_optimizer",
+            "general_optimizer",
+            "bert_scheduler",
+            "general_scheduler",
+        },
+    )
     model.training = False
 
     with jsonlines.open(args.input_file, mode="r") as input_data:
