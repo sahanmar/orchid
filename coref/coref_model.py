@@ -49,8 +49,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         sp (SpanPredictor)
     """
     def __init__(self,
-                 config_path: str,
-                 section: str,
+                 config: Config,
                  epochs_trained: int = 0):
         """
         A newly created model is set to evaluation mode.
@@ -61,7 +60,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             epochs_trained (int): the number of epochs finished
                 (useful for warm start)
         """
-        self.config = CorefModel._load_config(config_path, section)
+        self.config = config
         self.epochs_trained = epochs_trained
         self._docs: Dict[str, List[Doc]] = {}
         self._build_model()
@@ -101,6 +100,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         self.training = False
         w_checker = ClusterChecker()
         s_checker = ClusterChecker()
+        # TODO make the data load nicer. Looks bad.
         docs = self._get_docs(self.config.__dict__[f"{data_split}_data"])
         running_loss = 0.0
         s_correct = 0
@@ -376,7 +376,11 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         }
 
     def _build_optimizers(self):
-        n_docs = len(self._get_docs(self.config.train_data))
+        # This is very bad. Caching the entire dataset in order to get
+        # the number of docs. 
+        # TODO see if this doesn't break smth
+        #n_docs = len(self._get_docs(self.config.train_data))
+        n_docs = self.config.num_of_training_docs
         self.optimizers: Dict[str, torch.optim.Optimizer] = {}
         self.schedulers: Dict[str, torch.optim.lr_scheduler.LambdaLR] = {}
 

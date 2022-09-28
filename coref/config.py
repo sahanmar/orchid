@@ -3,8 +3,9 @@
 For description of all config values, refer to config.toml.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict
+from pathlib import Path
 
 
 @dataclass
@@ -17,6 +18,10 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     train_data: str
     dev_data: str
     test_data: str
+    # TODO This doesnt look like a good fit. Maybe config override for test purposes?
+    pipeline_test_data: str
+
+    num_of_training_docs: int = field(init=False)
 
     device: str
 
@@ -42,3 +47,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
     tokenizer_kwargs: Dict[str, dict]
     conll_log_dir: str
+
+    def __post_init__(self):
+        with open(Path(self.train_data), "r") as f:
+            self.num_of_training_docs =  sum(1 for _ in f)
+        

@@ -1,0 +1,16 @@
+name: orchid
+
+dependencies:
+  - python=3.7
+  - openjdk
+  - perl
+  - pip:
+    - -f https://download.pytorch.org/whl/torch_stable.html
+    - torch==1.4.0
+    - torchvision==0.10.0+cu111
+    - torch==1.9.0+cu111 
+    - torchaudio==0.9.0
+    - jsonlines
+    - toml
+    - pytest
+    - transformers==3.2.0

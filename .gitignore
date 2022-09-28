@@ -1,0 +1,10 @@
+# system files
+.DS_Store
+__pycache__/
+
+# private data, except of the pipeline test snippet
+data/*
+!data/english_pipeline_test_head.jsonlines
+
+# big cached data
+*.pickle
