@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np  # type: ignore
 import jsonlines  # type: ignore
-import toml
 import torch
 from tqdm import tqdm  # type: ignore
 import transformers  # type: ignore
@@ -526,16 +525,6 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # For all rows with no gold antecedents setting dummy to True
         y[y.sum(dim=1) == 0, 0] = True
         return y.to(torch.float)
-
-    @staticmethod
-    def _load_config(config_path: str, section: str) -> Config:
-        config = toml.load(config_path)
-        default_section = config["DEFAULT"]
-        current_section = config[section]
-        unknown_keys = set(current_section.keys()) - set(default_section.keys())
-        if unknown_keys:
-            raise ValueError(f"Unexpected config keys: {unknown_keys}")
-        return Config(section, **{**default_section, **current_section})
 
     def _set_training(self, value: bool):
         self._training = value

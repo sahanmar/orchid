@@ -2,9 +2,10 @@
 
 For description of all config values, refer to config.toml.
 """
+import toml
 
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Optional
 from pathlib import Path
 
 
@@ -52,3 +53,19 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     def __post_init__(self):
         with open(Path(self.train_data), "r") as f:
             self.num_of_training_docs = sum(1 for _ in f)
+
+    @staticmethod
+    def load_config(config_path: str, section: str = "roberta") -> "Config":
+        config = toml.load(config_path)
+        default_section = config["DEFAULT"]
+        current_section = config[section]
+        unknown_keys = set(current_section.keys()) - set(default_section.keys())
+        if unknown_keys:
+            raise ValueError(f"Unexpected config keys: {unknown_keys}")
+        return Config(section, **{**default_section, **current_section})
+
+    @staticmethod
+    def load_default_config(section: Optional[str]) -> "Config":
+        if section is not None:
+            return Config.load_config("config.toml", section)
+        return Config.load_config("config.toml")
