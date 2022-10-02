@@ -11,8 +11,6 @@ data_dir = "data"
 train_data = "data/english_train_head.jsonlines"
 dev_data = "data/english_development_head.jsonlines"
 test_data = "data/english_test_head.jsonlines"
-# path to the test file for a pipeline test
-pipeline_test_data = "data/english_pipeline_test_head.jsonlines"
 
 # The device where everything is to be placed. "cuda:N"/"cpu" are supported.
 device = "cuda"
@@ -124,7 +122,9 @@ bert_window_size = 2048
 [debug]
 bert_window_size = 384
 bert_finetune = false
-device = "cpu:0"
+device = "cpu"
+# path to the test file for a pipeline test
+test_data = "data/english_pipeline_test_head.jsonlines"
 
 [debug_gpu]
 bert_window_size = 384

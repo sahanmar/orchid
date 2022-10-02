@@ -15,6 +15,7 @@ import torch  # type: ignore
 
 from coref import CorefModel
 from coref.config import Config
+from data.data_utils import get_docs, DataType
 
 
 @contextmanager
@@ -44,14 +45,6 @@ if __name__ == "__main__":
     argparser.add_argument("mode", choices=("train", "eval"))
     argparser.add_argument("experiment")
     argparser.add_argument("--config-file", default="config.toml")
-    argparser.add_argument(
-        "--data-split",
-        choices=("train", "dev", "test"),
-        default="test",
-        help="Data split to be used for evaluation."
-        " Defaults to 'test'."
-        " Ignored in 'train' mode.",
-    )
     argparser.add_argument(
         "--batch-size",
         type=int,
@@ -90,8 +83,15 @@ if __name__ == "__main__":
         sys.exit(1)
 
     seed(2020)
+
+    # Load config
     config = Config.load_config(args.config_file, args.experiment)
     model = CorefModel(config)
+
+    # Load data
+    train_data = get_docs(DataType.train)
+    test_data = get_docs(DataType.test)
+    dev_data = get_docs(DataType.dev)
 
     # TODO must be also in config
     if args.batch_size:
@@ -105,7 +105,7 @@ if __name__ == "__main__":
                 noexception=args.warm_start,
             )
         with output_running_time():
-            model.train()
+            model.train(train_data)
     else:
         model.load_weights(
             path=args.weights,
@@ -117,4 +117,4 @@ if __name__ == "__main__":
                 "general_scheduler",
             },
         )
-        model.evaluate(data_split=args.data_split, word_level_conll=args.word_level)
+        model.evaluate(dev_data, word_level_conll=args.word_level)

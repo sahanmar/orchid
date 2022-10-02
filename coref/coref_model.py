@@ -82,7 +82,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
     @torch.no_grad()
     def evaluate(
-        self, data_split: str = "dev", word_level_conll: bool = False
+        self, docs: List[Doc], word_level_conll: bool = False
     ) -> Tuple[float, Tuple[float, float, float]]:
         """Evaluates the modes on the data split provided.
 
@@ -97,13 +97,12 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         self.training = False
         w_checker = ClusterChecker()
         s_checker = ClusterChecker()
-        # TODO make the data load nicer. Looks bad.
-        docs = self._get_docs(self.config.__dict__[f"{data_split}_data"])
         running_loss = 0.0
         s_correct = 0
         s_total = 0
 
-        with conll.open_(self.config, self.epochs_trained, data_split) as (
+        # TODO think about the hardcoded 'dev'
+        with conll.open_(self.config, self.epochs_trained, "dev") as (
             gold_f,
             pred_f,
         ):
@@ -155,7 +154,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 del res
 
                 pbar.set_description(
-                    f"{data_split}:"
+                    f"{'dev'}:"
                     f" | WL: "
                     f" loss: {running_loss / (pbar.n + 1):<.5f},"
                     f" f1: {w_lea[0]:.5f},"
@@ -295,11 +294,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         savedict["epochs_trained"] = self.epochs_trained  # type: ignore
         torch.save(savedict, path)
 
-    def train(self):
+    def train(self, docs: List[Doc]):
         """
         Trains all the trainable blocks in the model using the config provided.
         """
-        docs = list(self._get_docs(self.config.train_data))
         docs_ids = list(range(len(docs)))
         avg_spans = sum(len(doc["head2span"]) for doc in docs) / len(docs)
 
