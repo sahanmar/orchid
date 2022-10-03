@@ -35,7 +35,7 @@ def tokenize_docs(path: Path, config: Config) -> List[Doc]:
                 tokenized_word = (
                     token_map[word]
                     if word in token_map
-                    else config.tokenizer.tokenize(word)
+                    else config.model_bank.tokenizer.tokenize(word)
                 )
                 tokenized_word = list(filter(filter_func, tokenized_word))
                 word2subword.append(

@@ -7,9 +7,13 @@ import toml
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 from pathlib import Path
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModel
 from coref import bert
 
+@dataclass
+class ModelConfig:
+    encoder: AutoModel
+    tokenizer: AutoTokenizer
 
 @dataclass
 class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-methods
@@ -48,14 +52,17 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     bce_loss_weight: float
 
     tokenizer_kwargs: Dict[str, dict]
-    tokenizer: AutoTokenizer = field(init=False)
+
+    model_bank: ModelConfig = field(init=False)
 
     conll_log_dir: str
 
     def __post_init__(self):
         with open(self.train_data, "r") as f:
             self.num_of_training_docs = sum(1 for _ in f)
-        _, self.tokenizer = bert.load_bert(self)
+        encoder, tokenizer = bert.load_bert(self)
+        self.model_bank =  ModelConfig(encoder, tokenizer)
+
 
     @staticmethod
     def load_config(config_path: str, section: str = "roberta") -> "Config":

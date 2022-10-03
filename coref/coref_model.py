@@ -387,7 +387,8 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         return out[subword_mask_tensor]
 
     def _build_model(self):
-        self.bert, self.tokenizer = bert.load_bert(self.config)
+        self.bert = self.config.model_bank.encoder
+        self.tokenizer = self.config.model_bank.tokenizer
         self.pw = PairwiseEncoder(self.config).to(self.config.device)
 
         bert_emb = self.bert.config.hidden_size
@@ -482,20 +483,6 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 clusters.append(sorted(cluster))
         return sorted(clusters)
 
-    def _get_docs(self, path: str) -> List[Doc]:
-        if path not in self._docs:
-            basename = os.path.basename(path)
-            model_name = self.config.bert_model.replace("/", "_")
-            cache_filename = f"{model_name}_{basename}.pickle"
-            if os.path.exists(cache_filename):
-                with open(cache_filename, mode="rb") as cache_f:
-                    self._docs[path] = pickle.load(cache_f)
-            else:
-                self._docs[path] = self._tokenize_docs(path)
-                with open(cache_filename, mode="wb") as cache_f:
-                    pickle.dump(self._docs[path], cache_f)
-        return self._docs[path]
-
     @staticmethod
     def _get_ground_truth(
         cluster_ids: torch.Tensor,
@@ -529,35 +516,3 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         for module in self.trainable.values():
             module.train(self._training)
 
-    def _tokenize_docs(self, path: str) -> List[Doc]:
-        print(f"Tokenizing documents at {path}...", flush=True)
-        out: List[Doc] = []
-        filter_func = TOKENIZER_FILTERS.get(self.config.bert_model, lambda _: True)
-        token_map = TOKENIZER_MAPS.get(self.config.bert_model, {})
-        with jsonlines.open(path, mode="r") as data_f:
-            for doc in data_f:
-                doc["span_clusters"] = [
-                    [tuple(mention) for mention in cluster]
-                    for cluster in doc["span_clusters"]
-                ]
-                word2subword = []
-                subwords = []
-                word_id = []
-                for i, word in enumerate(doc["cased_words"]):
-                    tokenized_word = (
-                        token_map[word]
-                        if word in token_map
-                        else self.tokenizer.tokenize(word)
-                    )
-                    tokenized_word = list(filter(filter_func, tokenized_word))
-                    word2subword.append(
-                        (len(subwords), len(subwords) + len(tokenized_word))
-                    )
-                    subwords.extend(tokenized_word)
-                    word_id.extend([i] * len(tokenized_word))
-                doc["word2subword"] = word2subword
-                doc["subwords"] = subwords
-                doc["word_id"] = word_id
-                out.append(doc)
-        print("Tokenization OK", flush=True)
-        return out
