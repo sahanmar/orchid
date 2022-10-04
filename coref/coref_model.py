@@ -64,7 +64,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         self._build_model()
         self._build_optimizers()
         self._set_training(False)
-        self._coref_criterion = CorefLoss(self.config.bce_loss_weight)
+        self._coref_criterion = CorefLoss(self.config.training_params.bce_loss_weight)
         self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
     @property
@@ -240,7 +240,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # Get pairwise features [n_words, n_ants, n_pw_features]
         pw = self.pw(top_indices, doc)
 
-        batch_size = self.config.a_scoring_batch_size
+        batch_size = self.config.model_params.a_scoring_batch_size
         a_scores_lst: List[torch.Tensor] = []
 
         for i in range(0, len(words), batch_size):
@@ -371,15 +371,21 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         subword_mask = ~(np.isin(subwords_batches, special_tokens))
 
         subwords_batches_tensor = torch.tensor(
-            subwords_batches, device=self.config.device, dtype=torch.long
+            subwords_batches,
+            device=self.config.training_params.device,
+            dtype=torch.long,
         )
-        subword_mask_tensor = torch.tensor(subword_mask, device=self.config.device)
+        subword_mask_tensor = torch.tensor(
+            subword_mask, device=self.config.training_params.device
+        )
 
         # Obtain bert output for selected batches only
         attention_mask = subwords_batches != self.tokenizer.pad_token_id
         out, _ = self.bert(
             subwords_batches_tensor,
-            attention_mask=torch.tensor(attention_mask, device=self.config.device),
+            attention_mask=torch.tensor(
+                attention_mask, device=self.config.training_params.device
+            ),
         )
         del _
 
@@ -389,18 +395,24 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     def _build_model(self):
         self.bert = self.config.model_bank.encoder
         self.tokenizer = self.config.model_bank.tokenizer
-        self.pw = PairwiseEncoder(self.config).to(self.config.device)
+        self.pw = PairwiseEncoder(self.config).to(self.config.training_params.device)
 
         bert_emb = self.bert.config.hidden_size
         pair_emb = bert_emb * 3 + self.pw.shape
 
         # pylint: disable=line-too-long
-        self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(self.config.device)
-        self.we = WordEncoder(bert_emb, self.config).to(self.config.device)
-        self.rough_scorer = RoughScorer(bert_emb, self.config).to(self.config.device)
-        self.sp = SpanPredictor(bert_emb, self.config.sp_embedding_size).to(
-            self.config.device
+        self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(
+            self.config.training_params.device
         )
+        self.we = WordEncoder(bert_emb, self.config).to(
+            self.config.training_params.device
+        )
+        self.rough_scorer = RoughScorer(bert_emb, self.config).to(
+            self.config.training_params.device
+        )
+        self.sp = SpanPredictor(
+            bert_emb, self.config.model_params.sp_embedding_size
+        ).to(self.config.training_params.device)
 
         self.trainable: Dict[str, torch.nn.Module] = {
             "bert": self.bert,
@@ -416,23 +428,24 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # the number of docs.
         # TODO see if this doesn't break smth
         # n_docs = len(self._get_docs(self.config.train_data))
-        n_docs = self.config.num_of_training_docs
+        n_docs = self.config.data.num_of_training_docs
         self.optimizers: Dict[str, torch.optim.Optimizer] = {}
         self.schedulers: Dict[str, torch.optim.lr_scheduler.LambdaLR] = {}
 
         for param in self.bert.parameters():
-            param.requires_grad = self.config.bert_finetune
+            param.requires_grad = self.config.training_params.bert_finetune
 
-        if self.config.bert_finetune:
+        if self.config.training_params.bert_finetune:
             self.optimizers["bert_optimizer"] = torch.optim.Adam(
-                self.bert.parameters(), lr=self.config.bert_learning_rate
+                self.bert.parameters(),
+                lr=self.config.training_params.bert_learning_rate,
             )
             self.schedulers[
                 "bert_scheduler"
             ] = transformers.get_linear_schedule_with_warmup(
                 self.optimizers["bert_optimizer"],
                 n_docs,
-                n_docs * self.config.train_epochs,
+                n_docs * self.config.training_params.train_epochs,
             )
 
         # Must ensure the same ordering of parameters between launches
@@ -446,14 +459,14 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 params.append(param)
 
         self.optimizers["general_optimizer"] = torch.optim.Adam(
-            params, lr=self.config.learning_rate
+            params, lr=self.config.training_params.learning_rate
         )
         self.schedulers[
             "general_scheduler"
         ] = transformers.get_linear_schedule_with_warmup(
             self.optimizers["general_optimizer"],
             0,
-            n_docs * self.config.train_epochs,
+            n_docs * self.config.training_params.train_epochs,
         )
 
     def _clusterize(self, doc: Doc, scores: torch.Tensor, top_indices: torch.Tensor):
@@ -515,4 +528,3 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         self._training = value
         for module in self.trainable.values():
             module.train(self._training)
-

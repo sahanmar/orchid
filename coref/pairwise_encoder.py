@@ -19,7 +19,7 @@ class PairwiseEncoder(torch.nn.Module):
 
     def __init__(self, config: Config):
         super().__init__()
-        emb_size = config.embedding_size
+        emb_size = config.model_params.embedding_size
 
         self.genre2int = {
             g: gi for gi, g in enumerate(["bc", "bn", "mz", "nw", "pt", "tc", "wb"])
@@ -34,7 +34,7 @@ class PairwiseEncoder(torch.nn.Module):
         # two possibilities: same vs different speaker
         self.speaker_emb = torch.nn.Embedding(2, emb_size)
 
-        self.dropout = torch.nn.Dropout(config.dropout_rate)
+        self.dropout = torch.nn.Dropout(config.training_params.dropout_rate)
         self.shape = emb_size * 3  # genre, distance, speaker\
 
     @property
