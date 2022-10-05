@@ -1,3 +1,7 @@
+"""
+This module is responsible for reading json-line data and its tokenization.
+"""
+
 import pickle
 import jsonlines
 
