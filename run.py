@@ -84,7 +84,8 @@ if __name__ == "__main__":
 
     if args.warm_start and args.weights is not None:
         print(
-            "The following options are incompatible:" " '--warm_start' and '--weights'",
+            "The following options are incompatible:"
+            " '--warm_start' and '--weights'",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -117,4 +118,6 @@ if __name__ == "__main__":
                 "general_scheduler",
             },
         )
-        model.evaluate(data_split=args.data_split, word_level_conll=args.word_level)
+        model.evaluate(
+            data_split=args.data_split, word_level_conll=args.word_level
+        )

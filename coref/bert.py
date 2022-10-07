@@ -9,7 +9,9 @@ from coref.config import Config
 from coref.const import Doc
 
 
-def get_subwords_batches(doc: Doc, config: Config, tok: AutoTokenizer) -> np.ndarray:
+def get_subwords_batches(
+    doc: Doc, config: Config, tok: AutoTokenizer
+) -> np.ndarray:
     """
     Turns a list of subwords to a list of lists of subword indices
     of max length == batch_size (or shorter, as batch boundaries
@@ -43,7 +45,9 @@ def get_subwords_batches(doc: Doc, config: Config, tok: AutoTokenizer) -> np.nda
         batch += [tok.pad_token] * (batch_size - length)
         batch_ids += [-1] * (batch_size - length)
 
-        subwords_batches.append([tok.convert_tokens_to_ids(token) for token in batch])
+        subwords_batches.append(
+            [tok.convert_tokens_to_ids(token) for token in batch]
+        )
         start += length
 
     return np.array(subwords_batches)
@@ -61,7 +65,9 @@ def load_bert(config: Config) -> Tuple[AutoModel, AutoTokenizer]:
     tokenizer_kwargs = config.tokenizer_kwargs.get(base_bert_name, {})
     if tokenizer_kwargs:
         print(f"Using tokenizer kwargs: {tokenizer_kwargs}")
-    tokenizer = AutoTokenizer.from_pretrained(config.bert_model, **tokenizer_kwargs)
+    tokenizer = AutoTokenizer.from_pretrained(
+        config.bert_model, **tokenizer_kwargs
+    )
 
     model = AutoModel.from_pretrained(config.bert_model).to(config.device)
 

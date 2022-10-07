@@ -57,7 +57,9 @@ class CorefSpansHolder:
                 self.starts[entity_id].append(word_id)
         elif coref_info[-1] == ")":
             entity_id = int(coref_info[:-1])
-            self.spans[entity_id].append([self.starts[entity_id].pop(), word_id + 1])
+            self.spans[entity_id].append(
+                [self.starts[entity_id].pop(), word_id + 1]
+            )
         else:
             raise ValueError(f"Invalid coref_info: {coref_info}")
 
@@ -70,7 +72,9 @@ def build_jsonlines(data_dir: str, out_dir: str, tmp_dir: str) -> None:
     print("Building jsonlines...")
     data_dir = os.path.normpath(data_dir)
 
-    fidx = open(os.path.join(tmp_dir, DEPS_IDX_FILENAME), mode="r", encoding="utf8")
+    fidx = open(
+        os.path.join(tmp_dir, DEPS_IDX_FILENAME), mode="r", encoding="utf8"
+    )
     out = {
         split_type: jsonlines.open(
             os.path.join(out_dir, f"english_{split_type}.jsonlines"),
@@ -81,7 +85,9 @@ def build_jsonlines(data_dir: str, out_dir: str, tmp_dir: str) -> None:
     }
 
     # This here is memory-unfriendly, but should be fine for most
-    with open(os.path.join(tmp_dir, DEPS_FILENAME), mode="r", encoding="utf8") as fgold:
+    with open(
+        os.path.join(tmp_dir, DEPS_FILENAME), mode="r", encoding="utf8"
+    ) as fgold:
         gold_sents_gen = re.finditer(DEP_SENT_PATTERN, fgold.read())
 
     for line in fidx:
@@ -219,7 +225,9 @@ def extract_trees_from_file(fileobj: TextIO) -> Generator[str, None, None]:
     yield "".join(current_parse)
 
 
-def extract_trees_to_files(dest_dir: str, filenames: Dict[str, List[str]]) -> None:
+def extract_trees_to_files(
+    dest_dir: str, filenames: Dict[str, List[str]]
+) -> None:
     """
     Creates files names like filenames in dest_dir, writing to each file
     constituency trees line by line.
@@ -298,7 +306,9 @@ def merge_dep_files(temp_dir: str, filenames: Dict[str, List[str]]) -> None:
     fidx.close()
 
 
-def split_jsonlines(out_dir: str, tmp_dir: str, language: str = "english") -> None:
+def split_jsonlines(
+    out_dir: str, tmp_dir: str, language: str = "english"
+) -> None:
     """Splits jsonlines located in tmp_dir and writes them to out_dir.
     Splitting means separating different parts of the same document into
     multiple jsonlines."""
@@ -357,7 +367,8 @@ def split_one_jsonline(doc: dict):
             "pos": doc["pos"][start:end],
             "deprel": doc["deprel"][start:end],
             "head": [
-                (h - start) if h is not None else h for h in doc["head"][start:end]
+                (h - start) if h is not None else h
+                for h in doc["head"][start:end]
             ],
             "clusters": [],
         }
@@ -389,7 +400,9 @@ if __name__ == "__main__":
     argparser.add_argument(
         "--tmp-dir",
         default="temp",
-        help="A directory to" " keep temporary files in." " Defaults to 'temp'.",
+        help="A directory to"
+        " keep temporary files in."
+        " Defaults to 'temp'.",
     )
     argparser.add_argument(
         "--keep-tmp-dir",

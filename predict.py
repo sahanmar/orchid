@@ -17,10 +17,14 @@ def build_doc(doc: dict, model: CorefModel) -> dict:
     word_id = []
     for i, word in enumerate(doc["cased_words"]):
         tokenized_word = (
-            token_map[word] if word in token_map else model.tokenizer.tokenize(word)
+            token_map[word]
+            if word in token_map
+            else model.tokenizer.tokenize(word)
         )
         tokenized_word = list(filter(filter_func, tokenized_word))
-        word2subword.append((len(subwords), len(subwords) + len(tokenized_word)))
+        word2subword.append(
+            (len(subwords), len(subwords) + len(tokenized_word))
+        )
         subwords.extend(tokenized_word)
         word_id.extend([i] * len(tokenized_word))
     doc["word2subword"] = word2subword

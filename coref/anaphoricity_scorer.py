@@ -19,7 +19,9 @@ class AnaphoricityScorer(torch.nn.Module):
         for i in range(config.n_hidden_layers):
             layers.extend(
                 [
-                    torch.nn.Linear(hidden_size if i else in_features, hidden_size),
+                    torch.nn.Linear(
+                        hidden_size if i else in_features, hidden_size
+                    ),
                     torch.nn.LeakyReLU(),
                     torch.nn.Dropout(config.dropout_rate),
                 ]

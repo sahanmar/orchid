@@ -119,7 +119,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     pred_starts = res.span_scores[:, :, 0].argmax(dim=1)
                     pred_ends = res.span_scores[:, :, 1].argmax(dim=1)
                     s_correct += (
-                        ((res.span_y[0] == pred_starts) * (res.span_y[1] == pred_ends))
+                        (
+                            (res.span_y[0] == pred_starts)
+                            * (res.span_y[1] == pred_ends)
+                        )
                         .sum()
                         .item()
                     )
@@ -146,10 +149,14 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     conll.write_conll(doc, doc["span_clusters"], gold_f)
                     conll.write_conll(doc, res.span_clusters, pred_f)
 
-                w_checker.add_predictions(doc["word_clusters"], res.word_clusters)
+                w_checker.add_predictions(
+                    doc["word_clusters"], res.word_clusters
+                )
                 w_lea = w_checker.total_lea
 
-                s_checker.add_predictions(doc["span_clusters"], res.span_clusters)
+                s_checker.add_predictions(
+                    doc["span_clusters"], res.span_clusters
+                )
                 s_lea = s_checker.total_lea
 
                 del res
@@ -361,7 +368,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     # ========================================================= Private methods
 
     def _bertify(self, doc: Doc) -> torch.Tensor:
-        subwords_batches = bert.get_subwords_batches(doc, self.config, self.tokenizer)
+        subwords_batches = bert.get_subwords_batches(
+            doc, self.config, self.tokenizer
+        )
 
         special_tokens = np.array(
             [
@@ -375,13 +384,17 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         subwords_batches_tensor = torch.tensor(
             subwords_batches, device=self.config.device, dtype=torch.long
         )
-        subword_mask_tensor = torch.tensor(subword_mask, device=self.config.device)
+        subword_mask_tensor = torch.tensor(
+            subword_mask, device=self.config.device
+        )
 
         # Obtain bert output for selected batches only
         attention_mask = subwords_batches != self.tokenizer.pad_token_id
         out, _ = self.bert(
             subwords_batches_tensor,
-            attention_mask=torch.tensor(attention_mask, device=self.config.device),
+            attention_mask=torch.tensor(
+                attention_mask, device=self.config.device
+            ),
         )
         del _
 
@@ -396,9 +409,13 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         pair_emb = bert_emb * 3 + self.pw.shape
 
         # pylint: disable=line-too-long
-        self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(self.config.device)
+        self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(
+            self.config.device
+        )
         self.we = WordEncoder(bert_emb, self.config).to(self.config.device)
-        self.rough_scorer = RoughScorer(bert_emb, self.config).to(self.config.device)
+        self.rough_scorer = RoughScorer(bert_emb, self.config).to(
+            self.config.device
+        )
         self.sp = SpanPredictor(bert_emb, self.config.sp_embedding_size).to(
             self.config.device
         )
@@ -438,7 +455,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
         # Must ensure the same ordering of parameters between launches
         modules = sorted(
-            (key, value) for key, value in self.trainable.items() if key != "bert"
+            (key, value)
+            for key, value in self.trainable.items()
+            if key != "bert"
         )
         params = []
         for _, module in modules:
@@ -457,7 +476,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             n_docs * self.config.train_epochs,
         )
 
-    def _clusterize(self, doc: Doc, scores: torch.Tensor, top_indices: torch.Tensor):
+    def _clusterize(
+        self, doc: Doc, scores: torch.Tensor, top_indices: torch.Tensor
+    ):
         antecedents = scores.argmax(dim=1) - 1
         not_dummy = antecedents >= 0
         coref_span_heads = torch.arange(0, len(scores))[not_dummy]
@@ -534,7 +555,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     def _tokenize_docs(self, path: str) -> List[Doc]:
         print(f"Tokenizing documents at {path}...", flush=True)
         out: List[Doc] = []
-        filter_func = TOKENIZER_FILTERS.get(self.config.bert_model, lambda _: True)
+        filter_func = TOKENIZER_FILTERS.get(
+            self.config.bert_model, lambda _: True
+        )
         token_map = TOKENIZER_MAPS.get(self.config.bert_model, {})
         with jsonlines.open(path, mode="r") as data_f:
             for doc in data_f:
