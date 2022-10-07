@@ -47,7 +47,7 @@ class ClusterChecker:
         return doc_f1, doc_precision, doc_recall
 
     @property
-    def total_lea(self):
+    def total_lea(self) -> Tuple[float, float, float]:
         """Returns weighted LEA for all the documents as
         (f1, precision, recall)"""
         precision = self._p / (self._p_weight + EPSILON)

@@ -1,4 +1,5 @@
 import argparse
+from typing import List
 
 import jsonlines
 import torch
@@ -13,7 +14,7 @@ def build_doc(doc: dict, model: CorefModel) -> dict:
     token_map = TOKENIZER_MAPS.get(model.config.bert_model, {})
 
     word2subword = []
-    subwords = []
+    subwords: List[str] = []
     word_id = []
     for i, word in enumerate(doc["cased_words"]):
         tokenized_word = (

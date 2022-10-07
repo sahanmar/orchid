@@ -1,17 +1,17 @@
 """ see __init__.py """
 
-from datetime import datetime
 import os
 import pickle
 import random
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Set, Tuple, Hashable, cast
 
-import numpy as np  # type: ignore
 import jsonlines  # type: ignore
+import numpy as np  # type: ignore
 import torch
-from tqdm import tqdm  # type: ignore
 import transformers  # type: ignore
+from tqdm import tqdm  # type: ignore
 
 from coref import bert, conll, utils
 from coref.anaphoricity_scorer import AnaphoricityScorer
@@ -83,7 +83,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     @torch.no_grad()
     def evaluate(
         self, data_split: str = "dev", word_level_conll: bool = False
-    ) -> Tuple[float, Tuple[float, float, float]]:
+    ) -> Tuple[float, float, float, float]:
         """Evaluates the modes on the data split provided.
 
         Args:
@@ -115,7 +115,11 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     res.coref_scores, res.coref_y
                 ).item()
 
-                if res.span_y:
+                if res.span_y is not None and res.span_y:
+                    if res.span_scores is None:
+                        raise RuntimeError(
+                            f'"span_scores" attribute must be set'
+                        )
                     pred_starts = res.span_scores[:, :, 0].argmax(dim=1)
                     pred_ends = res.span_scores[:, :, 1].argmax(dim=1)
                     s_correct += (
@@ -129,6 +133,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     s_total += len(pred_starts)
 
                 if word_level_conll:
+                    if res.word_clusters is None:
+                        raise RuntimeError(
+                            f'"word_clusters" attribute must be set'
+                        )
                     conll.write_conll(
                         doc,
                         [
@@ -147,15 +155,21 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     )
                 else:
                     conll.write_conll(doc, doc["span_clusters"], gold_f)
+                    if res.span_clusters is None:
+                        raise RuntimeError(
+                            f'"span_clusters" attribute must be set'
+                        )
                     conll.write_conll(doc, res.span_clusters, pred_f)
 
                 w_checker.add_predictions(
-                    doc["word_clusters"], res.word_clusters
+                    doc["word_clusters"],
+                    cast(List[List[Hashable]], res.word_clusters),
                 )
                 w_lea = w_checker.total_lea
 
                 s_checker.add_predictions(
-                    doc["span_clusters"], res.span_clusters
+                    doc["span_clusters"],
+                    cast(List[List[Hashable]], res.span_clusters),
                 )
                 s_lea = s_checker.total_lea
 
@@ -176,7 +190,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 )
             print()
 
-        return (running_loss / len(docs), *s_checker.total_lea)
+        return (
+            float(running_loss / len(docs)),
+            *s_checker.total_lea,
+        )
 
     def load_weights(
         self,
@@ -566,7 +583,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     for cluster in doc["span_clusters"]
                 ]
                 word2subword = []
-                subwords = []
+                subwords: List[int] = []
                 word_id = []
                 for i, word in enumerate(doc["cased_words"]):
                     tokenized_word = (

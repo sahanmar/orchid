@@ -12,7 +12,11 @@ def extract_f1(proc: subprocess.CompletedProcess) -> float:
     for line in str(proc.stdout).splitlines():
         prev_line = curr_line
         curr_line = line
-    return float(re.search(r"F1:\s*([0-9.]+)%", prev_line).group(1))
+    match = re.search(r"F1:\s*([0-9.]+)%", prev_line)
+    if match is not None:
+        return float(match.group(1))
+    else:
+        raise RuntimeError(f"Could not match extract F1 from the subprocess")
 
 
 if __name__ == "__main__":
@@ -35,7 +39,7 @@ if __name__ == "__main__":
     results = []
     for metric in "muc", "ceafe", "bcub":
         results.append(
-            extract_f1(subprocess.run(part_a + [metric] + part_b, **kwargs))
+            extract_f1(subprocess.run(part_a + [metric] + part_b, **kwargs))  # type: ignore[call-overload]
         )
         print(metric, results[-1])
 

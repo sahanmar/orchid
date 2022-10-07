@@ -1,16 +1,15 @@
 import argparse
-from collections import defaultdict
-from itertools import chain
 import os
 import re
 import shutil
 import subprocess
 import sys
-from typing import Dict, Generator, List, TextIO, Union
+from collections import defaultdict
+from itertools import chain
+from typing import Dict, Generator, List, TextIO, Union, Any
 
 import jsonlines
 from tqdm import tqdm
-
 
 DATA_SPLITS = ["development", "test", "train"]
 DEPS_FILENAME = "deps.conllu"
@@ -43,8 +42,8 @@ class CorefSpansHolder:
         """
         Examples of coref_info: "(50)", "(50", "50)", "(50)|(80" etc
         """
-        coref_info = coref_info.split("|")
-        for ci in coref_info:
+        coref_info_split = coref_info.split("|")
+        for ci in coref_info_split:
             self._add_one(ci, word_id)
 
     def _add_one(self, coref_info: str, word_id: int):
@@ -91,9 +90,9 @@ def build_jsonlines(data_dir: str, out_dir: str, tmp_dir: str) -> None:
         gold_sents_gen = re.finditer(DEP_SENT_PATTERN, fgold.read())
 
     for line in fidx:
-        n_sents, filename = line.rstrip().split("\t")
-        n_sents = int(n_sents)
-        sents = [next(gold_sents_gen).group(0) for _ in range(n_sents)]
+        n_sents_str, filename = line.rstrip().split("\t")
+        n_sents_int = int(n_sents_str)
+        sents = [next(gold_sents_gen).group(0) for _ in range(n_sents_int)]
         data = build_one_jsonline(filename, sents)
         out[get_split_type(data_dir, filename)].write(data)
 
@@ -125,7 +124,7 @@ def build_one_jsonline(
         sents = re.findall(SENT_PATTERN, f.read())
         assert len(sents) == len(parsed_sents)
 
-    data = {
+    data: Dict[str, Any] = {
         "document_id": None,
         "cased_words": [],
         "sent_id": [],
@@ -159,8 +158,8 @@ def build_one_jsonline(
 
             # DS indexing starts with 1, zero is reserved for root
             # Converting word_id to continuous id, setting root head to None
-            head = int(p_cols[6]) - 1
-            head = None if head < 0 else total_words + head
+            head_int = int(p_cols[6]) - 1
+            head = None if head_int < 0 else total_words + head_int
 
             if coref_info != "-":
                 coref_spans.add(coref_info, word_id)
@@ -209,7 +208,7 @@ def extract_trees_from_file(fileobj: TextIO) -> Generator[str, None, None]:
     """
     Yields constituency trees from a conll file.
     """
-    current_parse = []
+    current_parse: List[str] = []
     for line in fileobj:
         line = line.lstrip()
         if not line or line[0] == "#":

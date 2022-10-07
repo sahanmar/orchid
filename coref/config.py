@@ -2,11 +2,11 @@
 
 For description of all config values, refer to config.toml.
 """
-import toml
-
 from dataclasses import dataclass, field
-from typing import Dict, Optional
 from pathlib import Path
+from typing import Dict, Optional
+
+import toml  # type: ignore[import]
 
 
 @dataclass

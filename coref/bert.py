@@ -23,7 +23,7 @@ def get_subwords_batches(
     """
     batch_size = config.bert_window_size - 2  # to save space for CLS and SEP
 
-    subwords: List[str] = doc["subwords"]
+    subwords: List[int] = doc["subwords"]
     subwords_batches = []
     start, end = 0, 0
 
