@@ -7,6 +7,7 @@ __pycache__/
 # private data, except of the pipeline test snippet
 data/*
 !data/english_pipeline_test_head.jsonlines
+!data/data_utils.py
 
 # big cached data
 *.pickle

@@ -15,5 +15,6 @@ dependencies:
     - torchaudio==0.9.0
     - jsonlines
     - toml
+    - types-toml
     - pytest
     - transformers==3.2.0
