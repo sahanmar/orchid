@@ -1,6 +1,8 @@
 # system files
 .DS_Store
 __pycache__/
+.mypy_cache/*
+.idea/*
 
 # private data, except of the pipeline test snippet
 data/*
