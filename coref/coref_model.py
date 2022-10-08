@@ -2,13 +2,11 @@
 
 from datetime import datetime
 import os
-import pickle
 import random
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np  # type: ignore
-import jsonlines  # type: ignore
 import torch
 from tqdm import tqdm  # type: ignore
 import transformers  # type: ignore
@@ -82,7 +80,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
     @torch.no_grad()
     def evaluate(
-        self, data_split: str = "dev", word_level_conll: bool = False
+        self, docs: List[Doc], word_level_conll: bool = False
     ) -> Tuple[float, Tuple[float, float, float]]:
         """Evaluates the modes on the data split provided.
 
@@ -97,13 +95,12 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         self.training = False
         w_checker = ClusterChecker()
         s_checker = ClusterChecker()
-        # TODO make the data load nicer. Looks bad.
-        docs = self._get_docs(self.config.__dict__[f"{data_split}_data"])
         running_loss = 0.0
         s_correct = 0
         s_total = 0
 
-        with conll.open_(self.config, self.epochs_trained, data_split) as (
+        # TODO think about the hardcoded 'dev'
+        with conll.open_(self.config, self.epochs_trained, "dev") as (
             gold_f,
             pred_f,
         ):
@@ -155,7 +152,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 del res
 
                 pbar.set_description(
-                    f"{data_split}:"
+                    f"{'dev'}:"
                     f" | WL: "
                     f" loss: {running_loss / (pbar.n + 1):<.5f},"
                     f" f1: {w_lea[0]:.5f},"
@@ -295,11 +292,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         savedict["epochs_trained"] = self.epochs_trained  # type: ignore
         torch.save(savedict, path)
 
-    def train(self):
+    def train(self, docs: List[Doc]):
         """
         Trains all the trainable blocks in the model using the config provided.
         """
-        docs = list(self._get_docs(self.config.train_data))
         docs_ids = list(range(len(docs)))
         avg_spans = sum(len(doc["head2span"]) for doc in docs) / len(docs)
 
@@ -389,7 +385,8 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         return out[subword_mask_tensor]
 
     def _build_model(self):
-        self.bert, self.tokenizer = bert.load_bert(self.config)
+        self.bert = self.config.model_bank.encoder
+        self.tokenizer = self.config.model_bank.tokenizer
         self.pw = PairwiseEncoder(self.config).to(self.config.device)
 
         bert_emb = self.bert.config.hidden_size
@@ -484,20 +481,6 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 clusters.append(sorted(cluster))
         return sorted(clusters)
 
-    def _get_docs(self, path: str) -> List[Doc]:
-        if path not in self._docs:
-            basename = os.path.basename(path)
-            model_name = self.config.bert_model.replace("/", "_")
-            cache_filename = f"{model_name}_{basename}.pickle"
-            if os.path.exists(cache_filename):
-                with open(cache_filename, mode="rb") as cache_f:
-                    self._docs[path] = pickle.load(cache_f)
-            else:
-                self._docs[path] = self._tokenize_docs(path)
-                with open(cache_filename, mode="wb") as cache_f:
-                    pickle.dump(self._docs[path], cache_f)
-        return self._docs[path]
-
     @staticmethod
     def _get_ground_truth(
         cluster_ids: torch.Tensor,
@@ -531,35 +514,3 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         for module in self.trainable.values():
             module.train(self._training)
 
-    def _tokenize_docs(self, path: str) -> List[Doc]:
-        print(f"Tokenizing documents at {path}...", flush=True)
-        out: List[Doc] = []
-        filter_func = TOKENIZER_FILTERS.get(self.config.bert_model, lambda _: True)
-        token_map = TOKENIZER_MAPS.get(self.config.bert_model, {})
-        with jsonlines.open(path, mode="r") as data_f:
-            for doc in data_f:
-                doc["span_clusters"] = [
-                    [tuple(mention) for mention in cluster]
-                    for cluster in doc["span_clusters"]
-                ]
-                word2subword = []
-                subwords = []
-                word_id = []
-                for i, word in enumerate(doc["cased_words"]):
-                    tokenized_word = (
-                        token_map[word]
-                        if word in token_map
-                        else self.tokenizer.tokenize(word)
-                    )
-                    tokenized_word = list(filter(filter_func, tokenized_word))
-                    word2subword.append(
-                        (len(subwords), len(subwords) + len(tokenized_word))
-                    )
-                    subwords.extend(tokenized_word)
-                    word_id.extend([i] * len(tokenized_word))
-                doc["word2subword"] = word2subword
-                doc["subwords"] = subwords
-                doc["word_id"] = word_id
-                out.append(doc)
-        print("Tokenization OK", flush=True)
-        return out

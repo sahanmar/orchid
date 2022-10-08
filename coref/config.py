@@ -5,9 +5,15 @@ For description of all config values, refer to config.toml.
 import toml
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 from pathlib import Path
+from transformers import AutoTokenizer, AutoModel
+from coref import bert
 
+@dataclass
+class ModelConfig:
+    encoder: AutoModel
+    tokenizer: AutoTokenizer
 
 @dataclass
 class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-methods
@@ -17,11 +23,9 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
     data_dir: str
 
-    train_data: str
-    dev_data: str
-    test_data: str
-    # TODO This doesnt look like a good fit. Maybe config override for test purposes?
-    pipeline_test_data: str
+    train_data: Path
+    dev_data: Path
+    test_data: Path
 
     num_of_training_docs: int = field(init=False)
 
@@ -48,11 +52,17 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     bce_loss_weight: float
 
     tokenizer_kwargs: Dict[str, dict]
+
+    model_bank: ModelConfig = field(init=False)
+
     conll_log_dir: str
 
     def __post_init__(self):
-        with open(Path(self.train_data), "r") as f:
+        with open(self.train_data, "r") as f:
             self.num_of_training_docs = sum(1 for _ in f)
+        encoder, tokenizer = bert.load_bert(self)
+        self.model_bank =  ModelConfig(encoder, tokenizer)
+
 
     @staticmethod
     def load_config(config_path: str, section: str = "roberta") -> "Config":
@@ -60,12 +70,25 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
         default_section = config["DEFAULT"]
         current_section = config[section]
         unknown_keys = set(current_section.keys()) - set(default_section.keys())
+        updated_path_type = strs_2_paths(default_section, current_section)
         if unknown_keys:
             raise ValueError(f"Unexpected config keys: {unknown_keys}")
-        return Config(section, **{**default_section, **current_section})
+        return Config(
+            section, **{**default_section, **current_section, **updated_path_type}
+        )
 
     @staticmethod
     def load_default_config(section: Optional[str]) -> "Config":
         if section is not None:
             return Config.load_config("config.toml", section)
         return Config.load_config("config.toml")
+
+
+def strs_2_paths(
+    default_dict: Dict[str, Any], current_dict: Dict[str, Any]
+) -> Dict[str, Path]:
+    return {
+        "train_data": Path(current_dict.get("train_data", default_dict["train_data"])),
+        "dev_data": Path(current_dict.get("dev_data", default_dict["dev_data"])),
+        "test_data": Path(current_dict.get("test_data", default_dict["test_data"])),
+    }
