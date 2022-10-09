@@ -66,7 +66,7 @@ def write_conll(doc: Doc, clusters: List[List[Span]], f_obj: TextIO):
 def open_(config: Config, epochs: int, data_split: str):
     """Opens conll log files for writing in a safe way."""
     base_filename = f"{config.section}_{data_split}_e{epochs}"
-    conll_dir = config.conll_log_dir
+    conll_dir = config.training_params.conll_log_dir
     kwargs = {"mode": "w", "encoding": "utf8"}
 
     os.makedirs(conll_dir, exist_ok=True)

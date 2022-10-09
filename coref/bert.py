@@ -19,7 +19,9 @@ def get_subwords_batches(doc: Doc, config: Config, tok: AutoTokenizer) -> np.nda
     Returns:
         batches of bert tokens [n_batches, batch_size]
     """
-    batch_size = config.bert_window_size - 2  # to save space for CLS and SEP
+    batch_size = (
+        config.model_params.bert_window_size - 2
+    )  # to save space for CLS and SEP
 
     subwords: List[str] = doc["subwords"]
     subwords_batches = []
@@ -55,15 +57,19 @@ def load_bert(config: Config) -> Tuple[AutoModel, AutoTokenizer]:
 
     Bert model is loaded to the device specified in config.device
     """
-    print(f"Loading {config.bert_model}...")
+    print(f"Loading {config.model_params.bert_model}...")
 
-    base_bert_name = config.bert_model.split("/")[-1]
+    base_bert_name = config.model_params.bert_model.split("/")[-1]
     tokenizer_kwargs = config.tokenizer_kwargs.get(base_bert_name, {})
     if tokenizer_kwargs:
         print(f"Using tokenizer kwargs: {tokenizer_kwargs}")
-    tokenizer = AutoTokenizer.from_pretrained(config.bert_model, **tokenizer_kwargs)
+    tokenizer = AutoTokenizer.from_pretrained(
+        config.model_params.bert_model, **tokenizer_kwargs
+    )
 
-    model = AutoModel.from_pretrained(config.bert_model).to(config.device)
+    model = AutoModel.from_pretrained(config.model_params.bert_model).to(
+        config.training_params.device
+    )
 
     print("Bert successfully loaded.")
 
