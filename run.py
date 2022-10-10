@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     # TODO must be also in config
     if args.batch_size:
-        model.config.a_scoring_batch_size = args.batch_size
+        model.config.model_params.a_scoring_batch_size = args.batch_size
 
     if args.mode == "train":
         if args.weights is not None or args.warm_start:

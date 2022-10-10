@@ -12,18 +12,18 @@ class AnaphoricityScorer(torch.nn.Module):
 
     def __init__(self, in_features: int, config: Config):
         super().__init__()
-        hidden_size = config.hidden_size
-        if not config.n_hidden_layers:
+        hidden_size = config.model_params.hidden_size
+        if not config.model_params.n_hidden_layers:
             hidden_size = in_features
         layers = []
-        for i in range(config.n_hidden_layers):
+        for i in range(config.model_params.n_hidden_layers):
             layers.extend(
                 [
                     torch.nn.Linear(
                         hidden_size if i else in_features, hidden_size
                     ),
                     torch.nn.LeakyReLU(),
-                    torch.nn.Dropout(config.dropout_rate),
+                    torch.nn.Dropout(config.training_params.dropout_rate),
                 ]
             )
         self.hidden = torch.nn.Sequential(*layers)

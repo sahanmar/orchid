@@ -18,10 +18,10 @@ class RoughScorer(torch.nn.Module):
 
     def __init__(self, features: int, config: Config):
         super().__init__()
-        self.dropout = torch.nn.Dropout(config.dropout_rate)
+        self.dropout = torch.nn.Dropout(config.training_params.dropout_rate)
         self.bilinear = torch.nn.Linear(features, features)
 
-        self.k = config.rough_k
+        self.k = config.model_params.rough_k
 
     def forward(
         self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch

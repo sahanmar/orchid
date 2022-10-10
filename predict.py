@@ -10,8 +10,10 @@ from coref.tokenizer_customization import *
 
 
 def build_doc(doc: dict, model: CorefModel) -> dict:
-    filter_func = TOKENIZER_FILTERS.get(model.config.bert_model, lambda _: True)
-    token_map = TOKENIZER_MAPS.get(model.config.bert_model, {})
+    filter_func = TOKENIZER_FILTERS.get(
+        model.config.model_params.bert_model, lambda _: True
+    )
+    token_map = TOKENIZER_MAPS.get(model.config.model_params.bert_model, {})
 
     word2subword: List[Tuple[int, int]] = []
     subwords: List[int] = []
@@ -65,7 +67,7 @@ if __name__ == "__main__":
     model = CorefModel(args.config_file, args.experiment)
 
     if args.batch_size:
-        model.config.a_scoring_batch_size = args.batch_size
+        model.config.model_params.a_scoring_batch_size = args.batch_size
 
     model.load_weights(
         path=args.weights,

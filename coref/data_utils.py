@@ -24,8 +24,10 @@ class DataType(Enum):
 def tokenize_docs(path: Path, config: Config) -> List[Doc]:
     print(f"Tokenizing documents at {path}...", flush=True)
     out: List[Doc] = []
-    filter_func = TOKENIZER_FILTERS.get(config.bert_model, lambda _: True)
-    token_map = TOKENIZER_MAPS.get(config.bert_model, {})
+    filter_func = TOKENIZER_FILTERS.get(
+        config.model_params.bert_model, lambda _: True
+    )
+    token_map = TOKENIZER_MAPS.get(config.model_params.bert_model, {})
     with jsonlines.open(path, mode="r") as data_f:
         for doc in data_f:
             doc["span_clusters"] = [
@@ -56,8 +58,8 @@ def tokenize_docs(path: Path, config: Config) -> List[Doc]:
 
 
 def get_docs(data_type: DataType, config: Config) -> List[Doc]:
-    path = asdict(config)[data_type.value]
-    model_name = config.bert_model.replace("/", "_")
+    path = asdict(config.data)[data_type.value]
+    model_name = config.model_params.bert_model.replace("/", "_")
     cache_filename = Path(f"{model_name}_{path.name}.pickle")
     if cache_filename.exists():
         with open(cache_filename, mode="rb") as cache_f:

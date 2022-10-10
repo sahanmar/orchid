@@ -1,5 +1,5 @@
-""" Describes Config, a simple namespace for config values.
-
+"""
+Describes Config, a simple namespace for config values.
 For description of all config values, refer to config.toml.
 """
 from dataclasses import dataclass, field
@@ -12,18 +12,28 @@ from transformers import AutoTokenizer, AutoModel
 from coref import bert
 
 
+def overwrite_config(dataclass_2_create):
+    def load_overwritten_config(
+        config: Dict[str, Any], overwrite: Dict[str, Any]
+    ):
+        unknown_keys = set(overwrite.keys()) - set(config.keys())
+        if unknown_keys:
+            raise ValueError(f"Unexpected config keys: {unknown_keys}")
+        return dataclass_2_create(
+            **{key: overwrite.get(key, val) for key, val in config.items()}
+        )
+
+    return load_overwritten_config
+
+
 @dataclass
-class ModelConfig:
+class ModelBank:
     encoder: AutoModel
     tokenizer: AutoTokenizer
 
 
 @dataclass
-class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-methods
-    """Contains values needed to set up the coreference model."""
-
-    section: str
-
+class Data:
     data_dir: str
 
     train_data: Path
@@ -32,8 +42,28 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
     num_of_training_docs: int = field(init=False)
 
-    device: str
+    def __post_init__(self):
+        with open(self.train_data, "r") as f:
+            self.num_of_training_docs = sum(1 for _ in f)
 
+    @staticmethod
+    def load_config(
+        config: Dict[str, Any], overwrite: Dict[str, Any]
+    ) -> "Data":
+        unknown_keys = set(overwrite.keys()) - set(config.keys())
+        if unknown_keys:
+            raise ValueError(f"Unexpected config keys: {unknown_keys}")
+        return Data(
+            **{  # type: ignore[arg-type]
+                key: Path(overwrite.get(key, val))
+                for key, val in config.items()
+            }
+        )
+
+
+@overwrite_config
+@dataclass
+class ModelParams:
     bert_model: str
     bert_window_size: int
 
@@ -47,37 +77,60 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
     rough_k: int
 
+
+@overwrite_config
+@dataclass
+class TrainingParams:
+    device: str
     bert_finetune: bool
     dropout_rate: float
     learning_rate: float
     bert_learning_rate: float
     train_epochs: int
     bce_loss_weight: float
+    conll_log_dir: str
+
+
+@dataclass
+class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-methods
+    """Contains values needed to set up the coreference model."""
+
+    section: str
+
+    data: Data
+    model_params: ModelParams
+    training_params: TrainingParams
 
     tokenizer_kwargs: Dict[str, dict]
 
-    model_bank: ModelConfig = field(init=False)
-
-    conll_log_dir: str
+    model_bank: ModelBank = field(init=False)
 
     def __post_init__(self):
-        with open(self.train_data, "r") as f:
-            self.num_of_training_docs = sum(1 for _ in f)
         encoder, tokenizer = bert.load_bert(self)
-        self.model_bank = ModelConfig(encoder, tokenizer)
+        self.model_bank = ModelBank(encoder, tokenizer)
 
     @staticmethod
     def load_config(config_path: str, section: str = "roberta") -> "Config":
         config = toml.load(config_path)
-        default_section = config["DEFAULT"]
-        current_section = config[section]
-        unknown_keys = set(current_section.keys()) - set(default_section.keys())
-        updated_path_type = strs_2_paths(default_section, current_section)
-        if unknown_keys:
-            raise ValueError(f"Unexpected config keys: {unknown_keys}")
+
+        default_conf = config["DEFAULT"]
+        overwrite_conf = config[section]
+
+        data = Data.load_config(
+            default_conf["data"], overwrite_conf.get("data", {})
+        )
+        model_params = ModelParams(  # type: ignore[call-arg]
+            default_conf["model_params"], overwrite_conf.get("model_params", {})
+        )
+        training_params = TrainingParams(  # type: ignore[call-arg]
+            default_conf["training_params"],
+            overwrite_conf.get("training_params", {}),
+        )
+
+        tokenizer_kwards = default_conf["tokenizer_kwargs"]
+
         return Config(
-            section,
-            **{**default_section, **current_section, **updated_path_type},
+            section, data, model_params, training_params, tokenizer_kwards
         )
 
     @staticmethod

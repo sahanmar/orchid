@@ -23,7 +23,7 @@ class WordEncoder(
         """
         super().__init__()
         self.attn = torch.nn.Linear(in_features=features, out_features=1)
-        self.dropout = torch.nn.Dropout(config.dropout_rate)
+        self.dropout = torch.nn.Dropout(config.training_params.dropout_rate)
 
     @property
     def device(self) -> torch.device:
