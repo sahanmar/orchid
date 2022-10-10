@@ -3,16 +3,16 @@ This module is responsible for reading json-line data and its tokenization.
 """
 
 import pickle
+from dataclasses import asdict
+from enum import Enum
+from pathlib import Path
+from typing import List, Tuple
+
 import jsonlines
 
-from coref.tokenizer_customization import TOKENIZER_FILTERS, TOKENIZER_MAPS
-from pathlib import Path
-from typing import List
 from coref.config import Config
 from coref.const import Doc
-from dataclasses import asdict
-
-from enum import Enum
+from coref.tokenizer_customization import TOKENIZER_FILTERS, TOKENIZER_MAPS
 
 
 class DataType(Enum):
@@ -24,7 +24,9 @@ class DataType(Enum):
 def tokenize_docs(path: Path, config: Config) -> List[Doc]:
     print(f"Tokenizing documents at {path}...", flush=True)
     out: List[Doc] = []
-    filter_func = TOKENIZER_FILTERS.get(config.model_params.bert_model, lambda _: True)
+    filter_func = TOKENIZER_FILTERS.get(
+        config.model_params.bert_model, lambda _: True
+    )
     token_map = TOKENIZER_MAPS.get(config.model_params.bert_model, {})
     with jsonlines.open(path, mode="r") as data_f:
         for doc in data_f:
@@ -32,9 +34,9 @@ def tokenize_docs(path: Path, config: Config) -> List[Doc]:
                 [tuple(mention) for mention in cluster]
                 for cluster in doc["span_clusters"]
             ]
-            word2subword = []
-            subwords = []
-            word_id = []
+            word2subword: List[Tuple[int, int]] = []
+            subwords: List[int] = []
+            word_id: List[int] = []
             for i, word in enumerate(doc["cased_words"]):
                 tokenized_word = (
                     token_map[word]

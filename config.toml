@@ -124,7 +124,7 @@
 
 [longformer]
     [longformer.model_params]
-        bert_model = "allenai/longformer-large-4096"    
+        bert_model = "allenai/longformer-large-4096"
         bert_window_size = 2048
 
 [debug]

@@ -1,1 +1,2 @@
-black -l 88 .
+pre-commit install
+pre-commit run --all-files

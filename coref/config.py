@@ -1,18 +1,21 @@
-""" 
+"""
 Describes Config, a simple namespace for config values.
 For description of all config values, refer to config.toml.
 """
-import toml
-
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
 from pathlib import Path
+from typing import Any, Dict, Optional
+
+import toml
 from transformers import AutoTokenizer, AutoModel
+
 from coref import bert
 
 
 def overwrite_config(dataclass_2_create):
-    def load_overwritten_config(config: Dict[str, Any], overwrite: Dict[str, Any]):
+    def load_overwritten_config(
+        config: Dict[str, Any], overwrite: Dict[str, Any]
+    ):
         unknown_keys = set(overwrite.keys()) - set(config.keys())
         if unknown_keys:
             raise ValueError(f"Unexpected config keys: {unknown_keys}")
@@ -43,12 +46,18 @@ class Data:
         with open(self.train_data, "r") as f:
             self.num_of_training_docs = sum(1 for _ in f)
 
-    def load_config(config: Dict[str, Any], overwrite: Dict[str, Any]) -> "Data":
+    @staticmethod
+    def load_config(
+        config: Dict[str, Any], overwrite: Dict[str, Any]
+    ) -> "Data":
         unknown_keys = set(overwrite.keys()) - set(config.keys())
         if unknown_keys:
             raise ValueError(f"Unexpected config keys: {unknown_keys}")
         return Data(
-            **{key: Path(overwrite.get(key, val)) for key, val in config.items()}
+            **{  # type: ignore[arg-type]
+                key: Path(overwrite.get(key, val))
+                for key, val in config.items()
+            }
         )
 
 
@@ -107,17 +116,22 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
         default_conf = config["DEFAULT"]
         overwrite_conf = config[section]
 
-        data = Data.load_config(default_conf["data"], overwrite_conf.get("data", {}))
-        model_params = ModelParams(
+        data = Data.load_config(
+            default_conf["data"], overwrite_conf.get("data", {})
+        )
+        model_params = ModelParams(  # type: ignore[call-arg]
             default_conf["model_params"], overwrite_conf.get("model_params", {})
         )
-        training_params = TrainingParams(
-            default_conf["training_params"], overwrite_conf.get("training_params", {})
+        training_params = TrainingParams(  # type: ignore[call-arg]
+            default_conf["training_params"],
+            overwrite_conf.get("training_params", {}),
         )
 
         tokenizer_kwards = default_conf["tokenizer_kwargs"]
 
-        return Config(section, data, model_params, training_params, tokenizer_kwards)
+        return Config(
+            section, data, model_params, training_params, tokenizer_kwards
+        )
 
     @staticmethod
     def load_default_config(section: Optional[str]) -> "Config":
@@ -130,7 +144,13 @@ def strs_2_paths(
     default_dict: Dict[str, Any], current_dict: Dict[str, Any]
 ) -> Dict[str, Path]:
     return {
-        "train_data": Path(current_dict.get("train_data", default_dict["train_data"])),
-        "dev_data": Path(current_dict.get("dev_data", default_dict["dev_data"])),
-        "test_data": Path(current_dict.get("test_data", default_dict["test_data"])),
+        "train_data": Path(
+            current_dict.get("train_data", default_dict["train_data"])
+        ),
+        "dev_data": Path(
+            current_dict.get("dev_data", default_dict["dev_data"])
+        ),
+        "test_data": Path(
+            current_dict.get("test_data", default_dict["test_data"])
+        ),
     }

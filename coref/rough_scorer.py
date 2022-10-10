@@ -43,7 +43,9 @@ class RoughScorer(torch.nn.Module):
 
         return self._prune(rough_scores)
 
-    def _prune(self, rough_scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _prune(
+        self, rough_scores: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Selects top-k rough antecedent scores for each mention.
 

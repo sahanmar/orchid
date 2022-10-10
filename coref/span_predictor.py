@@ -23,7 +23,9 @@ class SpanPredictor(torch.nn.Module):
         self.conv = torch.nn.Sequential(
             torch.nn.Conv1d(64, 4, 3, 1, 1), torch.nn.Conv1d(4, 2, 3, 1, 1)
         )
-        self.emb = torch.nn.Embedding(128, distance_emb_size)  # [-63, 63] + too_far
+        self.emb = torch.nn.Embedding(
+            128, distance_emb_size
+        )  # [-63, 63] + too_far
 
     @property
     def device(self) -> torch.device:
@@ -76,8 +78,12 @@ class SpanPredictor(torch.nn.Module):
         )
 
         lengths = same_sent.sum(dim=1)
-        padding_mask = torch.arange(0, lengths.max(), device=words.device).unsqueeze(0)
-        padding_mask = padding_mask < lengths.unsqueeze(1)  # [n_heads, max_sent_len]
+        padding_mask = torch.arange(
+            0, lengths.max(), device=words.device
+        ).unsqueeze(0)
+        padding_mask = padding_mask < lengths.unsqueeze(
+            1
+        )  # [n_heads, max_sent_len]
 
         # [n_heads, max_sent_len, input_size * 2 + distance_emb_size]
         # This is necessary to allow the convolution layer to look at several
@@ -87,7 +93,9 @@ class SpanPredictor(torch.nn.Module):
         )
         padded_pairs[padding_mask] = pair_matrix
 
-        res = self.ffnn(padded_pairs)  # [n_heads, n_candidates, last_layer_output]
+        res = self.ffnn(
+            padded_pairs
+        )  # [n_heads, n_candidates, last_layer_output]
         res = self.conv(res.permute(0, 2, 1)).permute(
             0, 2, 1
         )  # [n_heads, n_candidates, 2]
@@ -109,7 +117,9 @@ class SpanPredictor(torch.nn.Module):
 
     def get_training_data(
         self, doc: Doc, words: torch.Tensor
-    ) -> Tuple[Optional[torch.Tensor], Optional[Tuple[torch.Tensor, torch.Tensor]]]:
+    ) -> Tuple[
+        Optional[torch.Tensor], Optional[Tuple[torch.Tensor, torch.Tensor]]
+    ]:
         """Returns span starts/ends for gold mentions in the document."""
         head2span = sorted(doc["head2span"])
         if not head2span:

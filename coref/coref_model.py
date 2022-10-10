@@ -1,15 +1,15 @@
 """ see __init__.py """
 
-from datetime import datetime
 import os
 import random
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Set, Tuple, Hashable, cast
 
 import numpy as np  # type: ignore
 import torch
-from tqdm import tqdm  # type: ignore
 import transformers  # type: ignore
+from tqdm import tqdm  # type: ignore
 
 from coref import bert, conll, utils
 from coref.anaphoricity_scorer import AnaphoricityScorer
@@ -20,7 +20,6 @@ from coref.loss import CorefLoss
 from coref.pairwise_encoder import PairwiseEncoder
 from coref.rough_scorer import RoughScorer
 from coref.span_predictor import SpanPredictor
-from coref.tokenizer_customization import TOKENIZER_FILTERS, TOKENIZER_MAPS
 from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
 
@@ -62,7 +61,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         self._build_model()
         self._build_optimizers()
         self._set_training(False)
-        self._coref_criterion = CorefLoss(self.config.training_params.bce_loss_weight)
+        self._coref_criterion = CorefLoss(
+            self.config.training_params.bce_loss_weight
+        )
         self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
     @property
@@ -81,7 +82,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     @torch.no_grad()
     def evaluate(
         self, docs: List[Doc], word_level_conll: bool = False
-    ) -> Tuple[float, Tuple[float, float, float]]:
+    ) -> Tuple[float, float, float, float]:
         """Evaluates the modes on the data split provided.
 
         Args:
@@ -112,17 +113,28 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     res.coref_scores, res.coref_y
                 ).item()
 
-                if res.span_y:
+                if res.span_y is not None and res.span_y:
+                    if res.span_scores is None:
+                        raise RuntimeError(
+                            f'"span_scores" attribute must be set'
+                        )
                     pred_starts = res.span_scores[:, :, 0].argmax(dim=1)
                     pred_ends = res.span_scores[:, :, 1].argmax(dim=1)
                     s_correct += (
-                        ((res.span_y[0] == pred_starts) * (res.span_y[1] == pred_ends))
+                        (
+                            (res.span_y[0] == pred_starts)
+                            * (res.span_y[1] == pred_ends)
+                        )
                         .sum()
                         .item()
                     )
                     s_total += len(pred_starts)
 
                 if word_level_conll:
+                    if res.word_clusters is None:
+                        raise RuntimeError(
+                            f'"word_clusters" attribute must be set'
+                        )
                     conll.write_conll(
                         doc,
                         [
@@ -141,12 +153,22 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     )
                 else:
                     conll.write_conll(doc, doc["span_clusters"], gold_f)
+                    if res.span_clusters is None:
+                        raise RuntimeError(
+                            f'"span_clusters" attribute must be set'
+                        )
                     conll.write_conll(doc, res.span_clusters, pred_f)
 
-                w_checker.add_predictions(doc["word_clusters"], res.word_clusters)
+                w_checker.add_predictions(
+                    doc["word_clusters"],
+                    cast(List[List[Hashable]], res.word_clusters),
+                )
                 w_lea = w_checker.total_lea
 
-                s_checker.add_predictions(doc["span_clusters"], res.span_clusters)
+                s_checker.add_predictions(
+                    doc["span_clusters"],
+                    cast(List[List[Hashable]], res.span_clusters),
+                )
                 s_lea = s_checker.total_lea
 
                 del res
@@ -166,7 +188,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 )
             print()
 
-        return (running_loss / len(docs), *s_checker.total_lea)
+        return (
+            float(running_loss / len(docs)),
+            *s_checker.total_lea,
+        )
 
     def load_weights(
         self,
@@ -184,7 +209,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         if path is None:
             pattern = rf"{self.config.section}_\(e(\d+)_[^()]*\).*\.pt"
             files = []
-            for f in os.listdir(self.config.data_dir):
+            for f in os.listdir(self.config.data.data_dir):
                 match_obj = re.match(pattern, f)
                 if match_obj:
                     files.append((int(match_obj.group(1)), f))
@@ -192,12 +217,14 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                 if noexception:
                     print("No weights have been loaded", flush=True)
                     return
-                raise OSError(f"No weights found in {self.config.data_dir}!")
+                raise OSError(
+                    f"No weights found in {self.config.data.data_dir}!"
+                )
             _, path = sorted(files)[-1]
-            path = os.path.join(self.config.data_dir, path)
+            path = os.path.join(self.config.data.data_dir, path)
 
         if map_location is None:
-            map_location = self.config.device
+            map_location = self.config.training_params.device
         print(f"Loading from {path}...")
         state_dicts = torch.load(path, map_location=map_location)
         self.epochs_trained = state_dicts.pop("epochs_trained", 0)
@@ -299,7 +326,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         docs_ids = list(range(len(docs)))
         avg_spans = sum(len(doc["head2span"]) for doc in docs) / len(docs)
 
-        for epoch in range(self.epochs_trained, self.config.train_epochs):
+        for epoch in range(
+            self.epochs_trained, self.config.training_params.train_epochs
+        ):
             self.training = True
             running_c_loss = 0.0
             running_s_loss = 0.0
@@ -312,6 +341,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     optim.zero_grad()
 
                 res = self.run(doc)
+                assert (
+                    res.span_scores is not None
+                ), f'"span_scores" must be assigned to the results'
 
                 c_loss = self._coref_criterion(res.coref_scores, res.coref_y)
                 if res.span_y:
@@ -357,7 +389,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     # ========================================================= Private methods
 
     def _bertify(self, doc: Doc) -> torch.Tensor:
-        subwords_batches = bert.get_subwords_batches(doc, self.config, self.tokenizer)
+        subwords_batches = bert.get_subwords_batches(
+            doc, self.config, self.tokenizer
+        )
 
         special_tokens = np.array(
             [
@@ -393,7 +427,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
     def _build_model(self):
         self.bert = self.config.model_bank.encoder
         self.tokenizer = self.config.model_bank.tokenizer
-        self.pw = PairwiseEncoder(self.config).to(self.config.training_params.device)
+        self.pw = PairwiseEncoder(self.config).to(
+            self.config.training_params.device
+        )
 
         bert_emb = self.bert.config.hidden_size
         pair_emb = bert_emb * 3 + self.pw.shape
@@ -448,7 +484,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
         # Must ensure the same ordering of parameters between launches
         modules = sorted(
-            (key, value) for key, value in self.trainable.items() if key != "bert"
+            (key, value)
+            for key, value in self.trainable.items()
+            if key != "bert"
         )
         params = []
         for _, module in modules:
@@ -467,7 +505,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             n_docs * self.config.training_params.train_epochs,
         )
 
-    def _clusterize(self, doc: Doc, scores: torch.Tensor, top_indices: torch.Tensor):
+    def _clusterize(
+        self, doc: Doc, scores: torch.Tensor, top_indices: torch.Tensor
+    ):
         antecedents = scores.argmax(dim=1) - 1
         not_dummy = antecedents >= 0
         coref_span_heads = torch.arange(0, len(scores))[not_dummy]

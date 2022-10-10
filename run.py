@@ -77,7 +77,8 @@ if __name__ == "__main__":
 
     if args.warm_start and args.weights is not None:
         print(
-            "The following options are incompatible:" " '--warm_start' and '--weights'",
+            "The following options are incompatible:"
+            " '--warm_start' and '--weights'",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -89,13 +90,13 @@ if __name__ == "__main__":
     model = CorefModel(config)
 
     # Load data
-    train_data = get_docs(DataType.train)
-    test_data = get_docs(DataType.test)
-    dev_data = get_docs(DataType.dev)
+    train_data = get_docs(DataType.train, config=config)
+    test_data = get_docs(DataType.test, config=config)
+    dev_data = get_docs(DataType.dev, config=config)
 
     # TODO must be also in config
     if args.batch_size:
-        model.config.a_scoring_batch_size = args.batch_size
+        model.config.model_params.a_scoring_batch_size = args.batch_size
 
     if args.mode == "train":
         if args.weights is not None or args.warm_start:

@@ -5,14 +5,16 @@ dependencies:
   - openjdk
   - perl
   - black
-  - mypy
   - pip:
+    - pre-commit>=2.20
+    - mypy>=0.982
     - -f https://download.pytorch.org/whl/torch_stable.html
     - torch==1.4.0
     - torchvision==0.10.0+cu111
-    - torch==1.9.0+cu111 
+    - torch==1.9.0+cu111
     - torchaudio==0.9.0
     - jsonlines
     - toml
+    - types-toml
     - pytest
     - transformers==3.2.0
