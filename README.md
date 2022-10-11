@@ -1,6 +1,6 @@
 # The Orchid
 
-The Orchid project is an active learning platform built around [Word-Level Coreference Resolution model](https://github.com/vdobrovolskii/wl-coref). 
+The Orchid project is an active learning platform built around [Word-Level Coreference Resolution model](https://github.com/vdobrovolskii/wl-coref).
 
 ## Table of contents 📚
 1. Description
@@ -23,7 +23,7 @@ The platform is designed in a way of easily substitutable buidling blocks, such 
     - Uncertainty incorporation as a module
     - Dimensionality reduction algorithm as a module
 
-## Preparation 🥣 
+## Preparation 🥣
 
 Some parts of the section content were taken from [Word-Level CR](https://github.com/vdobrovolskii/wl-coref)
 
@@ -60,12 +60,12 @@ You will need:
 
         conda env create -f environment.yml
 
-    **IMPORTANT!  ⬇️** If you provide training od AMD GPU 40gb, please provide the installation as: 
+    **IMPORTANT!  ⬇️** If you provide training od AMD GPU 40gb, please provide the installation as:
 
         conda env create -f environment_rci.yml
-    
+
     The most crucial part here is the type of `pytorch` given the GPU. If for some reasons none of the environments works for you, try to find a more suitable `torch` version for yourself as it is done in [evnrinoment config](https://github.com/sahanmar/orchid/blob/main/environment.yml)
-  
+
     When the installation is done, just activate the environment:
 
         conda activate orchid
@@ -103,7 +103,7 @@ Make sure that you have successfully completed all steps of the [Preparation](#p
 
 ### Slurm
 
-Due to the limiting access to computational resources we were obligated to use [Slurm](https://slurm.schedmd.com/documentation.html). If you use Slurm too, you can use [rci_run.batch](https://github.com/sahanmar/orchid/blob/main/rci_run.batch) file and run the training as 
+Due to the limiting access to computational resources we were obligated to use [Slurm](https://slurm.schedmd.com/documentation.html). If you use Slurm too, you can use [rci_run.batch](https://github.com/sahanmar/orchid/blob/main/rci_run.batch) file and run the training as
 
 ```
 sbatch rci_run.batch
