@@ -22,7 +22,10 @@ class CorefLoss(torch.nn.Module):
         target: torch.Tensor,
     ) -> torch.Tensor:
         """Returns a weighted sum of two losses as a torch.Tensor"""
-        return self._nlml(input_, target) + self._bce(input_, target) * self._bce_weight
+        return (
+            self._nlml(input_, target)
+            + self._bce(input_, target) * self._bce_weight
+        )
 
     def _bce(self, input_: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """For numerical stability, clamps the input before passing it to BCE."""

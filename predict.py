@@ -1,4 +1,5 @@
 import argparse
+from typing import List, Tuple
 
 import jsonlines
 import torch
@@ -9,18 +10,24 @@ from coref.tokenizer_customization import *
 
 
 def build_doc(doc: dict, model: CorefModel) -> dict:
-    filter_func = TOKENIZER_FILTERS.get(model.config.bert_model, lambda _: True)
-    token_map = TOKENIZER_MAPS.get(model.config.bert_model, {})
+    filter_func = TOKENIZER_FILTERS.get(
+        model.config.model_params.bert_model, lambda _: True
+    )
+    token_map = TOKENIZER_MAPS.get(model.config.model_params.bert_model, {})
 
-    word2subword = []
-    subwords = []
-    word_id = []
+    word2subword: List[Tuple[int, int]] = []
+    subwords: List[int] = []
+    word_id: List[int] = []
     for i, word in enumerate(doc["cased_words"]):
         tokenized_word = (
-            token_map[word] if word in token_map else model.tokenizer.tokenize(word)
+            token_map[word]
+            if word in token_map
+            else model.tokenizer.tokenize(word)
         )
         tokenized_word = list(filter(filter_func, tokenized_word))
-        word2subword.append((len(subwords), len(subwords) + len(tokenized_word)))
+        word2subword.append(
+            (len(subwords), len(subwords) + len(tokenized_word))
+        )
         subwords.extend(tokenized_word)
         word_id.extend([i] * len(tokenized_word))
     doc["word2subword"] = word2subword
@@ -60,7 +67,7 @@ if __name__ == "__main__":
     model = CorefModel(args.config_file, args.experiment)
 
     if args.batch_size:
-        model.config.a_scoring_batch_size = args.batch_size
+        model.config.model_params.a_scoring_batch_size = args.batch_size
 
     model.load_weights(
         path=args.weights,

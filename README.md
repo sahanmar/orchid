@@ -7,6 +7,7 @@ The Orchid project is an active learning platform built around [Word-Level Coref
 2. Preparation
 3. Training
 4. Evaluation
+5. Development
 
 ## Description 📖
 
@@ -22,7 +23,7 @@ The platform is designed in a way of easily substitutable buidling blocks, such 
     - Uncertainty incorporation as a module
     - Dimensionality reduction algorithm as a module
 
-## Preparation
+## Preparation 🥣 
 
 Some parts of the section content were taken from [Word-Level CR](https://github.com/vdobrovolskii/wl-coref)
 
@@ -108,3 +109,25 @@ Due to the limiting access to computational resources we were obligated to use [
 sbatch rci_run.batch
 ```
 from orchid root directory.
+
+## Development 🚧
+
+### Pre-Commits
+
+Firstly, make sure that the [pre-commit](https://pypi.org/project/pre-commit/)
+library is installed.
+Then, run
+
+```sh
+# For each time one wants to run the pipeline without committing
+> ./pre-commit.sh
+```
+
+The **pre-commit** routine is also performed automatically whenever one
+attempts to commit anything. The commit will fail if one of the hooks fails.
+Therefore, manual runs of the *sh* script are not necessary.
+
+To tweak the hooks of **pre-commit**, edit
+[.pre-commit-config.yaml](.pre-commit-config.yaml).
+The configuration of the [mypy](https://mypy.readthedocs.io/en/stable/)
+static type checker hook can be found in [mypy.ini](mypy.ini).

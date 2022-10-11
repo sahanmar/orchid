@@ -40,12 +40,14 @@ class ClusterChecker:
         doc_precision = precision / (p_weight + EPSILON)
         doc_recall = recall / (r_weight + EPSILON)
         doc_f1 = (
-            (doc_precision * doc_recall) / (doc_precision + doc_recall + EPSILON) * 2
+            (doc_precision * doc_recall)
+            / (doc_precision + doc_recall + EPSILON)
+            * 2
         )
         return doc_f1, doc_precision, doc_recall
 
     @property
-    def total_lea(self):
+    def total_lea(self) -> Tuple[float, float, float]:
         """Returns weighted LEA for all the documents as
         (f1, precision, recall)"""
         precision = self._p / (self._p_weight + EPSILON)
@@ -60,7 +62,9 @@ class ClusterChecker:
         """See aclweb.org/anthology/P16-1060.pdf."""
         response_clusters = [set(cluster) for cluster in response]
         response_map = {
-            mention: cluster for cluster in response_clusters for mention in cluster
+            mention: cluster
+            for cluster in response_clusters
+            for mention in cluster
         }
         importances = []
         resolutions = []
@@ -72,7 +76,9 @@ class ClusterChecker:
             correct_links = 0
             for i in range(size):
                 for j in range(i + 1, size):
-                    correct_links += int(entity[i] in response_map.get(entity[j], {}))
+                    correct_links += int(
+                        entity[i] in response_map.get(entity[j], {})
+                    )
             resolutions.append(correct_links / (size * (size - 1) / 2))
         res = sum(imp * res for imp, res in zip(importances, resolutions))
         weight = sum(importances)
