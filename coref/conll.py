@@ -71,12 +71,12 @@ def open_(config: Config, epochs: int, data_split: str):
 
     os.makedirs(conll_dir, exist_ok=True)
 
-    with open(
-        os.path.join(conll_dir, f"{base_filename}.gold.conll"),  # type: ignore
+    with open(  # type: ignore[call-overload]
+        os.path.join(conll_dir, f"{base_filename}.gold.conll"),
         **kwargs,
     ) as gold_f:
-        with open(
-            os.path.join(conll_dir, f"{base_filename}.pred.conll"),  # type: ignore
+        with open(  # type: ignore[call-overload]
+            os.path.join(conll_dir, f"{base_filename}.pred.conll"),
             **kwargs,
         ) as pred_f:
-            yield (gold_f, pred_f)
+            yield gold_f, pred_f
