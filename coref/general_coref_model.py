@@ -4,16 +4,7 @@ import os
 import random
 import re
 from datetime import datetime
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Hashable,
-    cast,
-)
+from typing import Any, Dict, List, Optional, Set, Tuple, Hashable, cast
 
 import numpy as np  # type: ignore
 import torch
