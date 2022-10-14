@@ -72,7 +72,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         return self._training
 
     @training.setter
-    def training(self, new_value: bool):
+    def training(self, new_value: bool) -> None:
         if self._training is new_value:
             return
         self._set_training(new_value)
@@ -300,26 +300,26 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
         return res
 
-    def save_weights(self):
+    def save_weights(self) -> None:
         """Saves trainable models as state dicts."""
         to_save: List[Tuple[str, Any]] = [
             (key, value)
             for key, value in self.trainable.items()
-            if self.config.bert_finetune or key != "bert"
+            if self.config.training_params.bert_finetune or key != "bert"
         ]
         to_save.extend(self.optimizers.items())
         to_save.extend(self.schedulers.items())
 
         time = datetime.strftime(datetime.now(), "%Y.%m.%d_%H.%M")
         path = os.path.join(
-            self.config.data_dir,
+            self.config.data.data_dir,
             f"{self.config.section}" f"_(e{self.epochs_trained}_{time}).pt",
         )
         savedict = {name: module.state_dict() for name, module in to_save}
         savedict["epochs_trained"] = self.epochs_trained  # type: ignore
         torch.save(savedict, path)
 
-    def train(self, docs: List[Doc]):
+    def train(self, docs: List[Doc]) -> None:
         """
         Trains all the trainable blocks in the model using the config provided.
         """
@@ -424,7 +424,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         # [n_subwords, bert_emb]
         return out[subword_mask_tensor]
 
-    def _build_model(self):
+    def _build_model(self) -> None:
         self.bert = self.config.model_bank.encoder
         self.tokenizer = self.config.model_bank.tokenizer
         self.pw = PairwiseEncoder(self.config).to(
@@ -457,7 +457,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             "sp": self.sp,
         }
 
-    def _build_optimizers(self):
+    def _build_optimizers(self) -> None:
         # This is very bad. Caching the entire dataset in order to get
         # the number of docs.
         # TODO see if this doesn't break smth
@@ -507,7 +507,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
     def _clusterize(
         self, doc: Doc, scores: torch.Tensor, top_indices: torch.Tensor
-    ):
+    ) -> List[List[int]]:
         antecedents = scores.argmax(dim=1) - 1
         not_dummy = antecedents >= 0
         coref_span_heads = torch.arange(0, len(scores))[not_dummy]
@@ -518,10 +518,10 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             nodes[i].link(nodes[j])
             assert nodes[i] is not nodes[j]
 
-        clusters = []
+        clusters: List[List[int]] = []
         for node in nodes:
             if len(node.links) > 0 and not node.visited:
-                cluster = []
+                cluster: List[int] = []
                 stack = [node]
                 while stack:
                     current_node = stack.pop()
@@ -562,7 +562,7 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         y[y.sum(dim=1) == 0, 0] = True
         return y.to(torch.float)
 
-    def _set_training(self, value: bool):
+    def _set_training(self, value: bool) -> None:
         self._training = value
         for module in self.trainable.values():
             module.train(self._training)

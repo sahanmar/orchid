@@ -4,7 +4,7 @@ from run import output_running_time
 from coref.data_utils import get_docs, DataType
 
 
-def test_pipeline():
+def test_pipeline() -> None:
     word_level = False
 
     config = Config.load_default_config(section="debug")
