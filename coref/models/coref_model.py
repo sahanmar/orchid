@@ -1,4 +1,4 @@
-from coref.general_coref_model import GeneralCorefModel
+from coref.models.general_coref_model import GeneralCorefModel
 from coref.config import Config
 
 

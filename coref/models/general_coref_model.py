@@ -1,5 +1,3 @@
-""" see __init__.py """
-
 import os
 import random
 import re
