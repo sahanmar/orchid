@@ -4,7 +4,16 @@ import os
 import random
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple, Hashable, cast
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Hashable,
+    cast,
+)
 
 import numpy as np  # type: ignore
 import torch
@@ -24,7 +33,7 @@ from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
 
 
-class CorefModel:  # pylint: disable=too-many-instance-attributes
+class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     """Combines all coref modules together to find coreferent spans.
 
     Attributes:
@@ -385,6 +394,14 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             self.epochs_trained += 1
             self.save_weights()
             self.evaluate()
+
+    def active_learning_step(self) -> None:
+        ...
+
+    # Reimplement after committing the general structure
+    @staticmethod
+    def sample_unlabled_data() -> None:
+        ...
 
     # ========================================================= Private methods
 
