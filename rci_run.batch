@@ -3,7 +3,7 @@
 #SBATCH --nodes=1 --ntasks-per-node=1 --cpus-per-task=1
 #SBATCH --partition=amdgpufast --gres=gpu:1
 
-echo "Preparing conda envinronment..."
+echo "Preparing conda environment..."
 
 source ~/.zshrc
 conda activate orchid
