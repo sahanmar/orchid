@@ -5,7 +5,11 @@
 
 echo "Preparing conda environment..."
 
-source ~/.zshrc
+RCI_PROFILE="/home/$(whoami)/.bashrc"
+echo "Using profile ${RCI_PROFILE}"
+# shellcheck source=/home/<user>/<profile>
+. "${RCI_PROFILE}"
+echo "conda version: $(conda --version)"
 conda activate orchid
 
 echo "Running the job..."
