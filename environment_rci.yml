@@ -1,4 +1,4 @@
-name: orchid-py38
+name: orchid
 channels:
   - pytorch
   - anaconda
