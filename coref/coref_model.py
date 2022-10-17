@@ -113,11 +113,11 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     res.coref_scores, res.coref_y
                 ).item()
 
-                if res.span_y is not None and res.span_y:
-                    if res.span_scores is None:
-                        raise RuntimeError(
-                            f'"span_scores" attribute must be set'
-                        )
+                if (
+                    res.span_y is not None
+                    and res.span_scores is not None
+                    and res.span_y
+                ):
                     pred_starts = res.span_scores[:, :, 0].argmax(dim=1)
                     pred_ends = res.span_scores[:, :, 1].argmax(dim=1)
                     s_correct += (
@@ -305,21 +305,23 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
         to_save: List[Tuple[str, Any]] = [
             (key, value)
             for key, value in self.trainable.items()
-            if self.config.bert_finetune or key != "bert"
+            if self.config.training_params.bert_finetune or key != "bert"
         ]
         to_save.extend(self.optimizers.items())
         to_save.extend(self.schedulers.items())
 
         time = datetime.strftime(datetime.now(), "%Y.%m.%d_%H.%M")
         path = os.path.join(
-            self.config.data_dir,
+            self.config.data.data_dir,
             f"{self.config.section}" f"_(e{self.epochs_trained}_{time}).pt",
         )
         savedict = {name: module.state_dict() for name, module in to_save}
         savedict["epochs_trained"] = self.epochs_trained  # type: ignore
         torch.save(savedict, path)
 
-    def train(self, docs: List[Doc]):
+    def train(
+        self, docs: List[Doc], docs_dev: Optional[List[Doc]] = None
+    ) -> None:
         """
         Trains all the trainable blocks in the model using the config provided.
         """
@@ -341,12 +343,9 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
                     optim.zero_grad()
 
                 res = self.run(doc)
-                assert (
-                    res.span_scores is not None
-                ), f'"span_scores" must be assigned to the results'
 
                 c_loss = self._coref_criterion(res.coref_scores, res.coref_y)
-                if res.span_y:
+                if res.span_y and res.span_scores is not None:
                     s_loss = (
                         (
                             self._span_criterion(
@@ -384,7 +383,8 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
 
             self.epochs_trained += 1
             self.save_weights()
-            self.evaluate()
+            if docs_dev is not None:
+                self.evaluate(docs=docs_dev)
 
     # ========================================================= Private methods
 
