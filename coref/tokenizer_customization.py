@@ -1,8 +1,9 @@
-""" This file defines functions used to modify the default behaviour
+"""
+This file defines functions used to modify the default behavior
 of transformers.AutoTokenizer. These changes are necessary, because some
 tokenizers are meant to be used with raw text, while the OntoNotes documents
 have already been split into words.
-All the functions are used in coref_model.CorefModel._get_docs. """
+"""
 
 
 # Filters out unwanted tokens produced by the tokenizer
