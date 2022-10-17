@@ -8,22 +8,11 @@ from typing import Any, Dict, Optional
 
 import toml
 from transformers import AutoTokenizer, AutoModel
+from active_learning.exploration import GreedySampling
 
-from coref import bert
+from coref.bert import load_bert
 
-
-def overwrite_config(dataclass_2_create):
-    def load_overwritten_config(
-        config: Dict[str, Any], overwrite: Dict[str, Any]
-    ):
-        unknown_keys = set(overwrite.keys()) - set(config.keys())
-        if unknown_keys:
-            raise ValueError(f"Unexpected config keys: {unknown_keys}")
-        return dataclass_2_create(
-            **{key: overwrite.get(key, val) for key, val in config.items()}
-        )
-
-    return load_overwritten_config
+from config.config_utils import overwrite_config
 
 
 @dataclass
@@ -103,10 +92,17 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
     tokenizer_kwargs: Dict[str, dict]
 
+    # AL sampling_strategy. Will be added to AL section later
+    # sampling_strategy: GreedySampling
+
     model_bank: ModelBank = field(init=False)
 
     def __post_init__(self):
-        encoder, tokenizer = bert.load_bert(self)
+        encoder, tokenizer = load_bert(
+            self.model_params.bert_model,
+            self.tokenizer_kwargs,
+            self.training_params.device,
+        )
         self.model_bank = ModelBank(encoder, tokenizer)
 
     @staticmethod

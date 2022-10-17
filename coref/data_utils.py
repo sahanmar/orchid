@@ -10,7 +10,7 @@ from typing import List, Tuple
 
 import jsonlines
 
-from coref.config import Config
+from config import Config
 from coref.const import Doc
 from coref.tokenizer_customization import TOKENIZER_FILTERS, TOKENIZER_MAPS
 

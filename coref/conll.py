@@ -6,7 +6,7 @@ from contextlib import contextmanager
 import os
 from typing import List, TextIO
 
-from coref.config import Config
+from config import Config
 from coref.const import Doc, Span
 
 
