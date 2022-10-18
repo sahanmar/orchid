@@ -82,6 +82,23 @@
         conll_log_dir = "data/conll_logs"
 
 
+    [DEFAULT.sampling_strategy]
+        # Active Learning sampling strategy. All AL related things will be put to a
+        # dedicated section later
+        # The function name to sample new data
+        acquisition_function_type = "random"
+
+        # Batch size to sample
+        batch_size = 10
+
+        # Prob[random_strategy|current_sampling_iteration/total_number_of_iterations] = 0.5
+        # In other words strategy flip is the number of iterations after which the acquisition function
+        # strategy will have higher probability to be chosen
+        strategy_flip = 0.3
+
+        # the total number of planned samplings
+        total_number_of_iterations = 10
+
 
     # =============================================================================
     # Extra keyword arguments to be passed to bert tokenizers of specified models

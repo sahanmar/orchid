@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 import toml
 from transformers import AutoTokenizer, AutoModel
-from active_learning.exploration import GreedySampling
+from active_learning.exploration import GreedySampling, AcquisitionFunctionsType
 
 from coref.bert import load_bert
 
@@ -93,7 +93,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     tokenizer_kwargs: Dict[str, dict]
 
     # AL sampling_strategy. Will be added to AL section later
-    # sampling_strategy: GreedySampling
+    sampling_strategy: GreedySampling
 
     model_bank: ModelBank = field(init=False)
 
@@ -125,8 +125,18 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
         tokenizer_kwards = default_conf["tokenizer_kwargs"]
 
+        sampling_strategy = GreedySampling.load_config(
+            default_conf["sampling_strategy"],
+            overwrite_conf.get("sampling_strategy", {}),
+        )
+
         return Config(
-            section, data, model_params, training_params, tokenizer_kwards
+            section,
+            data,
+            model_params,
+            training_params,
+            tokenizer_kwards,
+            sampling_strategy,
         )
 
     @staticmethod

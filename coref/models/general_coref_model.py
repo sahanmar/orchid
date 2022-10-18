@@ -11,14 +11,13 @@ from typing import (
     Tuple,
     Hashable,
     cast,
-    Callable,
-    NamedTuple,
+    TYPE_CHECKING,
 )
 
 import numpy as np  # type: ignore
 import torch
 import transformers  # type: ignore
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 
 from coref import bert, conll, utils
 from coref.anaphoricity_scorer import AnaphoricityScorer
@@ -31,6 +30,9 @@ from coref.rough_scorer import RoughScorer
 from coref.span_predictor import SpanPredictor
 from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
+
+if TYPE_CHECKING:
+    from active_learning.exploration import GreedySampling
 
 
 class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
@@ -74,6 +76,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             self.config.training_params.bce_loss_weight
         )
         self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
+
+        # Active Learning section
+        self.sampling_strategy: GreedySampling = config.sampling_strategy
 
     @property
     def training(self) -> bool:
@@ -398,8 +403,8 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     def active_learning_step(self) -> None:
         ...
 
-    def sample_unlabled_data(self) -> SampledData:
-        ...
+    def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
+        return self.sampling_strategy.step(documents)
 
     # ========================================================= Private methods
 

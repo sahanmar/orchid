@@ -1,8 +1,8 @@
-import imp
+from enum import Enum
 import math
 
 from dataclasses import dataclass, field
-from typing import Callable, List
+from typing import Callable, Dict, List
 from random import random
 
 from coref.const import Doc, SampledData
@@ -10,7 +10,15 @@ from active_learning.acquisition_functions import random_sampling
 from config.config_utils import overwrite_config
 
 
-@overwrite_config
+class AcquisitionFunctionsType(Enum):
+    random = "random"
+
+
+ACQUISITION_FUNCTION_MAPPER: Dict[
+    AcquisitionFunctionsType, Callable[[List[Doc], int], SampledData]
+] = {AcquisitionFunctionsType.random: random_sampling}
+
+
 @dataclass
 class GreedySampling:
     """
@@ -25,7 +33,9 @@ class GreedySampling:
     The decaying occurs with the iterative change of the random strategy to another.
 
     args:
-        acquisition_function - function to sample new data
+        acquisition_function_type - the function name to sample new data
+
+        batch_size - Batch size to sample
 
         strategy_flip - Prob[random_strategy|current_sampling_iteration/total_number_of_iterations] = 0.5
         In other words strategy flip is the number of iterations after which the acquisition function
@@ -34,16 +44,22 @@ class GreedySampling:
         total_number_of_iterations - the total number of planned samplings
     """
 
-    acquisition_function: Callable[[List[Doc], int], SampledData]
+    acquisition_function_type: AcquisitionFunctionsType
     batch_size: int
     strategy_flip: float
     total_number_of_iterations: int
+    acquisition_function: Callable[[List[Doc], int], SampledData] = field(
+        init=False
+    )
     epsilon_greedy_prob: float = field(init=False)
     current_sampling_iteration: int = field(init=False)
     flip_iteration: int = field(init=False)
     normalizing_coef: float = field(init=False)
 
     def __post_init__(self) -> None:
+        self.acquisition_function = ACQUISITION_FUNCTION_MAPPER[
+            self.acquisition_function_type
+        ]
         self.epsilon_greedy_prob = 1.0
         self.current_sampling_iteration = 0
         self.flip_iteration = int(
@@ -78,4 +94,19 @@ class GreedySampling:
                 -(self.current_sampling_iteration + self.flip_iteration)
                 * self.normalizing_coef
             )
+        )
+
+    @staticmethod
+    @overwrite_config
+    def load_config(
+        acquisition_function_type: str,
+        batch_size: int,
+        strategy_flip: float,
+        total_number_of_iterations: int,
+    ) -> "GreedySampling":
+        return GreedySampling(
+            AcquisitionFunctionsType(acquisition_function_type),
+            batch_size,
+            strategy_flip,
+            total_number_of_iterations,
         )
