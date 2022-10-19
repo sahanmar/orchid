@@ -12,7 +12,7 @@ echo "Preparing conda environment..."
 #. "${RCI_PROFILE}"
 
 # Initialization via the installation path
-CONDA_PATH="/home/$(whoami)/opt/miniconda3/etc/profile.d/conda.sh"
+CONDA_PATH="/home/$(whoami)/miniconda3/etc/profile.d/conda.sh"
 echo "Using conda from ${CONDA_PATH}"
 # shellcheck source=/home/<user>/<path_to_conda>
 . "${CONDA_PATH}"
