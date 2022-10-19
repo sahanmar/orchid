@@ -1,5 +1,3 @@
-""" see __init__.py """
-
 import os
 import random
 import re
@@ -24,7 +22,7 @@ from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
 
 
-class CorefModel:  # pylint: disable=too-many-instance-attributes
+class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     """Combines all coref modules together to find coreferent spans.
 
     Attributes:
@@ -385,6 +383,14 @@ class CorefModel:  # pylint: disable=too-many-instance-attributes
             self.save_weights()
             if docs_dev is not None:
                 self.evaluate(docs=docs_dev)
+
+    def active_learning_step(self) -> None:
+        ...
+
+    # Reimplement after committing the general structure
+    @staticmethod
+    def sample_unlabled_data() -> None:
+        ...
 
     # ========================================================= Private methods
 
