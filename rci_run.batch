@@ -5,10 +5,18 @@
 
 echo "Preparing conda environment..."
 
-RCI_PROFILE="/home/$(whoami)/.bashrc"
-echo "Using profile ${RCI_PROFILE}"
-# shellcheck source=/home/<user>/<profile>
-. "${RCI_PROFILE}"
+# Initialization via the profile
+#RCI_PROFILE="/home/$(whoami)/.bashrc"
+#echo "Using profile ${RCI_PROFILE}"
+## shellcheck source=/home/<user>/<profile>
+#. "${RCI_PROFILE}"
+
+# Initialization via the installation path
+CONDA_PATH="/home/$(whoami)/opt/miniconda3/etc/profile.d/conda.sh"
+echo "Using conda from ${CONDA_PATH}"
+# shellcheck source=/home/<user>/<path_to_conda>
+. "${CONDA_PATH}"
+
 echo "conda version: $(conda --version)"
 conda activate orchid
 
