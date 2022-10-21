@@ -6,7 +6,7 @@ import subprocess
 import sys
 from collections import defaultdict
 from itertools import chain
-from typing import Dict, Generator, List, TextIO, Union, Any
+from typing import Dict, Generator, Iterable, List, TextIO, Union, Any, Optional
 
 import jsonlines
 from tqdm import tqdm
@@ -29,16 +29,16 @@ class CorefSpansHolder:
     Both dictionaries use entity indices as keys.
     """
 
-    def __init__(self):
-        self.starts = defaultdict(lambda: [])
-        self.spans = defaultdict(lambda: [])
+    def __init__(self) -> None:
+        self.starts: Dict[int, List[int]] = defaultdict(lambda: [])
+        self.spans: Dict[int, List[List[int]]] = defaultdict(lambda: [])
 
-    def __iter__(self):
+    def to_list(self) -> List[List[List[int]]]:
         for start_lst in self.starts.values():
             assert len(start_lst) == 0
-        return iter(self.spans.values())
+        return list(self.spans.values())
 
-    def add(self, coref_info: str, word_id: int):
+    def add(self, coref_info: str, word_id: int) -> None:
         """
         Examples of coref_info: "(50)", "(50", "50)", "(50)|(80" etc
         """
@@ -46,7 +46,7 @@ class CorefSpansHolder:
         for ci in coref_info_split:
             self._add_one(ci, word_id)
 
-    def _add_one(self, coref_info: str, word_id: int):
+    def _add_one(self, coref_info: str, word_id: int) -> None:
         if coref_info[0] == "(":
             if coref_info[-1] == ")":
                 entity_id = int(coref_info[1:-1])
@@ -103,7 +103,7 @@ def build_jsonlines(data_dir: str, out_dir: str, tmp_dir: str) -> None:
 
 def build_one_jsonline(
     filename: str, parsed_sents: List[str]
-) -> Dict[str, Union[list, str]]:
+) -> Dict[str, Optional[Union[List[CorefSpansHolder], str]]]:
     """
     Returns a dictionary of the following structure:
 
@@ -178,7 +178,7 @@ def build_one_jsonline(
 
         total_words += len(sent)
 
-    data["clusters"] = list(coref_spans)
+    data["clusters"] = coref_spans.to_list()
 
     return data
 
@@ -336,7 +336,7 @@ def split_jsonlines(
         f.close()
 
 
-def split_one_jsonline(doc: dict):
+def split_one_jsonline(doc: Dict[str, Any]) -> List[Dict[str, Any]]:
     if doc["part_id"][0] == doc["part_id"][-1]:
         doc["part_id"] = doc["part_id"][0]
         return [doc]
@@ -348,7 +348,7 @@ def split_one_jsonline(doc: dict):
             part_starts.append(i)
             parts.append(part_id)
 
-    split_docs = []
+    split_docs: List[Dict[str, Any]] = []
     for i in range(len(parts)):
         start = part_starts[i]
         if i < len(parts) - 1:

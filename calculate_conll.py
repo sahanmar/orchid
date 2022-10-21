@@ -5,8 +5,10 @@ import os
 import re
 import subprocess
 
+from typing import Any
 
-def extract_f1(proc: subprocess.CompletedProcess) -> float:
+
+def extract_f1(proc: subprocess.CompletedProcess[Any]) -> float:
     prev_line = ""
     curr_line = ""
     for line in str(proc.stdout).splitlines():

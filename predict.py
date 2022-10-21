@@ -6,10 +6,11 @@ import torch
 from tqdm import tqdm
 
 from coref.models import CorefModel
+from coref.const import Doc
 from coref.tokenizer_customization import *
 
 
-def build_doc(doc: dict, model: CorefModel) -> dict:
+def build_doc(doc: Doc, model: CorefModel) -> Doc:
     filter_func = TOKENIZER_FILTERS.get(
         model.config.model_params.bert_model, lambda _: True
     )

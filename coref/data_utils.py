@@ -63,7 +63,7 @@ def get_docs(data_type: DataType, config: Config) -> List[Doc]:
     cache_filename = Path(f"{model_name}_{path.name}.pickle")
     if cache_filename.exists():
         with open(cache_filename, mode="rb") as cache_f:
-            docs = pickle.load(cache_f)
+            docs: List[Doc] = pickle.load(cache_f)
     else:
         docs = tokenize_docs(path, config)
         with open(cache_filename, mode="wb") as cache_f:

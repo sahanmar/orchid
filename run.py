@@ -9,6 +9,7 @@ import datetime
 import random
 import sys
 import time
+from typing import Iterator
 
 import numpy as np  # type: ignore
 import torch  # type: ignore
@@ -19,7 +20,7 @@ from coref.data_utils import get_docs, DataType
 
 
 @contextmanager
-def output_running_time():
+def output_running_time() -> Iterator[None]:
     """Prints the time elapsed in the context"""
     start = int(time.time())
     try:

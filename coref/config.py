@@ -4,7 +4,7 @@ For description of all config values, refer to config.toml.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TypeVar
 
 import toml
 from transformers import AutoTokenizer, AutoModel
@@ -12,8 +12,8 @@ from transformers import AutoTokenizer, AutoModel
 from coref import bert
 
 
-def overwrite_config(dataclass_2_create):
-    def load_overwritten_config(
+def overwrite_config(dataclass_2_create):  # type: ignore
+    def load_overwritten_config(  # type: ignore
         config: Dict[str, Any], overwrite: Dict[str, Any]
     ):
         unknown_keys = set(overwrite.keys()) - set(config.keys())
@@ -42,7 +42,7 @@ class Data:
 
     num_of_training_docs: int = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         with open(self.train_data, "r") as f:
             self.num_of_training_docs = sum(1 for _ in f)
 
@@ -101,11 +101,11 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     model_params: ModelParams
     training_params: TrainingParams
 
-    tokenizer_kwargs: Dict[str, dict]
+    tokenizer_kwargs: Dict[str, Dict[str, str]]
 
     model_bank: ModelBank = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         encoder, tokenizer = bert.load_bert(self)
         self.model_bank = ModelBank(encoder, tokenizer)
 
