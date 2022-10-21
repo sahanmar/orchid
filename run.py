@@ -14,7 +14,7 @@ from typing import Iterator
 import numpy as np  # type: ignore
 import torch  # type: ignore
 
-from coref import CorefModel
+from coref.models import CorefModel
 from coref.config import Config
 from coref.data_utils import get_docs, DataType
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
                 noexception=args.warm_start,
             )
         with output_running_time():
-            model.train(train_data)
+            model.train(docs=train_data, docs_dev=dev_data)
     else:
         model.load_weights(
             path=args.weights,
@@ -119,4 +119,4 @@ if __name__ == "__main__":
                 "general_scheduler",
             },
         )
-        model.evaluate(dev_data, word_level_conll=args.word_level)
+        model.evaluate(test_data, word_level_conll=args.word_level)

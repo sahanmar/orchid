@@ -1,4 +1,4 @@
-from coref import CorefModel
+from coref.models import CorefModel
 from coref.config import Config
 from run import output_running_time
 from coref.data_utils import get_docs, DataType

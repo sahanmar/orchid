@@ -5,7 +5,7 @@ import jsonlines
 import torch
 from tqdm import tqdm
 
-from coref import CorefModel
+from coref.models import CorefModel
 from coref.const import Doc
 from coref.tokenizer_customization import *
 
