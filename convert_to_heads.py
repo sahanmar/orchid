@@ -1,7 +1,7 @@
 from collections import defaultdict
 import logging
 import os
-from typing import Tuple
+from typing import Tuple, Dict, Any, List
 
 import jsonlines
 
@@ -12,7 +12,7 @@ LOGGING_LEVEL = logging.WARNING  # DEBUG to output all duplicate spans
 SPLITS = ("development", "test", "train")
 
 
-def get_head(mention: Tuple[int, int], doc: dict) -> int:
+def get_head(mention: Tuple[int, int], doc: Dict[str, Any]) -> int:
     """Returns the span's head, which is defined as the only word within the
     span whose head is outside of the span or None. In case there are no or
     several such words, the rightmost word is returned
@@ -59,7 +59,9 @@ if __name__ == "__main__":
                     ]
 
                     # check for duplicates
-                    head2spans = defaultdict(list)
+                    head2spans: Dict[
+                        int, List[Tuple[Any, List[int]]]
+                    ] = defaultdict(list)
                     for cluster, head_cluster in zip(
                         doc["clusters"], head_clusters
                     ):
@@ -70,7 +72,7 @@ if __name__ == "__main__":
 
                     for head, spans in head2spans.items():
                         spans.sort(
-                            key=lambda x: x[0][1] - x[0][0]
+                            key=lambda x: x[0][1] - x[0][0]  # type: ignore
                         )  # shortest spans first
                         doc["head2span"].append((head, *spans[0][0]))
 

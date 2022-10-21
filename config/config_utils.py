@@ -1,8 +1,8 @@
 from typing import Dict, Any
 
 
-def overwrite_config(dataclass_2_create):
-    def load_overwritten_config(
+def overwrite_config(dataclass_2_create):  # type: ignore
+    def load_overwritten_config(  # type: ignore
         config: Dict[str, Any], overwrite: Dict[str, Any]
     ):
         unknown_keys = set(overwrite.keys()) - set(config.keys())

@@ -3,15 +3,16 @@ predicted spans and their clustering """
 
 from collections import defaultdict
 from contextlib import contextmanager
+from io import TextIOWrapper
 import os
-from typing import List, TextIO
+from typing import Iterator, List, TextIO, Tuple
 
 from config import Config
 from coref.const import Doc, Span
 
 
 # pylint: disable=too-many-locals
-def write_conll(doc: Doc, clusters: List[List[Span]], f_obj: TextIO):
+def write_conll(doc: Doc, clusters: List[List[Span]], f_obj: TextIO) -> None:
     """Writes span/cluster information to f_obj, which is assumed to be a file
     object open for writing"""
     placeholder = "  -" * 7
@@ -63,7 +64,9 @@ def write_conll(doc: Doc, clusters: List[List[Span]], f_obj: TextIO):
 
 
 @contextmanager
-def open_(config: Config, epochs: int, data_split: str):
+def open_(
+    config: Config, epochs: int, data_split: str
+) -> Iterator[Tuple[TextIOWrapper, TextIOWrapper]]:
     """Opens conll log files for writing in a safe way."""
     base_filename = f"{config.section}_{data_split}_e{epochs}"
     conll_dir = config.training_params.conll_log_dir

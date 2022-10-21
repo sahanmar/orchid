@@ -8,12 +8,12 @@ from coref.const import EPSILON
 
 
 class GraphNode:
-    def __init__(self, node_id: int):
+    def __init__(self, node_id: int) -> None:
         self.id = node_id
         self.links: Set[GraphNode] = set()
         self.visited = False
 
-    def link(self, another: "GraphNode"):
+    def link(self, another: "GraphNode") -> None:
         self.links.add(another)
         another.links.add(self)
 
@@ -21,7 +21,7 @@ class GraphNode:
         return str(self.id)
 
 
-def add_dummy(tensor: torch.Tensor, eps: bool = False):
+def add_dummy(tensor: torch.Tensor, eps: bool = False) -> torch.Tensor:
     """Prepends zeros (or a very small value if eps is True)
     to the first (not zeroth) dimension of tensor.
     """

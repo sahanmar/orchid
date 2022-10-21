@@ -4,7 +4,7 @@ For description of all config values, refer to config.toml.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TypeVar
 
 import toml
 from transformers import AutoTokenizer, AutoModel
@@ -31,7 +31,7 @@ class Data:
 
     num_of_training_docs: int = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         with open(self.train_data, "r") as f:
             self.num_of_training_docs = sum(1 for _ in f)
 
@@ -90,14 +90,14 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     model_params: ModelParams
     training_params: TrainingParams
 
-    tokenizer_kwargs: Dict[str, dict]
+    tokenizer_kwargs: Dict[str, str]
 
     # AL sampling_strategy. Will be added to AL section later
     sampling_strategy: GreedySampling
 
     model_bank: ModelBank = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         encoder, tokenizer = load_bert(
             self.model_params.bert_model,
             self.tokenizer_kwargs,

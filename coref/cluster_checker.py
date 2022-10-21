@@ -11,7 +11,7 @@ class ClusterChecker:
     Can be used to retrieve weighted LEA-score for them.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._p = 0.0
         self._r = 0.0
         self._p_weight = 0.0
@@ -21,7 +21,7 @@ class ClusterChecker:
         self,
         gold_clusters: List[List[Hashable]],
         pred_clusters: List[List[Hashable]],
-    ):
+    ) -> Tuple[float, float, float]:
         """
         Calculates LEA for the document's clusters and stores them to later
         output weighted LEA across documents.

@@ -2,7 +2,7 @@ from config import Config
 from coref.data_utils import get_docs, DataType
 
 
-def test_get_doc():
+def test_get_doc() -> None:
     config = Config.load_default_config(section="debug")
     data = get_docs(DataType.test, config)
     assert len(data) == 1
