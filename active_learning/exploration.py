@@ -67,7 +67,7 @@ class GreedySampling:
         )
         # coefficient that squeezes sigmoid's boundaries to have (almost) 0 prob
         # for current_sampling_iteration = 0
-        self.normalizing_coef = 5 * self.flip_iteration
+        self.normalizing_coef = 5 / self.flip_iteration
 
     def step(self, instances: List[Doc]) -> SampledData:
         ##### This check is done because mypy is bitching to that #####
@@ -81,8 +81,8 @@ class GreedySampling:
                 )
             )
         ##### end of check #####
-        self.epsilon_greedy_prob = 1 - self.sigmoid()
         self.current_sampling_iteration += 1
+        self.epsilon_greedy_prob = 1 - self.sigmoid()
         if random() <= self.epsilon_greedy_prob:
             return random_sampling(instances, self.batch_size)
         return self.acquisition_function(instances, self.batch_size)
@@ -91,7 +91,7 @@ class GreedySampling:
         return 1 / (
             1
             + math.exp(
-                -(self.current_sampling_iteration + self.flip_iteration)
+                -(self.current_sampling_iteration - self.flip_iteration)
                 * self.normalizing_coef
             )
         )

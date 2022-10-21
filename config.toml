@@ -154,6 +154,11 @@
     [debug.training_params]
         device = "cpu"
         bert_finetune = false
+    [debug.sampling_strategy]
+        batch_size = 1
+        strategy_flip = 0.2
+        total_number_of_iterations = 10
+
 
 [debug_gpu]
     [debug_gpu.model_params]
