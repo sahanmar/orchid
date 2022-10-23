@@ -16,7 +16,7 @@ from coref.span_predictor import MCDropoutSpanPredictor
 class MCDropoutCorefModel(GeneralCorefModel):
     def __init__(self, config: Config, epochs_trained: int = 0):
         # The approach works for all layers except of span_predictor
-        # The dropout is turned on inside MCDropoutSpanPredictor. 
+        # The dropout is turned on inside MCDropoutSpanPredictor.
         # TODO refactor keep _set_training from MCDropoutSpanPredictor
         self.keep_dropout: List["str"] = ["rough_scorer", "pw", "a_scorer"]
         super().__init__(config, epochs_trained)
@@ -28,7 +28,6 @@ class MCDropoutCorefModel(GeneralCorefModel):
                 module.train(self._training)
             else:
                 module.train(True)
-
 
     def _build_model(self) -> None:
         self.bert = self.config.model_bank.encoder
@@ -50,9 +49,9 @@ class MCDropoutCorefModel(GeneralCorefModel):
         self.rough_scorer = MCDropoutRoughScorer(bert_emb, self.config).to(
             self.config.training_params.device
         )
-        self.sp = MCDropoutSpanPredictor(
-            bert_emb, self.config
-        ).to(self.config.training_params.device)
+        self.sp = MCDropoutSpanPredictor(bert_emb, self.config).to(
+            self.config.training_params.device
+        )
 
         self.trainable: Dict[str, torch.nn.Module] = {
             "bert": self.bert,
