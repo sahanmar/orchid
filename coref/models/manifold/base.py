@@ -84,7 +84,7 @@ class BasePCA(torch.nn.Module):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         embeddings = self.pca_layer(inputs)
-        return embeddings
+        return embeddings  # [n, target_dim]
 
     def train_step(self, inputs: torch.Tensor) -> Dict[str, torch.Tensor]:
         self.optimizer.zero_grad()
@@ -115,13 +115,13 @@ class BasePCA(torch.nn.Module):
         """Squared Reconstruction Error"""
         x_rec = torch.matmul(
             (embeddings - self.pca_layer.bias), self.pca_layer.weight
-        )
+        )  # [n, original_dim]
         return torch.sum((inputs - x_rec) ** 2)
 
 
 if __name__ == "__main__":
     # TMP debugging code
-    data = get_embedded_2d_ellipsis(dim=10, a=5, y0=10, x0=5)
+    data = get_embedded_2d_ellipsis(dim=10, a=5, y0=10, x0=5, noise=1)
     data_np = data.numpy()
 
     from sklearn.decomposition import PCA
@@ -146,19 +146,19 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(1, 1)
 
     ax.scatter(
-        data_np[:, 0], data_np[:, 1], alpha=0.35, label="original-first-2d"
+        data_np[:, 0], data_np[:, 1], alpha=0.75, label="original-first-2d"
     )
-    ax.scatter(data_emb[:, 0], data_emb[:, 1], alpha=0.35, label="pca-sklearn")
+    ax.scatter(data_emb[:, 0], data_emb[:, 1], alpha=0.75, label="pca-sklearn")
     ax.scatter(
         data_emb_torch[:, 0],
         data_emb_torch[:, 1],
-        alpha=0.35,
+        alpha=0.75,
         label="pca-pca_lowrank",
     )
     ax.scatter(
         data_emb_custom.detach().numpy()[:, 0],
         data_emb_custom.detach().numpy()[:, 1],
-        alpha=0.35,
+        alpha=0.75,
         label="pca-custom",
     )
 
