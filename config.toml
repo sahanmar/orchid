@@ -23,8 +23,10 @@
         # Must be less than or equal to 512
         bert_window_size = 512
 
-
         # General model settings =============
+
+        # Coref model name
+        coref_model = "base"
 
         # Controls the dimensionality of feature embeddings
         embedding_size = 20
@@ -99,6 +101,11 @@
         # the total number of planned samplings
         total_number_of_iterations = 10
 
+    [DEFAULT.active_learning]
+        # Active Learning parameters
+        # Number of neural network parameters that will represent NN empirical distribution
+        parameters_samples = 10
+
 
     # =============================================================================
     # Extra keyword arguments to be passed to bert tokenizers of specified models
@@ -159,6 +166,10 @@
         strategy_flip = 0.2
         total_number_of_iterations = 10
 
+[mc_dropout]
+    [mc_dropout.model_params]
+        bert_model = "roberta-large"
+        coref_model = "mc_dropout"
 
 [debug_gpu]
     [debug_gpu.model_params]

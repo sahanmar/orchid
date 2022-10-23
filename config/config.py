@@ -15,6 +15,12 @@ from coref.bert import load_bert
 from config.config_utils import overwrite_config
 
 
+@overwrite_config
+@dataclass
+class ActiveLearning:
+    parameters_samples: int
+
+
 @dataclass
 class ModelBank:
     encoder: AutoModel
@@ -56,6 +62,9 @@ class ModelParams:
     bert_model: str
     bert_window_size: int
 
+    # TODO Change to enum in load config for this class
+    coref_model: str
+
     embedding_size: int
     sp_embedding_size: int
     a_scoring_batch_size: int
@@ -95,6 +104,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     # AL sampling_strategy. Will be added to AL section later
     sampling_strategy: GreedySampling
 
+    active_learning: ActiveLearning
+
     model_bank: ModelBank = field(init=False)
 
     def __post_init__(self) -> None:
@@ -123,20 +134,26 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
             overwrite_conf.get("training_params", {}),
         )
 
-        tokenizer_kwards = default_conf["tokenizer_kwargs"]
+        tokenizer_kwargs = default_conf["tokenizer_kwargs"]
 
         sampling_strategy = GreedySampling.load_config(
             default_conf["sampling_strategy"],
             overwrite_conf.get("sampling_strategy", {}),
         )
 
+        active_learning = ActiveLearning(  # type: ignore[call-arg]
+            default_conf["active_learning"],
+            overwrite_conf.get("active_learning", {}),
+        )
+
         return Config(
-            section,
-            data,
-            model_params,
-            training_params,
-            tokenizer_kwards,
-            sampling_strategy,
+            section=section,
+            data=data,
+            model_params=model_params,
+            training_params=training_params,
+            tokenizer_kwargs=tokenizer_kwargs,
+            sampling_strategy=sampling_strategy,
+            active_learning=active_learning,
         )
 
     @staticmethod
