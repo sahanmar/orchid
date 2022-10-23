@@ -98,9 +98,10 @@ class BasePCA(torch.nn.Module):
 
     def train_on_inputs(self, inputs: torch.Tensor, epochs: int = 10) -> None:
         pbar = tqdm(range(epochs))
+        dataloader = ManifoldDataloader(inputs=inputs)
         for epoch in pbar:
             pbar.set_description(f"Epoch {epoch}")
-            for b in ManifoldDataloader(inputs=inputs):
+            for b in dataloader:
                 res = self.train_step(inputs=b)
                 pf = {
                     k_: v_.detach().numpy()
