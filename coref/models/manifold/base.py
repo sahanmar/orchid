@@ -116,7 +116,7 @@ class BasePCA(torch.nn.Module):
         x_rec = torch.matmul(
             (embeddings - self.pca_layer.bias), self.pca_layer.weight
         )  # [n, original_dim]
-        return torch.sum((inputs - x_rec) ** 2)
+        return torch.sum(torch.subtract(inputs, x_rec) ** 2)
 
 
 if __name__ == "__main__":
