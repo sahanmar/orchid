@@ -1,16 +1,15 @@
 """Functions related to BERT or similar models"""
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np  # type: ignore
 from transformers import AutoModel, AutoTokenizer  # type: ignore
 
-from coref.config import Config
 from coref.const import Doc
 
 
 def get_subwords_batches(
-    doc: Doc, config: Config, tok: AutoTokenizer
+    doc: Doc, tok: AutoTokenizer, bert_window_size: int
 ) -> np.ndarray:
     """
     Turns a list of subwords to a list of lists of subword indices
@@ -21,9 +20,7 @@ def get_subwords_batches(
     Returns:
         batches of bert tokens [n_batches, batch_size]
     """
-    batch_size = (
-        config.model_params.bert_window_size - 2
-    )  # to save space for CLS and SEP
+    batch_size = bert_window_size - 2  # to save space for CLS and SEP
 
     subwords: List[int] = doc["subwords"]
     subwords_batches = []
@@ -55,25 +52,21 @@ def get_subwords_batches(
     return np.array(subwords_batches)
 
 
-def load_bert(config: Config) -> Tuple[AutoModel, AutoTokenizer]:
+def load_bert(
+    bert_model: str, tokenizer_kwargs: Dict[str, str], device: str
+) -> Tuple[AutoModel, AutoTokenizer]:
     """
     Loads bert and bert tokenizer as pytorch modules.
 
     Bert model is loaded to the device specified in config.device
     """
-    print(f"Loading {config.model_params.bert_model}...")
+    print(f"Loading {bert_model}...")
 
-    base_bert_name = config.model_params.bert_model.split("/")[-1]
-    tokenizer_kwargs = config.tokenizer_kwargs.get(base_bert_name, {})
     if tokenizer_kwargs:
         print(f"Using tokenizer kwargs: {tokenizer_kwargs}")
-    tokenizer = AutoTokenizer.from_pretrained(
-        config.model_params.bert_model, **tokenizer_kwargs
-    )
+    tokenizer = AutoTokenizer.from_pretrained(bert_model, **tokenizer_kwargs)
 
-    model = AutoModel.from_pretrained(config.model_params.bert_model).to(
-        config.training_params.device
-    )
+    model = AutoModel.from_pretrained(bert_model).to(device)
 
     print("Bert successfully loaded.")
 

@@ -1,4 +1,4 @@
-from coref.config import Config
+from config import Config
 from coref.data_utils import get_docs, DataType
 
 
