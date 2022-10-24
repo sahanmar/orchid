@@ -4,15 +4,14 @@ For description of all config values, refer to config.toml.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional, TypeVar
+from typing import Any, Dict, Optional, List
 
 import toml
 from transformers import AutoTokenizer, AutoModel
-from active_learning.exploration import GreedySampling, AcquisitionFunctionsType
 
-from coref.bert import load_bert
-
+from active_learning.exploration import GreedySampling
 from config.config_utils import overwrite_config
+from coref.bert import load_bert
 
 
 @dataclass
@@ -78,6 +77,25 @@ class TrainingParams:
     train_epochs: int
     bce_loss_weight: float
     conll_log_dir: str
+
+
+# region Manifold Learning Configuration
+@overwrite_config
+@dataclass
+class ManifoldLearningParams:
+    dimensionality: int
+    n_components: int
+    loss_name: str
+    # For separate (non-CR) use cases
+    batch_size: int = 32
+    shuffle: bool = True
+    learning_rate: float = 1e-2
+    epochs: int = 10
+
+    verbose_outputs: List[str] = field(default_factory=list)
+
+
+# endregion
 
 
 @dataclass
