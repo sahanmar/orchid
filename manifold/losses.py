@@ -1,3 +1,7 @@
+"""
+Manifold Learning losses
+"""
+
 import abc
 from typing import Optional, Type, Dict, Any, List
 

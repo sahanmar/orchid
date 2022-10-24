@@ -1,3 +1,7 @@
+"""
+Definition of the base module for Manifold Learning
+"""
+
 import abc
 
 import torch

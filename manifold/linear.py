@@ -1,3 +1,7 @@
+"""
+Linear dimensionality reduction
+"""
+
 from typing import Dict
 
 import torch
