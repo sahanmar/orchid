@@ -1,5 +1,5 @@
 from coref.models.general_coref_model import GeneralCorefModel
-from coref.config import Config
+from config import Config
 
 
 class CorefModel(GeneralCorefModel):

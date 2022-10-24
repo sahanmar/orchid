@@ -15,7 +15,7 @@ import numpy as np  # type: ignore
 import torch  # type: ignore
 
 from coref.models import CorefModel
-from coref.config import Config
+from config import Config
 from coref.data_utils import get_docs, DataType
 
 

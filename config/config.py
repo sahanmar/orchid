@@ -8,22 +8,11 @@ from typing import Any, Dict, Optional, TypeVar
 
 import toml
 from transformers import AutoTokenizer, AutoModel
+from active_learning.exploration import GreedySampling, AcquisitionFunctionsType
 
-from coref import bert
+from coref.bert import load_bert
 
-
-def overwrite_config(dataclass_2_create):  # type: ignore
-    def load_overwritten_config(  # type: ignore
-        config: Dict[str, Any], overwrite: Dict[str, Any]
-    ):
-        unknown_keys = set(overwrite.keys()) - set(config.keys())
-        if unknown_keys:
-            raise ValueError(f"Unexpected config keys: {unknown_keys}")
-        return dataclass_2_create(
-            **{key: overwrite.get(key, val) for key, val in config.items()}
-        )
-
-    return load_overwritten_config
+from config.config_utils import overwrite_config
 
 
 @dataclass
@@ -101,12 +90,19 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     model_params: ModelParams
     training_params: TrainingParams
 
-    tokenizer_kwargs: Dict[str, Dict[str, str]]
+    tokenizer_kwargs: Dict[str, str]
+
+    # AL sampling_strategy. Will be added to AL section later
+    sampling_strategy: GreedySampling
 
     model_bank: ModelBank = field(init=False)
 
     def __post_init__(self) -> None:
-        encoder, tokenizer = bert.load_bert(self)
+        encoder, tokenizer = load_bert(
+            self.model_params.bert_model,
+            self.tokenizer_kwargs,
+            self.training_params.device,
+        )
         self.model_bank = ModelBank(encoder, tokenizer)
 
     @staticmethod
@@ -129,8 +125,18 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
         tokenizer_kwards = default_conf["tokenizer_kwargs"]
 
+        sampling_strategy = GreedySampling.load_config(
+            default_conf["sampling_strategy"],
+            overwrite_conf.get("sampling_strategy", {}),
+        )
+
         return Config(
-            section, data, model_params, training_params, tokenizer_kwards
+            section,
+            data,
+            model_params,
+            training_params,
+            tokenizer_kwards,
+            sampling_strategy,
         )
 
     @staticmethod

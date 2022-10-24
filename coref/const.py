@@ -13,6 +13,12 @@ Span = Tuple[int, int]
 
 
 @dataclass
+class SampledData:
+    indices: List[int]
+    instances: List[Doc]
+
+
+@dataclass
 class CorefResult:
     coref_scores: torch.Tensor = None  # [n_words, k + 1]
     coref_y: torch.Tensor = None  # [n_words, k + 1]

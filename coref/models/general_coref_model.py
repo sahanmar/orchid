@@ -2,18 +2,28 @@ import os
 import random
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple, Hashable, cast
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Hashable,
+    cast,
+    TYPE_CHECKING,
+)
 
 import numpy as np  # type: ignore
 import torch
 import transformers  # type: ignore
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 
 from coref import bert, conll, utils
 from coref.anaphoricity_scorer import AnaphoricityScorer
 from coref.cluster_checker import ClusterChecker
-from coref.config import Config
-from coref.const import CorefResult, Doc
+from config import Config
+from coref.const import CorefResult, Doc, SampledData
 from coref.loss import CorefLoss
 from coref.pairwise_encoder import PairwiseEncoder
 from coref.rough_scorer import RoughScorer
@@ -21,12 +31,15 @@ from coref.span_predictor import SpanPredictor
 from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
 
+if TYPE_CHECKING:
+    from active_learning.exploration import GreedySampling
+
 
 class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     """Combines all coref modules together to find coreferent spans.
 
     Attributes:
-        config (coref.config.Config): the model's configuration,
+        config (config.Config): the model's configuration,
             see config.toml for the details
         epochs_trained (int): number of epochs the model has been trained for
         trainable (Dict[str, torch.nn.Module]): trainable submodules with their
@@ -63,6 +76,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             self.config.training_params.bce_loss_weight
         )
         self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
+
+        # Active Learning section
+        self.sampling_strategy: GreedySampling = config.sampling_strategy
 
     @property
     def training(self) -> bool:
@@ -387,16 +403,14 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     def active_learning_step(self) -> None:
         ...
 
-    # Reimplement after committing the general structure
-    @staticmethod
-    def sample_unlabled_data() -> None:
-        ...
+    def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
+        return self.sampling_strategy.step(documents)
 
     # ========================================================= Private methods
 
     def _bertify(self, doc: Doc) -> torch.Tensor:
         subwords_batches = bert.get_subwords_batches(
-            doc, self.config, self.tokenizer
+            doc, self.tokenizer, self.config.model_params.bert_window_size
         )
 
         special_tokens = np.array(

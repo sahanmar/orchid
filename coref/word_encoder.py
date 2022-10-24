@@ -5,7 +5,7 @@ from typing import Tuple
 
 import torch
 
-from coref.config import Config
+from config import Config
 from coref.const import Doc
 
 

@@ -7,7 +7,7 @@ from io import TextIOWrapper
 import os
 from typing import Iterator, List, TextIO, Tuple
 
-from coref.config import Config
+from config import Config
 from coref.const import Doc, Span
 
 
