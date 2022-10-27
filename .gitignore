@@ -3,6 +3,7 @@
 __pycache__/
 .mypy_cache/*
 .idea/*
+.vscode/
 
 # private data, except of the pipeline test snippet
 data/*
