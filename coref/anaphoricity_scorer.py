@@ -29,9 +29,8 @@ class AnaphoricityScorer(torch.nn.Module):
         self.hidden = torch.nn.Sequential(*layers)
         self.out = torch.nn.Linear(hidden_size, out_features=1)
 
-    def forward(
+    def run(
         self,
-        *,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
         all_mentions: torch.Tensor,
         mentions_batch: torch.Tensor,
         pw_batch: torch.Tensor,
@@ -61,6 +60,22 @@ class AnaphoricityScorer(torch.nn.Module):
         scores = utils.add_dummy(scores, eps=True)
 
         return scores
+
+    def forward(
+        self,
+        all_mentions: torch.Tensor,
+        mentions_batch: torch.Tensor,
+        pw_batch: torch.Tensor,
+        top_indices_batch: torch.Tensor,
+        top_rough_scores_batch: torch.Tensor,
+    ) -> torch.Tensor:
+        return self.run(
+            all_mentions,
+            mentions_batch,
+            pw_batch,
+            top_indices_batch,
+            top_rough_scores_batch,
+        )
 
     def _ffnn(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -110,3 +125,34 @@ class AnaphoricityScorer(torch.nn.Module):
 
         out = torch.cat((a_mentions, b_mentions, similarity, pw_batch), dim=2)
         return out
+
+
+class MCDropoutAnaphoricityScorer(AnaphoricityScorer):
+    # TODO add documentation
+    def __init__(self, in_features: int, config: Config):
+        self.parameters_samples = config.active_learning.parameters_samples
+        super().__init__(in_features, config)
+
+    def forward(
+        self,
+        all_mentions: torch.Tensor,
+        mentions_batch: torch.Tensor,
+        pw_batch: torch.Tensor,
+        top_indices_batch: torch.Tensor,
+        top_rough_scores_batch: torch.Tensor,
+    ) -> torch.Tensor:
+        return torch.mean(
+            torch.stack(
+                [
+                    self.run(
+                        all_mentions,
+                        mentions_batch,
+                        pw_batch,
+                        top_indices_batch,
+                        top_rough_scores_batch,
+                    )
+                    for _ in range(self.parameters_samples)
+                ]
+            ),
+            dim=0,
+        )
