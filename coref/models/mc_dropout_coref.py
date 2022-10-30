@@ -17,7 +17,6 @@ class MCDropoutCorefModel(GeneralCorefModel):
     def __init__(self, config: Config, epochs_trained: int = 0):
         # The approach works for all layers except of span_predictor
         # The dropout is turned on inside MCDropoutSpanPredictor.
-        # TODO refactor keep _set_training from MCDropoutSpanPredictor
         self.keep_dropout: List["str"] = ["rough_scorer", "pw", "a_scorer"]
         super().__init__(config, epochs_trained)
 

@@ -19,9 +19,7 @@ class AnaphoricityScorer(torch.nn.Module):
         for i in range(config.model_params.n_hidden_layers):
             layers.extend(
                 [
-                    torch.nn.Linear(
-                        hidden_size if i else in_features, hidden_size
-                    ),
+                    torch.nn.Linear(hidden_size if i else in_features, hidden_size),
                     torch.nn.LeakyReLU(),
                     torch.nn.Dropout(config.training_params.dropout_rate),
                 ]
@@ -128,7 +126,13 @@ class AnaphoricityScorer(torch.nn.Module):
 
 
 class MCDropoutAnaphoricityScorer(AnaphoricityScorer):
-    # TODO add documentation
+    """
+    MC Dropout Anaphoricity Scorer
+
+    The model assumes dropout to be already on. For example
+    activated through coreference model which uses that submodule
+    """
+
     def __init__(self, in_features: int, config: Config):
         self.parameters_samples = config.active_learning.parameters_samples
         super().__init__(in_features, config)

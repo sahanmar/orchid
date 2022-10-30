@@ -32,10 +32,7 @@ class RoughScorer(torch.nn.Module):
         the bilinear output of the current model summed with mention scores.
         """
         # [n_mentions, n_mentions]
-        pair_mask = torch.arange(mentions.shape[0])
-        pair_mask = pair_mask.unsqueeze(1) - pair_mask.unsqueeze(0)
-        pair_mask = torch.log((pair_mask > 0).to(torch.float))
-        pair_mask = pair_mask.to(mentions.device)
+        pair_mask = self._get_pair_mask(mentions)
 
         bilinear_scores = self.dropout(self.bilinear(mentions)).mm(mentions.T)
 
@@ -43,9 +40,16 @@ class RoughScorer(torch.nn.Module):
 
         return self._prune(rough_scores)
 
-    def _prune(
-        self, rough_scores: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    @staticmethod
+    def _get_pair_mask(mentions: torch.Tensor) -> torch.Tensor:
+        # [n_mentions, n_mentions]
+        pair_mask = torch.arange(mentions.shape[0])
+        pair_mask = pair_mask.unsqueeze(1) - pair_mask.unsqueeze(0)
+        pair_mask = torch.log((pair_mask > 0).to(torch.float))
+        pair_mask = pair_mask.to(mentions.device)
+        return pair_mask
+
+    def _prune(self, rough_scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Selects top-k rough antecedent scores for each mention.
 
@@ -77,11 +81,7 @@ class MCDropoutRoughScorer(RoughScorer):
         Returns rough anaphoricity scores for candidates, which consist of
         the bilinear output of the current model summed with mention scores.
         """
-        # [n_mentions, n_mentions]
-        pair_mask = torch.arange(mentions.shape[0])
-        pair_mask = pair_mask.unsqueeze(1) - pair_mask.unsqueeze(0)
-        pair_mask = torch.log((pair_mask > 0).to(torch.float))
-        pair_mask = pair_mask.to(mentions.device)
+        pair_mask = self._get_pair_mask(mentions)
 
         # Average over empirical distribution samples
         # TODO return all 10 samples with words
