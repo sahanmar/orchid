@@ -49,7 +49,9 @@ class RoughScorer(torch.nn.Module):
         pair_mask = pair_mask.to(mentions.device)
         return pair_mask
 
-    def _prune(self, rough_scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _prune(
+        self, rough_scores: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Selects top-k rough antecedent scores for each mention.
 

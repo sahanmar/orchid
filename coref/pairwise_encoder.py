@@ -22,7 +22,8 @@ class PairwiseEncoder(torch.nn.Module):
         emb_size = config.model_params.embedding_size
 
         self.genre2int = {
-            g: gi for gi, g in enumerate(["bc", "bn", "mz", "nw", "pt", "tc", "wb"])
+            g: gi
+            for gi, g in enumerate(["bc", "bn", "mz", "nw", "pt", "tc", "wb"])
         }
         self.genre_emb = torch.nn.Embedding(len(self.genre2int), emb_size)
 
@@ -55,7 +56,9 @@ class PairwiseEncoder(torch.nn.Module):
         same_speaker = self.speaker_emb(same_speaker.to(torch.long))
 
         # bucketing the distance (see __init__())
-        distance = (word_ids.unsqueeze(1) - word_ids[top_indices]).clamp_min_(min=1)
+        distance = (word_ids.unsqueeze(1) - word_ids[top_indices]).clamp_min_(
+            min=1
+        )
         log_distance = distance.to(torch.float).log2().floor_()
         log_distance = log_distance.clamp_max_(max=6).to(torch.long)
         distance = torch.where(distance < 5, distance - 1, log_distance + 2)
@@ -98,7 +101,10 @@ class MCDropoutPairwiseEncoder(PairwiseEncoder):
     def forward(self, top_indices: torch.Tensor, doc: Doc) -> torch.Tensor:
         return torch.mean(
             torch.stack(
-                [self.run(top_indices, doc) for _ in range(self.parameters_samples)]
+                [
+                    self.run(top_indices, doc)
+                    for _ in range(self.parameters_samples)
+                ]
             ),
             dim=0,
         )
