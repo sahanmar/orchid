@@ -16,6 +16,9 @@ class ManifoldLearningLoss(torch.nn.Module, metaclass=abc.ABCMeta):
     def __init__(self, *args: List[Any], **kwargs: Dict[str, Any]):
         super(ManifoldLearningLoss, self).__init__()
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(" f"name={self.name}" f")"
+
     @staticmethod
     def reconstruct_from_linear(
         embeddings: torch.Tensor, linear_layer: torch.nn.Linear
@@ -60,12 +63,13 @@ class ManifoldLearningLossFactory:
     def __init__(self) -> None:
         self._losses: Dict[str, Type[ManifoldLearningLoss]] = {}
 
-    def register_loss(
-        self, name: str, loss: Type[ManifoldLearningLoss]
-    ) -> None:
-        self._losses[name] = loss
+    def register_loss(self, loss: Type[ManifoldLearningLoss]) -> None:
+        assert (
+            loss.name is not None
+        ), f"The loss module must have a name {loss!r}: {loss.name}"
+        self._losses[loss.name] = loss
 
-    def get_loss(
+    def get_loss_module(
         self, name: str, **kwargs: Dict[str, Any]
     ) -> ManifoldLearningLoss:
         creator = self._losses.get(name)
@@ -80,11 +84,9 @@ def get_loss_by_name(
     name: str, **kwargs: Dict[str, Any]
 ) -> ManifoldLearningLoss:
     loss_factory = ManifoldLearningLossFactory()
-    loss_factory.register_loss(
-        name=SquaredReconstructionLoss.name, loss=SquaredReconstructionLoss
-    )
+    loss_factory.register_loss(loss=SquaredReconstructionLoss)
 
-    return loss_factory.get_loss(name=name, **kwargs)
+    return loss_factory.get_loss_module(name=name, **kwargs)
 
 
 if __name__ == "__main__":
