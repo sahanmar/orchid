@@ -11,6 +11,8 @@ from .losses import get_loss_by_name
 
 
 class ManifoldLearningModule(torch.nn.Module, metaclass=abc.ABCMeta):
+    """The base manifold learning module that is to be sub-classed"""
+
     def __init__(self, args: ManifoldLearningParams):
         super(ManifoldLearningModule, self).__init__()
         self._args = args
@@ -19,6 +21,7 @@ class ManifoldLearningModule(torch.nn.Module, metaclass=abc.ABCMeta):
 
     @classmethod
     def from_config(cls, config: Config) -> "ManifoldLearningModule":
+        """Initialization from the Config object"""
         return cls(config.manifold)
 
     @property
@@ -27,4 +30,5 @@ class ManifoldLearningModule(torch.nn.Module, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        """Placeholder for the forward method to be overridden"""
         pass
