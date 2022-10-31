@@ -92,15 +92,14 @@ class TrainingParams:
 @overwrite_config
 @dataclass
 class ManifoldLearningParams:
-    dimensionality: int
-    n_components: int
     loss_name: str
     # For separate (non-CR) use cases
-    batch_size: int = 32
-    shuffle: bool = True
-    learning_rate: float = 1e-2
-    epochs: int = 10
-
+    batch_size: int
+    shuffle: bool
+    learning_rate: float
+    epochs: int
+    input_dimensionality: Optional[int] = None
+    output_dimensionality: Optional[int] = None
     verbose_outputs: List[str] = field(default_factory=list)
 
 
@@ -123,6 +122,9 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     sampling_strategy: GreedySampling
 
     active_learning: ActiveLearning
+
+    # Manifold Learning
+    manifold: ManifoldLearningParams
 
     model_bank: ModelBank = field(init=False)
 
@@ -159,9 +161,17 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
             overwrite_conf.get("sampling_strategy", {}),
         )
 
+        # noinspection PyArgumentList
         active_learning = ActiveLearning(  # type: ignore[call-arg]
             default_conf["active_learning"],
             overwrite_conf.get("active_learning", {}),
+        )
+
+        # Loading the manifold learning configuration
+        # noinspection PyArgumentList
+        manifold_learning = ManifoldLearningParams(  # type: ignore[call-arg]
+            config=default_conf["manifold_learning"],
+            overwrite=overwrite_conf.get("manifold_learning", {}),
         )
 
         return Config(
@@ -172,6 +182,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
             tokenizer_kwargs=tokenizer_kwargs,
             sampling_strategy=sampling_strategy,
             active_learning=active_learning,
+            manifold=manifold_learning,
         )
 
     @staticmethod

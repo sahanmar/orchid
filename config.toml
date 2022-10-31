@@ -106,6 +106,18 @@
         # Number of neural network parameters that will represent NN empirical distribution
         parameters_samples = 10
 
+    [DEFAULT.manifold_learning]
+        # Manifold Learning parameters
+        loss_name = "sq_rec_loss"
+        # For separate (non-CR) use cases
+        input_dimensionality = 0
+        output_dimensionality = 0
+        batch_size = 32
+        shuffle = true
+        learning_rate = 1e-2
+        epochs = 10
+        verbose_outputs = ["loss"]
+
 
     # =============================================================================
     # Extra keyword arguments to be passed to bert tokenizers of specified models
@@ -165,6 +177,17 @@
         batch_size = 1
         strategy_flip = 0.2
         total_number_of_iterations = 10
+    [debug.manifold_learning]
+        # Manifold Learning parameters
+        loss_name = "sq_rec_loss"
+        # For separate (non-CR) use cases
+        input_dimensionality = 10
+        output_dimensionality = 2
+        batch_size = 32
+        shuffle = true
+        learning_rate = 1e-2
+        epochs = 10
+        verbose_outputs = ["loss"]
 
 [mc_dropout]
     [mc_dropout.model_params]
