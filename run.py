@@ -14,7 +14,7 @@ from typing import Iterator
 import numpy as np  # type: ignore
 import torch  # type: ignore
 
-from coref.models import CorefModel
+from coref.models import load_coref_model
 from config import Config
 from coref.data_utils import get_docs, DataType
 
@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
     # Load config
     config = Config.load_config(args.config_file, args.experiment)
-    model = CorefModel(config)
+    model = load_coref_model(config)
 
     # Load data
     train_data = get_docs(DataType.train, config=config)

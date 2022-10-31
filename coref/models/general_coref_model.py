@@ -463,9 +463,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self.rough_scorer = RoughScorer(bert_emb, self.config).to(
             self.config.training_params.device
         )
-        self.sp = SpanPredictor(
-            bert_emb, self.config.model_params.sp_embedding_size
-        ).to(self.config.training_params.device)
+        self.sp = SpanPredictor(bert_emb, self.config).to(
+            self.config.training_params.device
+        )
 
         self.trainable: Dict[str, torch.nn.Module] = {
             "bert": self.bert,

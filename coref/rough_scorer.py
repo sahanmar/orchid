@@ -61,3 +61,40 @@ class RoughScorer(torch.nn.Module):
             rough_scores, k=min(self.k, len(rough_scores)), dim=1, sorted=False
         )
         return top_scores, indices
+
+
+class MCDropoutRoughScorer(RoughScorer):
+    # TODO add documentation
+    def __init__(self, features: int, config: Config):
+        self.parameters_samples = config.active_learning.parameters_samples
+        super().__init__(features, config)
+
+    def forward(
+        self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
+        mentions: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Returns rough anaphoricity scores for candidates, which consist of
+        the bilinear output of the current model summed with mention scores.
+        """
+        # [n_mentions, n_mentions]
+        pair_mask = torch.arange(mentions.shape[0])
+        pair_mask = pair_mask.unsqueeze(1) - pair_mask.unsqueeze(0)
+        pair_mask = torch.log((pair_mask > 0).to(torch.float))
+        pair_mask = pair_mask.to(mentions.device)
+
+        # Average over empirical distribution samples
+        # TODO return all 10 samples with words
+        bilinear_scores = torch.mean(
+            torch.stack(
+                [
+                    self.dropout(self.bilinear(mentions)).mm(mentions.T)
+                    for _ in range(self.parameters_samples)
+                ]
+            ),
+            dim=0,
+        )
+
+        rough_scores = pair_mask + bilinear_scores
+
+        return self._prune(rough_scores)

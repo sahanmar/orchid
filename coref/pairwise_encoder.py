@@ -44,7 +44,7 @@ class PairwiseEncoder(torch.nn.Module):
         device of the first parameter of one of the submodules)"""
         return next(self.genre_emb.parameters()).device
 
-    def forward(
+    def run(
         self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
         top_indices: torch.Tensor,
         doc: Doc,
@@ -71,6 +71,9 @@ class PairwiseEncoder(torch.nn.Module):
 
         return self.dropout(torch.cat((same_speaker, distance, genre), dim=2))
 
+    def forward(self, top_indices: torch.Tensor, doc: Doc) -> torch.Tensor:
+        return self.run(top_indices, doc)
+
     @staticmethod
     def _speaker_map(doc: Doc) -> List[int]:
         """
@@ -81,3 +84,21 @@ class PairwiseEncoder(torch.nn.Module):
 
         # word id -> speaker id
         return [str2int[s] for s in doc["speaker"]]
+
+
+class MCDropoutPairwiseEncoder(PairwiseEncoder):
+    # TODO add documentation
+    def __init__(self, config: Config):
+        self.parameters_samples = config.active_learning.parameters_samples
+        super().__init__(config=config)
+
+    def forward(self, top_indices: torch.Tensor, doc: Doc) -> torch.Tensor:
+        return torch.mean(
+            torch.stack(
+                [
+                    self.run(top_indices, doc)
+                    for _ in range(self.parameters_samples)
+                ]
+            ),
+            dim=0,
+        )
