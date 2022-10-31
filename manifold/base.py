@@ -6,7 +6,7 @@ import abc
 
 import torch
 
-from config.config import ManifoldLearningParams
+from config.config import ManifoldLearningParams, Config
 from .losses import get_loss_by_name
 
 
@@ -16,6 +16,10 @@ class ManifoldLearningModule(torch.nn.Module, metaclass=abc.ABCMeta):
         self._args = args
 
         self.loss = get_loss_by_name(name=self._args.loss_name)
+
+    @classmethod
+    def from_config(cls, config: Config) -> "ManifoldLearningModule":
+        return cls(config.manifold)
 
     @property
     def args(self) -> ManifoldLearningParams:

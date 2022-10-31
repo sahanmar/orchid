@@ -19,8 +19,8 @@ class BasePCA(ManifoldLearningModule):
         super(BasePCA, self).__init__(args=args)
 
         self.pca_layer = nn.Linear(
-            in_features=self.args.dimensionality,
-            out_features=self.args.n_components,
+            in_features=self.args.input_dimensionality,
+            out_features=self.args.output_dimensionality,
         )
         self.optimizer = optim.Adam(
             params=self.parameters(), lr=self.args.learning_rate
