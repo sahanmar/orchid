@@ -87,7 +87,13 @@ class PairwiseEncoder(torch.nn.Module):
 
 
 class MCDropoutPairwiseEncoder(PairwiseEncoder):
-    # TODO add documentation
+    """
+    MC Dropout Pairwise Encoder
+
+    The model assumes dropout to be already on. For example
+    activated through coreference model which uses that submodule
+    """
+
     def __init__(self, config: Config):
         self.parameters_samples = config.active_learning.parameters_samples
         super().__init__(config=config)

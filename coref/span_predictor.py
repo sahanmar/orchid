@@ -110,11 +110,14 @@ class SpanPredictor(torch.nn.Module):
 
         # Make sure that start <= head <= end during inference
         if not self.training:
-            valid_starts = torch.log((relative_positions >= 0).to(torch.float))
-            valid_ends = torch.log((relative_positions <= 0).to(torch.float))
-            valid_positions = torch.stack((valid_starts, valid_ends), dim=2)
-            return scores + valid_positions
+            return scores + self.get_valid_positions(relative_positions)
         return scores
+
+    @staticmethod
+    def get_valid_positions(relative_positions: torch.Tensor) -> torch.Tensor:
+        valid_starts = torch.log((relative_positions >= 0).to(torch.float))
+        valid_ends = torch.log((relative_positions <= 0).to(torch.float))
+        return torch.stack((valid_starts, valid_ends), dim=2)
 
     def get_training_data(
         self, doc: Doc, words: torch.Tensor
@@ -238,34 +241,31 @@ class MCDropoutSpanPredictor(SpanPredictor):
         if not self.training:
             back_2_eval = True
             self.training = True
-        res = torch.mean(
-            torch.stack(
-                [
-                    self.ffnn(
-                        padded_pairs
-                    )  # [n_heads, n_candidates, last_layer_output]
-                    for _ in range(self.parameters_samples)
-                ]
-            ),
-            dim=0,
-        )
-        if back_2_eval:
-            self.training = False
-        res = self.conv(res.permute(0, 2, 1)).permute(
-            0, 2, 1
-        )  # [n_heads, n_candidates, 2]
 
-        scores = torch.full(
-            (heads_ids.shape[0], words.shape[0], 2),
-            float("-inf"),
-            device=words.device,
-        )
-        scores[rows, cols] = res[padding_mask]
+        # Sample MC Dropout NN Parameters distribution
+        for _ in range(self.parameters_samples):
+            sampled_scores: List[torch.Tensor] = []
 
-        # Make sure that start <= head <= end during inference
-        if not self.training:
-            valid_starts = torch.log((relative_positions >= 0).to(torch.float))
-            valid_ends = torch.log((relative_positions <= 0).to(torch.float))
-            valid_positions = torch.stack((valid_starts, valid_ends), dim=2)
-            return scores + valid_positions
-        return scores
+            res = self.ffnn(
+                padded_pairs
+            )  # [n_heads, n_candidates, last_layer_output]
+            if back_2_eval:
+                self.training = False
+            res = self.conv(res.permute(0, 2, 1)).permute(
+                0, 2, 1
+            )  # [n_heads, n_candidates, 2]
+
+            scores = torch.full(
+                (heads_ids.shape[0], words.shape[0], 2),
+                float("-inf"),
+                device=words.device,
+            )
+            scores[rows, cols] = res[padding_mask]
+
+            # Make sure that start <= head <= end during inference
+            if not self.training:
+                scores += self.get_valid_positions(relative_positions)
+
+            sampled_scores.append(scores)
+
+        return torch.mean(torch.stack(sampled_scores), dim=0)

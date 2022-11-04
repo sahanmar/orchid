@@ -78,7 +78,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
         # Active Learning section
-        self.sampling_strategy: GreedySampling = config.sampling_strategy
+        self.sampling_strategy: GreedySampling = (
+            config.active_learning.sampling_strategy
+        )
 
     @property
     def training(self) -> bool:

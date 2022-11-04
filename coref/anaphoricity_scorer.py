@@ -128,7 +128,13 @@ class AnaphoricityScorer(torch.nn.Module):
 
 
 class MCDropoutAnaphoricityScorer(AnaphoricityScorer):
-    # TODO add documentation
+    """
+    MC Dropout Anaphoricity Scorer
+
+    The model assumes dropout to be already on. For example
+    activated through coreference model which uses that submodule
+    """
+
     def __init__(self, in_features: int, config: Config):
         self.parameters_samples = config.active_learning.parameters_samples
         super().__init__(in_features, config)
