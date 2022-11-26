@@ -430,7 +430,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
         metrics_val = sum(metrics_vals) / len(metrics_vals)
 
-        print(f"Average PAVPU metrics is {metrics_vals}")
+        print(f"Average PAVPU metrics is {metrics_val}")
 
         return metrics_val
 
