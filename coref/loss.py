@@ -33,6 +33,6 @@ class CorefLoss(torch.nn.Module):
 
     @staticmethod
     def _nlml(input_: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        gold = torch.logsumexp(input_ + torch.log(target), dim=1)
-        input_ = torch.logsumexp(input_, dim=1)
+        gold = torch.log(torch.sum(input_ * target, dim=1))
+        input_ = torch.log(torch.sum(input_, dim=1))
         return (input_ - gold).mean()
