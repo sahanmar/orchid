@@ -20,7 +20,6 @@ class SampledData:
 
 @dataclass
 class CorefResult:
-    prob_coref_scores: torch.Tensor = None  # [n_words, k + 1]
     coref_scores: torch.Tensor = None  # [n_words, k + 1]
     coref_y: torch.Tensor = None  # [n_words, k + 1]
 
