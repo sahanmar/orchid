@@ -51,13 +51,6 @@ def pavpu_metric(
         inacc_certain + torch.sum(acc_uncertain) + torch.sum(inacc_uncertain)
     )
 
-    print(criterium)
-    print(threshold)
-    print(acc_certain)
-    print(acc_uncertain)
-    print(inacc_certain)
-    print(inacc_uncertain)
-
     return float(
         (torch.sum(acc_certain) + torch.sum(inacc_certain)) / normalizing_const
     )
