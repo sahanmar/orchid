@@ -424,9 +424,15 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         pbar = tqdm(docs, unit="docs", ncols=0)
         for doc in pbar:
             res = self.run(doc, True)
-            metrics_vals.append(pavpu_metric(res.coref_scores, res.coref_y))
+            single_val = pavpu_metric(res.coref_scores, res.coref_y)
+            metrics_vals.append(single_val)
+            print(f"Single PAVPU metrics is {single_val}")
 
-        return sum(metrics_vals) / len(metrics_vals)
+        metrics_val = sum(metrics_vals) / len(metrics_vals)
+
+        print(f"Average PAVPU metrics is {metrics_vals}")
+
+        return metrics_val
 
     # ========================================================= Private methods
 
