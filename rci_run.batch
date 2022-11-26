@@ -9,7 +9,7 @@ echo "Preparing environment..."
 ENV_PATH="/home/$(whoami)/venv/orchid/bin/activate"
 echo "Using env from ${ENV_PATH}"
 
-source ENV_PATH
+source $ENV_PATH
 
 # ML dependencies
 echo "Activating the Torch module"
