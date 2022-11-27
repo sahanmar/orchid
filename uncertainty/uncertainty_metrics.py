@@ -47,10 +47,14 @@ def pavpu_metric(
     inacc_certain = inaccurate * certain
     inacc_uncertain = inaccurate * uncertain
 
-    normalizing_const = torch.sum(acc_certain) + torch.sum(
-        inacc_certain + torch.sum(acc_uncertain) + torch.sum(inacc_uncertain)
+    normalizing_const = (
+        torch.sum(acc_certain)
+        + torch.sum(inacc_certain)
+        + torch.sum(acc_uncertain)
+        + torch.sum(inacc_uncertain)
     )
 
     return float(
-        (torch.sum(acc_certain) + torch.sum(inacc_certain)) / normalizing_const
+        (torch.sum(acc_certain) + torch.sum(inacc_uncertain))
+        / normalizing_const
     )
