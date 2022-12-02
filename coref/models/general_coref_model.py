@@ -426,7 +426,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         metrics_vals: List[float] = []
         uncertainty_thresholds = self.config.metrics.pavpu.static_theshold_value
         n = self.config.metrics.pavpu.window
-        rough_k = self.config.model_params.rough_k
+        rough_k = self.config.model_params.rough_k + 1  # 1 for dummy variable
 
         pbar = tqdm(divide_chunks(docs, n), unit="docs", ncols=0)
         for batch in pbar:
