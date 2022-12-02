@@ -2,7 +2,7 @@ import torch
 import pytest
 from config import Config
 from typing import Tuple
-from uncertainty.uncertainty_metrics import pavpu_metric
+from uncertainty.uncertainty_metrics import pavpu_metric_w_pred_processing
 
 CONFIG = Config.load_default_config(section="debug")
 
@@ -38,5 +38,6 @@ def test_pavpu_metric(data: Tuple[torch.Tensor, torch.Tensor]) -> None:
     pred, target = data
     expected = pytest.approx(0.4, 0.01)
     assert (
-        pavpu_metric(pred, target, uncertainty_threshold=threshold) == expected
+        pavpu_metric_w_pred_processing(pred, target, uncertainty_threshold=threshold)
+        == expected
     )
