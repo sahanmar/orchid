@@ -30,6 +30,7 @@ from coref.rough_scorer import RoughScorer
 from coref.span_predictor import SpanPredictor
 from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
+from uncertainty.uncertainty_metrics import pavpu_metric
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling
@@ -415,6 +416,23 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
         return self.sampling_strategy.step(documents)
+
+    def get_uncertainty_metrics(self, docs: List[Doc]) -> float:
+
+        metrics_vals: List[float] = []
+
+        pbar = tqdm(docs, unit="docs", ncols=0)
+        for doc in pbar:
+            res = self.run(doc, True)
+            single_val = pavpu_metric(res.coref_scores, res.coref_y)
+            metrics_vals.append(single_val)
+            print(f"Single PAVPU metrics is {single_val}")
+
+        metrics_val = sum(metrics_vals) / len(metrics_vals)
+
+        print(f"Average PAVPU metrics is {metrics_val}")
+
+        return metrics_val
 
     # ========================================================= Private methods
 

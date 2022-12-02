@@ -43,7 +43,7 @@ def seed(value: int) -> None:
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("mode", choices=("train", "eval"))
+    argparser.add_argument("mode", choices=("train", "eval", "metrics"))
     argparser.add_argument("experiment")
     argparser.add_argument("--config-file", default="config.toml")
     argparser.add_argument(
@@ -108,7 +108,7 @@ if __name__ == "__main__":
             )
         with output_running_time():
             model.train(docs=train_data, docs_dev=dev_data)
-    else:
+    elif args.mode == "eval":
         model.load_weights(
             path=args.weights,
             map_location="cpu",
@@ -120,3 +120,15 @@ if __name__ == "__main__":
             },
         )
         model.evaluate(test_data, word_level_conll=args.word_level)
+    else:
+        model.load_weights(
+            path=args.weights,
+            map_location="cpu",
+            ignore={
+                "bert_optimizer",
+                "general_optimizer",
+                "bert_scheduler",
+                "general_scheduler",
+            },
+        )
+        model.get_uncertainty_metrics(test_data)
