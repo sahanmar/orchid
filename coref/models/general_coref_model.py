@@ -77,7 +77,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self._build_model()
         self._build_optimizers()
         self._set_training(False)
-        self._coref_criterion = CorefLoss(self.config.training_params.bce_loss_weight)
+        self._coref_criterion = CorefLoss(
+            self.config.training_params.bce_loss_weight
+        )
         self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
         # Active Learning section
@@ -140,7 +142,10 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                     pred_starts = res.span_scores[:, :, 0].argmax(dim=1)
                     pred_ends = res.span_scores[:, :, 1].argmax(dim=1)
                     s_correct += (
-                        ((res.span_y[0] == pred_starts) * (res.span_y[1] == pred_ends))
+                        (
+                            (res.span_y[0] == pred_starts)
+                            * (res.span_y[1] == pred_ends)
+                        )
                         .sum()
                         .item()
                     )
@@ -148,7 +153,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
                 if word_level_conll:
                     if res.word_clusters is None:
-                        raise RuntimeError(f'"word_clusters" attribute must be set')
+                        raise RuntimeError(
+                            f'"word_clusters" attribute must be set'
+                        )
                     conll.write_conll(
                         doc,
                         [
@@ -168,7 +175,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 else:
                     conll.write_conll(doc, doc["span_clusters"], gold_f)
                     if res.span_clusters is None:
-                        raise RuntimeError(f'"span_clusters" attribute must be set')
+                        raise RuntimeError(
+                            f'"span_clusters" attribute must be set'
+                        )
                     conll.write_conll(doc, res.span_clusters, pred_f)
 
                 w_checker.add_predictions(
@@ -229,7 +238,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 if noexception:
                     print("No weights have been loaded", flush=True)
                     return
-                raise OSError(f"No weights found in {self.config.data.data_dir}!")
+                raise OSError(
+                    f"No weights found in {self.config.data.data_dir}!"
+                )
             _, path = sorted(files)[-1]
             path = os.path.join(self.config.data.data_dir, path)
 
@@ -337,7 +348,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         savedict["epochs_trained"] = self.epochs_trained  # type: ignore
         torch.save(savedict, path)
 
-    def train(self, docs: List[Doc], docs_dev: Optional[List[Doc]] = None) -> None:
+    def train(
+        self, docs: List[Doc], docs_dev: Optional[List[Doc]] = None
+    ) -> None:
         """
         Trains all the trainable blocks in the model using the config provided.
         """
@@ -413,12 +426,21 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         metrics_vals: List[float] = []
         uncertainty_thresholds = self.config.metrics.pavpu.static_theshold_value
         n = self.config.metrics.pavpu.window
+        rough_k = self.config.model_params.rough_k
 
         pbar = tqdm(divide_chunks(docs, n), unit="docs", ncols=0)
         for batch in pbar:
             scores, ground_truth = [], []
             for doc in batch:
                 res = self.run(doc, True)
+                if res.coref_scores.size(1) < rough_k:
+                    res.coref_scores = torch.nn.functional.pad(
+                        res.coref_scores,
+                        (rough_k - res.coref_scores.size(1), 0),
+                    )
+                    res.coref_y = torch.nn.functional.pad(
+                        res.coref_y, (rough_k - res.coref_y.size(1), 0)
+                    )
                 scores.append(res.coref_scores)
                 ground_truth.append(res.coref_y)
                 del res
@@ -477,7 +499,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     def _build_model(self) -> None:
         self.bert = self.config.model_bank.encoder
         self.tokenizer = self.config.model_bank.tokenizer
-        self.pw = PairwiseEncoder(self.config).to(self.config.training_params.device)
+        self.pw = PairwiseEncoder(self.config).to(
+            self.config.training_params.device
+        )
 
         bert_emb = self.bert.config.hidden_size
         pair_emb = bert_emb * 3 + self.pw.shape
@@ -532,7 +556,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
         # Must ensure the same ordering of parameters between launches
         modules = sorted(
-            (key, value) for key, value in self.trainable.items() if key != "bert"
+            (key, value)
+            for key, value in self.trainable.items()
+            if key != "bert"
         )
         params = []
         for _, module in modules:
