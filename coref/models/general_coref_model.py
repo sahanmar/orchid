@@ -123,7 +123,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         ):
             pbar = tqdm(docs, unit="docs", ncols=0)
             for doc in pbar:
-                res = self.run(doc)
+                res = self.run(doc, True)
 
                 running_loss += self._coref_criterion(
                     res.coref_scores, res.coref_y
@@ -257,6 +257,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     def run(
         self,  # pylint: disable=too-many-locals
         doc: Doc,
+        normalize_anaphoras: bool = False,
     ) -> CorefResult:
         """
         This is a massive method, but it made sense to me to not split it into
@@ -264,6 +265,8 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
         Args:
             doc (Doc): a dictionary with the document data.
+            normalize_anaphoras (bool) apply softmax or not
+            to anaphoras scorer
 
         Returns:
             CorefResult (see const.py)
@@ -290,7 +293,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             top_indices_batch = top_indices[i : i + batch_size]
             top_rough_scores_batch = top_rough_scores[i : i + batch_size]
 
-            # a_scores_batch    [batch_size, n_ants]
+            # a_scores_batch  [batch_size, n_ants]
             a_scores_batch = self.a_scorer(
                 all_mentions=words,
                 mentions_batch=words_batch,
@@ -302,8 +305,13 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
         res = CorefResult()
 
-        # coref_scores  [n_spans, n_ants]
-        res.coref_scores = torch.cat(a_scores_lst, dim=0)
+        # coref_scores   [n_spans, n_ants]
+        cat_anaphora_scores = torch.cat(a_scores_lst, dim=0)
+        res.coref_scores = (
+            torch.softmax(cat_anaphora_scores, dim=1)
+            if normalize_anaphoras
+            else cat_anaphora_scores
+        )
 
         res.coref_y = self._get_ground_truth(
             cluster_ids, top_indices, (top_rough_scores > float("-inf"))
