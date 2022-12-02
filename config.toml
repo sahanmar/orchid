@@ -83,6 +83,23 @@
         # The directory that will contain conll prediction files
         conll_log_dir = "data/conll_logs"
 
+    [DEFAULT.metrics]
+        # Metrics paramets
+        [DEFAULT.metrics.pavpu]
+            # PAVPU metric taken from https://arxiv.org/pdf/1811.12709.pdf
+
+            # If sliding threshold is activated, static threshold value is skipped.
+            # Sliding threshold samples a consecutive range of data in between [0,1]
+            # and calculates PAVPU for every threshold value.
+            # If sliding_threshold == false, static_theshold_value is used.
+            sliding_threshold = false
+            static_theshold_value = 0.5
+
+            # Window of documents to calculate metrics through
+            window = 10
+
+
+
     [DEFAULT.active_learning]
         # Active Learning parameters
         # Number of neural network parameters that will represent NN empirical distribution
@@ -164,6 +181,10 @@
         batch_size = 1
         strategy_flip = 0.2
         total_number_of_iterations = 10
+    [debug.metrics.pavpu]
+        sliding_threshold = true
+        static_theshold_value = 0.5
+
 
 [mc_dropout]
     [mc_dropout.model_params]

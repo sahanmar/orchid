@@ -34,6 +34,9 @@ def data() -> Tuple[torch.Tensor, torch.Tensor]:
 
 
 def test_pavpu_metric(data: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    threshold = CONFIG.metrics.pavpu.static_theshold_value
     pred, target = data
     expected = pytest.approx(0.4, 0.01)
-    assert pavpu_metric(pred, target) == expected
+    assert (
+        pavpu_metric(pred, target, uncertainty_threshold=threshold) == expected
+    )
