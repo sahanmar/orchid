@@ -12,6 +12,8 @@ from typing import (
     Hashable,
     cast,
     TYPE_CHECKING,
+    Iterable,
+    TypeVar,
 )
 
 import numpy as np  # type: ignore
@@ -34,6 +36,8 @@ from uncertainty.uncertainty_metrics import pavpu_metric
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling
+
+T = TypeVar("T")
 
 
 class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
@@ -420,11 +424,23 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     def get_uncertainty_metrics(self, docs: List[Doc]) -> float:
 
         metrics_vals: List[float] = []
+        uncertainty_thresholds = self.config.metrics.pavpu.static_theshold_value
+        n = self.config.metrics.pavpu.window
 
-        pbar = tqdm(docs, unit="docs", ncols=0)
-        for doc in pbar:
-            res = self.run(doc, True)
-            single_val = pavpu_metric(res.coref_scores, res.coref_y)
+        pbar = tqdm(divide_chunks(docs, n), unit="docs", ncols=0)
+        for batch in pbar:
+            scores, ground_truth = [], []
+            for doc in batch:
+                res = self.run(doc, True)
+                scores.append(res.coref_scores)
+                ground_truth.append(res.coref_y)
+                del res
+
+            single_val = pavpu_metric(
+                torch.stack(scores, dim=0),
+                torch.stack(scores, dim=0),
+                uncertainty_threshold=uncertainty_thresholds,
+            )
             metrics_vals.append(single_val)
             print(f"Single PAVPU metrics is {single_val}")
 
@@ -613,3 +629,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self._training = value
         for module in self.trainable.values():
             module.train(self._training)
+
+
+def divide_chunks(l: list[T], n: int) -> Iterable[list[T]]:
+    # looping till length l
+    for i in range(0, len(l), n):
+        yield l[i : i + n]
