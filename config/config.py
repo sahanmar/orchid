@@ -6,13 +6,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import toml
+import toml  # type: ignore
 from transformers import AutoTokenizer, AutoModel
 
 from coref.bert import load_bert
 
 from config.config_utils import overwrite_config, get_overwrite_value
 from config.active_learning import ActiveLearning
+from config.metrics import Metrics
 
 
 @dataclass
@@ -99,6 +100,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
     model_bank: ModelBank = field(init=False)
 
+    metrics: Metrics
+
     def __post_init__(self) -> None:
         encoder, tokenizer = load_bert(
             self.model_params.bert_model,
@@ -133,6 +136,11 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
             get_overwrite_value(overwrite_conf, "active_learning"),  # type: ignore
         )
 
+        metrics = Metrics.load_config(
+            default_conf["metrics"],
+            get_overwrite_value(overwrite_conf, "metrics"),  # type: ignore
+        )
+
         return Config(
             section=section,
             data=data,
@@ -140,6 +148,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
             training_params=training_params,
             tokenizer_kwargs=tokenizer_kwargs,
             active_learning=active_learning,
+            metrics=metrics,
         )
 
     @staticmethod

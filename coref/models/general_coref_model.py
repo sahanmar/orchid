@@ -12,6 +12,7 @@ from typing import (
     Hashable,
     cast,
     TYPE_CHECKING,
+    TypeVar,
 )
 
 import numpy as np  # type: ignore
@@ -34,6 +35,8 @@ from uncertainty.uncertainty_metrics import pavpu_metric
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling
+
+T = TypeVar("T")
 
 
 class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
@@ -417,18 +420,20 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
         return self.sampling_strategy.step(documents)
 
-    def get_uncertainty_metrics(self, docs: List[Doc]) -> float:
+    def get_uncertainty_metrics(self, docs: List[Doc]) -> list[float]:
 
-        metrics_vals: List[float] = []
-
+        metrics_vals: list[list[float]] = []
         pbar = tqdm(docs, unit="docs", ncols=0)
         for doc in pbar:
             res = self.run(doc, True)
-            single_val = pavpu_metric(res.coref_scores, res.coref_y)
-            metrics_vals.append(single_val)
-            print(f"Single PAVPU metrics is {single_val}")
+            pavpu_output = pavpu_metric(
+                res.coref_scores, res.coref_y, self.config.metrics.pavpu
+            )
+            metrics_vals.append(pavpu_output)
 
-        metrics_val = sum(metrics_vals) / len(metrics_vals)
+        metrics_val: list[float] = np.mean(
+            np.array(metrics_vals), axis=0
+        ).tolist()
 
         print(f"Average PAVPU metrics is {metrics_val}")
 

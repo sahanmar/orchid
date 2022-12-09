@@ -1,6 +1,7 @@
 import torch
 import pytest
 from config import Config
+from config.metrics import PAVPU
 from typing import Tuple
 from uncertainty.uncertainty_metrics import pavpu_metric
 
@@ -33,7 +34,34 @@ def data() -> Tuple[torch.Tensor, torch.Tensor]:
     return pred, target
 
 
-def test_pavpu_metric(data: Tuple[torch.Tensor, torch.Tensor]) -> None:
+def test_pavpu_metric_static_threshold(
+    data: Tuple[torch.Tensor, torch.Tensor]
+) -> None:
     pred, target = data
-    expected = pytest.approx(0.4, 0.01)
-    assert pavpu_metric(pred, target) == expected
+    expected = [pytest.approx(0.4, 0.01)]
+    assert (
+        pavpu_metric(
+            pred,
+            target,
+            PAVPU(static_theshold_value=0.5, sliding_threshold=False),
+        )
+        == expected
+    )
+
+
+def test_pavpu_metric_sliding_threshold(
+    data: Tuple[torch.Tensor, torch.Tensor]
+) -> None:
+    pred, target = data
+    expected = [
+        pytest.approx(i, 0.01)
+        for i in [0.6, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.6, 0.6, 0.6]
+    ]
+    assert (
+        pavpu_metric(
+            pred,
+            target,
+            PAVPU(static_theshold_value=0.5, sliding_threshold=True),
+        )
+        == expected
+    )
