@@ -1,4 +1,5 @@
 import torch
+from config.metrics import PAVPU
 
 
 def get_entropy(tensor: torch.Tensor) -> torch.Tensor:
@@ -9,8 +10,8 @@ def get_entropy(tensor: torch.Tensor) -> torch.Tensor:
 
 
 def pavpu_metric(
-    pred: torch.Tensor, target: torch.Tensor, uncertainty_threshold: float = 0.5
-) -> float:
+    pred: torch.Tensor, target: torch.Tensor, pavpu_config: PAVPU
+) -> list[float]:
     """
     PAvPU metric is taken from https://arxiv.org/pdf/1811.12709.pdf
     and calculated as (N_ac + N_ic) / (N_ac + N_ic + N_au + N_iu),
@@ -31,30 +32,44 @@ def pavpu_metric(
     # TODO create metrics config and send thresholds and window here
     """
     criterium = get_entropy(pred)
-    threshold = torch.min(criterium) + uncertainty_threshold * (
-        torch.max(criterium) - torch.min(criterium)
-    )
-    certain = criterium < threshold
-    uncertain = criterium >= threshold
 
     pred_ant = torch.argmax(pred, dim=1)
     target_ant = torch.argmax(target, dim=1)
     accurate = pred_ant == target_ant
     inaccurate = pred_ant != target_ant
 
-    acc_certain = accurate * certain
-    acc_uncertain = accurate * uncertain
-    inacc_certain = inaccurate * certain
-    inacc_uncertain = inaccurate * uncertain
+    # generate thresholds
+    if pavpu_config.sliding_threshold:
+        samples = 10
+        thresholds: list[float] = [i / samples for i in range(0, samples + 1)]
+    else:
+        thresholds = [pavpu_config.static_theshold_value]
 
-    normalizing_const = (
-        torch.sum(acc_certain)
-        + torch.sum(inacc_certain)
-        + torch.sum(acc_uncertain)
-        + torch.sum(inacc_uncertain)
-    )
+    pavpu_given_threshold: list[float] = []
 
-    return float(
-        (torch.sum(acc_certain) + torch.sum(inacc_uncertain))
-        / normalizing_const
-    )
+    for threshold in thresholds:
+        threshold = torch.min(criterium) + threshold * (
+            torch.max(criterium) - torch.min(criterium)
+        )
+        certain = criterium < threshold
+        uncertain = criterium >= threshold
+
+        acc_certain = accurate * certain
+        acc_uncertain = accurate * uncertain
+        inacc_certain = inaccurate * certain
+        inacc_uncertain = inaccurate * uncertain
+
+        normalizing_const = (
+            torch.sum(acc_certain)
+            + torch.sum(inacc_certain)
+            + torch.sum(acc_uncertain)
+            + torch.sum(inacc_uncertain)
+        )
+
+        pavpu_given_threshold.append(
+            float(
+                (torch.sum(acc_certain) + torch.sum(inacc_uncertain))
+                / normalizing_const
+            )
+        )
+    return pavpu_given_threshold

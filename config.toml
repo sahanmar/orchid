@@ -95,9 +95,6 @@
             sliding_threshold = false
             static_theshold_value = 0.5
 
-            # Window of documents to calculate metrics through
-            window = 10
-
 
 
     [DEFAULT.active_learning]

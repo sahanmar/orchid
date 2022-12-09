@@ -8,7 +8,6 @@ from typing import Any
 class PAVPU:
     sliding_threshold: bool
     static_theshold_value: float
-    window: int
 
 
 @dataclass

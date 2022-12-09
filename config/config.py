@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import toml
+import toml  # type: ignore
 from transformers import AutoTokenizer, AutoModel
 
 from coref.bert import load_bert
