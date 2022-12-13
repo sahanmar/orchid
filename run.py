@@ -84,7 +84,7 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    seed(2020)
+    # seed(2020)
 
     # Load config
     config = Config.load_config(args.config_file, args.experiment)

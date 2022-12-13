@@ -414,9 +414,6 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             if docs_dev is not None:
                 self.evaluate(docs=docs_dev)
 
-    def active_learning_step(self) -> None:
-        ...
-
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
         return self.sampling_strategy.step(documents)
 
