@@ -5,17 +5,18 @@ from typing import Optional
 
 def run_simulation(
     model: GeneralCorefModel,
-    docs: list[Doc],
-    dev_docs: Optional[list[Doc]],
+    train_docs: list[Doc],
+    test_data: list[Doc],
+    dev_docs: list[Doc],
 ) -> None:
     al_config = model.config.active_learning
 
     # Training split
-    training_data = docs[: al_config.simulation.initial_sample_size]
-    complementary_data = docs[al_config.simulation.initial_sample_size :]
+    training_data = train_docs[: al_config.simulation.initial_sample_size]
+    complementary_data = train_docs[al_config.simulation.initial_sample_size :]
     # First training
     model.train(docs=training_data, docs_dev=dev_docs)
-    model.evaluate(docs=complementary_data)
+    model.evaluate(docs=test_data)
 
     print("Yo Yo! Initial training iteration is done...\n")
 
@@ -39,4 +40,4 @@ def run_simulation(
         print("Training\n")
         model.train(docs=training_data, docs_dev=dev_docs)
         print("Evaluation\n")
-        model.evaluate(docs=complementary_data)
+        model.evaluate(docs=test_data)
