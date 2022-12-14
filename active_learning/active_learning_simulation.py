@@ -1,15 +1,18 @@
 from coref.models import GeneralCorefModel
 from coref.const import Doc, SampledData
-from typing import Optional
+from coref.models import load_coref_model
+from config import Config
 
 
 def run_simulation(
-    model: GeneralCorefModel,
+    config: Config,
     train_docs: list[Doc],
     test_data: list[Doc],
     dev_docs: list[Doc],
 ) -> None:
-    al_config = model.config.active_learning
+
+    model = load_coref_model(config)
+    al_config = config.active_learning
 
     # Training split
     training_data = train_docs[: al_config.simulation.initial_sample_size]
@@ -32,7 +35,7 @@ def run_simulation(
         ]
 
         # Train the model
-        model._build_model()
+        model = load_coref_model(config)
         print("Training\n")
         model.train(docs=training_data, docs_dev=dev_docs)
         print("Evaluation\n")
