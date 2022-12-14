@@ -194,7 +194,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 del res
 
                 pbar.set_description(
-                    f"{'dev'}:"
+                    f"{'test'}:"
                     f" | WL: "
                     f" loss: {running_loss / (pbar.n + 1):<.5f},"
                     f" f1: {w_lea[0]:.5f},"
