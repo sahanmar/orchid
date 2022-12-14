@@ -32,11 +32,7 @@ def run_simulation(
         ]
 
         # Train the model
-        model.load_weights(
-            # TODO FIgure out path situation
-            path="SOME PATH",
-            map_location="cpu",
-        )
+        model._build_model()
         print("Training\n")
         model.train(docs=training_data, docs_dev=dev_docs)
         print("Evaluation\n")
