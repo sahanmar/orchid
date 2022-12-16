@@ -102,6 +102,16 @@
         # Number of neural network parameters that will represent NN empirical distribution
         parameters_samples = 10
 
+        [DEFAULT.active_learning.simulation]
+            # Simulation parameters (e.g. starting sample size, number of iterations, ...)
+
+            # Number of instances used for the first training iteration
+            initial_sample_size = 100
+
+            # Active learning steps to perform
+            active_learning_steps = 5
+
+
         [DEFAULT.active_learning.sampling_strategy]
             # Active Learning sampling strategy. All AL related things will be put to a
             # dedicated section later
@@ -109,7 +119,7 @@
             acquisition_function_type = "random"
 
             # Batch size to sample
-            batch_size = 10
+            batch_size = 50
 
             # Prob[random_strategy|current_sampling_iteration/total_number_of_iterations] = 0.5
             # In other words strategy flip is the number of iterations after which the acquisition function

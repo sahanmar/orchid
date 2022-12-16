@@ -17,6 +17,7 @@ import torch  # type: ignore
 from coref.models import load_coref_model
 from config import Config
 from coref.data_utils import get_docs, DataType
+from active_learning.active_learning_simulation import run_simulation
 
 
 @contextmanager
@@ -43,7 +44,9 @@ def seed(value: int) -> None:
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("mode", choices=("train", "eval", "metrics"))
+    argparser.add_argument(
+        "mode", choices=("train", "eval", "metrics", "simulation")
+    )
     argparser.add_argument("experiment")
     argparser.add_argument("--config-file", default="config.toml")
     argparser.add_argument(
@@ -84,7 +87,7 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    seed(2020)
+    # seed(2020)
 
     # Load config
     config = Config.load_config(args.config_file, args.experiment)
@@ -120,6 +123,8 @@ if __name__ == "__main__":
             },
         )
         model.evaluate(test_data, word_level_conll=args.word_level)
+    elif args.mode == "simulation":
+        run_simulation(config, train_data, test_data, dev_data)
     else:
         model.load_weights(
             path=args.weights,

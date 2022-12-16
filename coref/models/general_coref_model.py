@@ -194,7 +194,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 del res
 
                 pbar.set_description(
-                    f"{'dev'}:"
+                    f"{'test'}:"
                     f" | WL: "
                     f" loss: {running_loss / (pbar.n + 1):<.5f},"
                     f" f1: {w_lea[0]:.5f},"
@@ -413,9 +413,6 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             self.save_weights()
             if docs_dev is not None:
                 self.evaluate(docs=docs_dev)
-
-    def active_learning_step(self) -> None:
-        ...
 
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
         return self.sampling_strategy.step(documents)
