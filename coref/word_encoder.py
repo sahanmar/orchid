@@ -1,12 +1,13 @@
 """ Describes WordEncoder. Extracts mention vectors from bert-encoded text.
 """
-
+from math import ceil
 from typing import Tuple
 
 import torch
 
 from config import Config
 from coref.const import Doc
+from manifold import BasePCA
 
 
 class WordEncoder(
@@ -18,7 +19,7 @@ class WordEncoder(
     def __init__(self, features: int, config: Config):
         """
         Args:
-            features (int): the number of featues in the input embeddings
+            features (int): the number of features in the input embeddings
             config (Config): the configuration of the current session
         """
         super().__init__()
@@ -89,9 +90,11 @@ class WordEncoder(
 
         # [n_mentions, n_subtokens]
         # with 0 at positions belonging to the words and -inf elsewhere
-        attn_mask = torch.arange(0, n_subtokens, device=self.device).expand(
-            (n_words, n_subtokens)
-        )
+        attn_mask: torch.Tensor = torch.arange(
+            0,
+            n_subtokens,
+            device=self.device,
+        ).expand((n_words, n_subtokens))
         attn_mask = (attn_mask >= word_starts.unsqueeze(1)) * (
             attn_mask < word_ends.unsqueeze(1)
         )
@@ -125,3 +128,24 @@ class WordEncoder(
             ],
             device=self.device,
         )
+
+
+class ReducedDimensionalityWordEncoder(WordEncoder):
+    def __init__(self, features: int, config: Config):
+        features_out = max(
+            0,
+            min(ceil(features * config.manifold.reduction_ratio), features),
+        )
+        super().__init__(features=features_out, config=config)
+        assert config.manifold.enable, f"Manifold Learning must be enabled"
+        config.manifold.standalone.input_dimensionality = features
+        config.manifold.standalone.output_dimensionality = features_out
+        self.manifold = BasePCA.from_config(config=config)
+
+    def run(
+        self,
+        doc: Doc,
+        x: torch.Tensor,
+    ) -> Tuple[torch.Tensor, ...]:
+        x_reduced = self.manifold(x)
+        return super().run(doc=doc, x=x_reduced)
