@@ -7,10 +7,12 @@
 """
 
 from config.config import Config
-
-from coref.models.mc_dropout_coref import MCDropoutCorefModel
 from coref.models.coref_model import CorefModel
 from coref.models.general_coref_model import GeneralCorefModel
+from coref.models.mc_dropout_coref import MCDropoutCorefModel
+from coref.models.reduced_dimensionality_coref import (
+    ReducedDimensionalityCorefModel,
+)
 from .exceptions import InvalidModelName
 
 
@@ -25,4 +27,7 @@ def load_coref_model(config: Config) -> GeneralCorefModel:
         return CorefModel(config)
     elif _model_id == "mc_dropout":
         return MCDropoutCorefModel(config)
-    raise InvalidModelName(model_id=_model_id)
+    elif _model_id == "reduced_dimensionality":
+        return ReducedDimensionalityCorefModel(config)
+    else:
+        raise InvalidModelName(model_id=_model_id)
