@@ -11,6 +11,7 @@ from config.config import Config
 from coref.models.mc_dropout_coref import MCDropoutCorefModel
 from coref.models.coref_model import CorefModel
 from coref.models.general_coref_model import GeneralCorefModel
+from .exceptions import InvalidModelName
 
 
 # When we will have more coref models, will define
@@ -18,10 +19,10 @@ from coref.models.general_coref_model import GeneralCorefModel
 
 
 def load_coref_model(config: Config) -> GeneralCorefModel:
-    if config.model_params.coref_model == "base":
+    _model_id = config.model_params.coref_model
+    print(f"Attempting to load model: {_model_id}")
+    if _model_id == "base":
         return CorefModel(config)
-    elif config.model_params.coref_model == "mc_dropout":
+    elif _model_id == "mc_dropout":
         return MCDropoutCorefModel(config)
-    raise ValueError(
-        "Amigo, bad news... {config.model_params.coref_model} is not on the table..."
-    )
+    raise InvalidModelName(model_id=_model_id)
