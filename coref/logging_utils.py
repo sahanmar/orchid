@@ -3,7 +3,7 @@ import warnings
 from logging import Logger
 from typing import Optional, Any
 
-from ..config.logging import LoggingConfig
+from config.logging import LoggingConfig
 
 
 def get_logging_level(verbosity: int = LoggingConfig.verbosity) -> int:
