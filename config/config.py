@@ -84,10 +84,8 @@ class TrainingParams:
 
 
 # region Manifold Learning Configuration
-@overwrite_config
 @dataclass
-class ManifoldLearningParams:
-    loss_name: str
+class ManifoldLearningParamsStandalone:
     # For separate (non-CR) use cases
     batch_size: int
     shuffle: bool
@@ -95,7 +93,28 @@ class ManifoldLearningParams:
     epochs: int
     input_dimensionality: Optional[int] = None
     output_dimensionality: Optional[int] = None
+
+
+@dataclass
+class ManifoldLearningParams:
+    enable: bool
+    loss_name: str
+    standalone: ManifoldLearningParamsStandalone
     verbose_outputs: List[str] = field(default_factory=list)
+
+    @staticmethod
+    @overwrite_config
+    def from_config(
+        **kwargs: Any,
+    ) -> "ManifoldLearningParams":
+        _manifold_standalone_dict = kwargs.pop("standalone")
+        _manifold_standalone = ManifoldLearningParamsStandalone(
+            **_manifold_standalone_dict,
+        )
+        return ManifoldLearningParams(
+            standalone=_manifold_standalone,
+            **kwargs,
+        )
 
 
 # endregion
@@ -162,8 +181,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
         )
 
         # Loading the manifold learning configuration
-        # noinspection PyArgumentList
-        manifold_learning = ManifoldLearningParams(  # type: ignore[call-arg]
+        manifold_learning = ManifoldLearningParams.from_config(  # type: ignore[call-arg]
             config=default_conf["manifold_learning"],
             overwrite=get_overwrite_value(overwrite_conf, "manifold_learning"),
         )

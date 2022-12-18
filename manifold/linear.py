@@ -19,11 +19,11 @@ class BasePCA(ManifoldLearningModule):
         super(BasePCA, self).__init__(args=args)
 
         self.pca_layer = nn.Linear(
-            in_features=self.args.input_dimensionality,
-            out_features=self.args.output_dimensionality,
+            in_features=self.args.standalone.input_dimensionality,
+            out_features=self.args.standalone.output_dimensionality,
         )
         self.optimizer = optim.Adam(
-            params=self.parameters(), lr=self.args.learning_rate
+            params=self.parameters(), lr=self.args.standalone.learning_rate
         )
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
@@ -45,11 +45,11 @@ class BasePCA(ManifoldLearningModule):
         return {"embeddings": embeddings, "loss": loss_step}
 
     def train_on_inputs(self, inputs: torch.Tensor) -> None:
-        pbar = tqdm(range(self.args.epochs))
+        pbar = tqdm(range(self.args.standalone.epochs))
         dataloader = ManifoldDataloader(
             inputs=inputs,
-            batch_size=self.args.batch_size,
-            shuffle=self.args.shuffle,
+            batch_size=self.args.standalone.batch_size,
+            shuffle=self.args.standalone.shuffle,
         )
         for epoch in pbar:
             pbar.set_description(f"Epoch {epoch}")

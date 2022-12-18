@@ -130,16 +130,20 @@
             total_number_of_iterations = 10
 
     [DEFAULT.manifold_learning]
+        enable = true
         # Manifold Learning parameters
+        # Loss function to use
         loss_name = "sq_rec_loss"
-        # For separate (non-CR) use cases
-        input_dimensionality = 0
-        output_dimensionality = 0
-        batch_size = 32
-        shuffle = true
-        learning_rate = 1e-2
-        epochs = 10
+        # Metrics to display
         verbose_outputs = ["loss"]
+        [DEFAULT.manifold_learning.standalone]
+            # For separate (non-CR) use cases
+            input_dimensionality = 0
+            output_dimensionality = 0
+            batch_size = 32
+            shuffle = true
+            learning_rate = 1e-2
+            epochs = 10
 
 
     # =============================================================================
@@ -204,16 +208,17 @@
         sliding_threshold = true
         static_theshold_value = 0.5
     [debug.manifold_learning]
+        enable = true
         # Manifold Learning parameters
         loss_name = "sq_rec_loss"
-        # For separate (non-CR) use cases
-        input_dimensionality = 10
-        output_dimensionality = 2
-        batch_size = 32
-        shuffle = true
-        learning_rate = 1e-2
-        epochs = 10
         verbose_outputs = ["loss"]
+        [debug.manifold_learning.standalone]
+            input_dimensionality = 10
+            output_dimensionality = 2
+            batch_size = 32
+            shuffle = true
+            learning_rate = 1e-2
+            epochs = 15
 
 [mc_dropout]
     [mc_dropout.model_params]
