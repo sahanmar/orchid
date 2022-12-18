@@ -129,11 +129,6 @@
             # the total number of planned samplings
             total_number_of_iterations = 10
 
-    [DEFAULT.active_learning]
-        # Active Learning parameters
-        # Number of neural network parameters that will represent NN empirical distribution
-        parameters_samples = 10
-
     [DEFAULT.manifold_learning]
         # Manifold Learning parameters
         loss_name = "sq_rec_loss"
