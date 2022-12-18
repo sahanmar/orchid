@@ -99,6 +99,7 @@ class ManifoldLearningParamsStandalone:
 class ManifoldLearningParams:
     enable: bool
     loss_name: str
+    reduction_ratio: float
     standalone: ManifoldLearningParamsStandalone
     verbose_outputs: List[str] = field(default_factory=list)
 
@@ -115,6 +116,9 @@ class ManifoldLearningParams:
             standalone=_manifold_standalone,
             **kwargs,
         )
+
+    def __post_init__(self) -> None:
+        assert 0.0 < self.reduction_ratio < 1.0
 
 
 # endregion
