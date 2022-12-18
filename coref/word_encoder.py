@@ -140,12 +140,14 @@ class ReducedDimensionalityWordEncoder(WordEncoder):
         assert config.manifold.enable, f"Manifold Learning must be enabled"
         config.manifold.standalone.input_dimensionality = features
         config.manifold.standalone.output_dimensionality = features_out
-        self.manifold = BasePCA.from_config(config=config)
+        self.manifold: BasePCA = BasePCA.from_config(config=config)
 
     def run(
         self,
         doc: Doc,
         x: torch.Tensor,
     ) -> Tuple[torch.Tensor, ...]:
-        x_reduced = self.manifold(x)
-        return super().run(doc=doc, x=x_reduced)
+        x_reduced: torch.Tensor = self.manifold(x)
+        return super(ReducedDimensionalityWordEncoder, self).run(
+            doc=doc, x=x_reduced
+        ) + (x_reduced,)
