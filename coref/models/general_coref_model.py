@@ -81,10 +81,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self._build_model()
         self._build_optimizers()
         self._set_training(False)
-        self._coref_criterion = CorefLoss(
-            self.config.training_params.bce_loss_weight
-        )
-        self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
+        self._build_criteria()
 
         # Active Learning section
         self.sampling_strategy: GreedySampling = (
@@ -513,6 +510,12 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             "a_scorer": self.a_scorer,
             "sp": self.sp,
         }
+
+    def _build_criteria(self) -> None:
+        self._coref_criterion = CorefLoss(
+            self.config.training_params.bce_loss_weight
+        )
+        self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
     def _build_optimizers(self) -> None:
         # This is very bad. Caching the entire dataset in order to get
