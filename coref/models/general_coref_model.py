@@ -264,7 +264,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 print(f"Loaded {key}")
 
     def run(
-        self,  # pylint: disable=too-many-locals
+        self,
         doc: Doc,
         normalize_anaphoras: bool = False,
     ) -> CorefResult:
