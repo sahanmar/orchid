@@ -31,8 +31,8 @@ class WordEncoder(
         device of the first parameter of one of the submodules)"""
         return next(self.attn.parameters()).device
 
-    def forward(
-        self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
+    def run(
+        self,
         doc: Doc,
         x: torch.Tensor,
     ) -> Tuple[torch.Tensor, ...]:
@@ -58,7 +58,14 @@ class WordEncoder(
 
         words = self.dropout(words)
 
-        return (words, self._cluster_ids(doc))
+        return words, self._cluster_ids(doc)
+
+    def forward(
+        self,
+        doc: Doc,
+        x: torch.Tensor,
+    ) -> Tuple[torch.Tensor, ...]:
+        return self.run(doc=doc, x=x)
 
     def _attn_scores(
         self,
