@@ -28,3 +28,9 @@ class CorefResult:
 
     span_scores: Optional[torch.Tensor] = None  # [n_heads, n_words, 2]
     span_y: Optional[Tuple[torch.Tensor, torch.Tensor]] = None  # [n_heads] x2
+
+
+@dataclass
+class ReducedDimensionalityCorefResult(CorefResult):
+    inputs: Optional[torch.Tensor] = None  # [n_subwords, initial_dim]
+    embeddings: Optional[torch.Tensor] = None  # [n_subwords, target_dim]
