@@ -6,18 +6,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 
-import toml
+import toml  # type: ignore
 from transformers import AutoTokenizer, AutoModel
 
-from active_learning.exploration import GreedySampling
-from config.config_utils import overwrite_config
 from coref.bert import load_bert
 
-
-@overwrite_config
-@dataclass
-class ActiveLearning:
-    parameters_samples: int
+from config.config_utils import overwrite_config, get_overwrite_value
+from config.active_learning import ActiveLearning
+from config.metrics import Metrics
 
 
 @dataclass
@@ -118,15 +114,14 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
     tokenizer_kwargs: Dict[str, str]
 
-    # AL sampling_strategy. Will be added to AL section later
-    sampling_strategy: GreedySampling
-
     active_learning: ActiveLearning
 
     # Manifold Learning
     manifold: ManifoldLearningParams
 
     model_bank: ModelBank = field(init=False)
+
+    metrics: Metrics
 
     def __post_init__(self) -> None:
         encoder, tokenizer = load_bert(
@@ -144,34 +139,34 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
         overwrite_conf = config[section]
 
         data = Data.load_config(
-            default_conf["data"], overwrite_conf.get("data", {})
+            default_conf["data"], get_overwrite_value(overwrite_conf, "data")
         )
-        model_params = ModelParams(  # type: ignore[call-arg]
-            default_conf["model_params"], overwrite_conf.get("model_params", {})
+        model_params = ModelParams(
+            default_conf["model_params"],
+            get_overwrite_value(overwrite_conf, "model_params"),  # type: ignore
         )
-        training_params = TrainingParams(  # type: ignore[call-arg]
+        training_params = TrainingParams(
             default_conf["training_params"],
-            overwrite_conf.get("training_params", {}),
+            get_overwrite_value(overwrite_conf, "training_params"),  # type: ignore
         )
 
         tokenizer_kwargs = default_conf["tokenizer_kwargs"]
 
-        sampling_strategy = GreedySampling.load_config(
-            default_conf["sampling_strategy"],
-            overwrite_conf.get("sampling_strategy", {}),
+        active_learning = ActiveLearning.load_config(
+            default_conf["active_learning"],
+            get_overwrite_value(overwrite_conf, "active_learning"),  # type: ignore
         )
 
-        # noinspection PyArgumentList
-        active_learning = ActiveLearning(  # type: ignore[call-arg]
-            default_conf["active_learning"],
-            overwrite_conf.get("active_learning", {}),
+        metrics = Metrics.load_config(
+            default_conf["metrics"],
+            get_overwrite_value(overwrite_conf, "metrics"),  # type: ignore
         )
 
         # Loading the manifold learning configuration
         # noinspection PyArgumentList
         manifold_learning = ManifoldLearningParams(  # type: ignore[call-arg]
             config=default_conf["manifold_learning"],
-            overwrite=overwrite_conf.get("manifold_learning", {}),
+            overwrite=get_overwrite_value(overwrite_conf, "manifold_learning"),
         )
 
         return Config(
@@ -180,8 +175,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
             model_params=model_params,
             training_params=training_params,
             tokenizer_kwargs=tokenizer_kwargs,
-            sampling_strategy=sampling_strategy,
             active_learning=active_learning,
+            metrics=metrics,
             manifold=manifold_learning,
         )
 
@@ -190,19 +185,3 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
         if section is not None:
             return Config.load_config("config.toml", section)
         return Config.load_config("config.toml")
-
-
-def strs_2_paths(
-    default_dict: Dict[str, Any], current_dict: Dict[str, Any]
-) -> Dict[str, Path]:
-    return {
-        "train_data": Path(
-            current_dict.get("train_data", default_dict["train_data"])
-        ),
-        "dev_data": Path(
-            current_dict.get("dev_data", default_dict["dev_data"])
-        ),
-        "test_data": Path(
-            current_dict.get("test_data", default_dict["test_data"])
-        ),
-    }

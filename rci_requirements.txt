@@ -1,0 +1,4 @@
+jsonlines
+toml
+transformers==4.18.0
+perl

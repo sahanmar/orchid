@@ -17,9 +17,24 @@ def test_exploration() -> None:
     assert len(data) == 1  # By default there is only one document in debug test
     augmented_data = 10 * data  # lets make 10 for test purposed
     # First step
-    sampled_data = config.sampling_strategy.step(augmented_data)
-    assert len(sampled_data.instances) == config.sampling_strategy.batch_size
+    sampled_data = config.active_learning.sampling_strategy.step(augmented_data)
+    assert (
+        len(sampled_data.instances)
+        == config.active_learning.sampling_strategy.batch_size
+    )
+    assert (
+        config.active_learning.sampling_strategy.current_sampling_iteration == 1
+    )
     # Second step
-    sampled_data = config.sampling_strategy.step(augmented_data)
-    assert len(sampled_data.instances) == config.sampling_strategy.batch_size
-    assert config.sampling_strategy.epsilon_greedy_prob == approx(0.5)
+    sampled_data = config.active_learning.sampling_strategy.step(augmented_data)
+    assert (
+        len(sampled_data.instances)
+        == config.active_learning.sampling_strategy.batch_size
+    )
+    assert (
+        config.active_learning.sampling_strategy.current_sampling_iteration == 2
+    )
+    assert (
+        config.active_learning.sampling_strategy.epsilon_greedy_prob
+        == approx(0.5)
+    )

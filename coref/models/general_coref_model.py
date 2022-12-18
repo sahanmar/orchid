@@ -12,6 +12,7 @@ from typing import (
     Hashable,
     cast,
     TYPE_CHECKING,
+    TypeVar,
 )
 
 import numpy as np  # type: ignore
@@ -30,9 +31,12 @@ from coref.rough_scorer import RoughScorer
 from coref.span_predictor import SpanPredictor
 from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
+from uncertainty.uncertainty_metrics import pavpu_metric
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling
+
+T = TypeVar("T")
 
 
 class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
@@ -78,7 +82,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
         # Active Learning section
-        self.sampling_strategy: GreedySampling = config.sampling_strategy
+        self.sampling_strategy: GreedySampling = (
+            config.active_learning.sampling_strategy
+        )
 
     @property
     def training(self) -> bool:
@@ -121,7 +127,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         ):
             pbar = tqdm(docs, unit="docs", ncols=0)
             for doc in pbar:
-                res = self.run(doc)
+                res = self.run(doc, True)
 
                 running_loss += self._coref_criterion(
                     res.coref_scores, res.coref_y
@@ -188,7 +194,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 del res
 
                 pbar.set_description(
-                    f"{'dev'}:"
+                    f"{'test'}:"
                     f" | WL: "
                     f" loss: {running_loss / (pbar.n + 1):<.5f},"
                     f" f1: {w_lea[0]:.5f},"
@@ -255,6 +261,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     def run(
         self,  # pylint: disable=too-many-locals
         doc: Doc,
+        normalize_anaphoras: bool = False,
     ) -> CorefResult:
         """
         This is a massive method, but it made sense to me to not split it into
@@ -262,6 +269,8 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
         Args:
             doc (Doc): a dictionary with the document data.
+            normalize_anaphoras (bool) apply softmax or not
+            to anaphoras scorer
 
         Returns:
             CorefResult (see const.py)
@@ -288,7 +297,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             top_indices_batch = top_indices[i : i + batch_size]
             top_rough_scores_batch = top_rough_scores[i : i + batch_size]
 
-            # a_scores_batch    [batch_size, n_ants]
+            # a_scores_batch  [batch_size, n_ants]
             a_scores_batch = self.a_scorer(
                 all_mentions=words,
                 mentions_batch=words_batch,
@@ -300,8 +309,13 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
         res = CorefResult()
 
-        # coref_scores  [n_spans, n_ants]
-        res.coref_scores = torch.cat(a_scores_lst, dim=0)
+        # coref_scores   [n_spans, n_ants]
+        cat_anaphora_scores = torch.cat(a_scores_lst, dim=0)
+        res.coref_scores = (
+            torch.softmax(cat_anaphora_scores, dim=1)
+            if normalize_anaphoras
+            else cat_anaphora_scores
+        )
 
         res.coref_y = self._get_ground_truth(
             cluster_ids, top_indices, (top_rough_scores > float("-inf"))
@@ -400,11 +414,27 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             if docs_dev is not None:
                 self.evaluate(docs=docs_dev)
 
-    def active_learning_step(self) -> None:
-        ...
-
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
         return self.sampling_strategy.step(documents)
+
+    def get_uncertainty_metrics(self, docs: List[Doc]) -> list[float]:
+
+        metrics_vals: list[list[float]] = []
+        pbar = tqdm(docs, unit="docs", ncols=0)
+        for doc in pbar:
+            res = self.run(doc, True)
+            pavpu_output = pavpu_metric(
+                res.coref_scores, res.coref_y, self.config.metrics.pavpu
+            )
+            metrics_vals.append(pavpu_output)
+
+        metrics_val: list[float] = np.mean(
+            np.array(metrics_vals), axis=0
+        ).tolist()
+
+        print(f"Average PAVPU metrics is {metrics_val}")
+
+        return metrics_val
 
     # ========================================================= Private methods
 

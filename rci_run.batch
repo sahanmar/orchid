@@ -3,22 +3,17 @@
 #SBATCH --nodes=1 --ntasks-per-node=1 --cpus-per-task=1
 #SBATCH --partition=amdgpufast --gres=gpu:1
 
-echo "Preparing conda environment..."
-
-# Initialization via the profile
-#RCI_PROFILE="/home/$(whoami)/.bashrc"
-#echo "Using profile ${RCI_PROFILE}"
-## shellcheck source=/home/<user>/<profile>
-#. "${RCI_PROFILE}"
+echo "Preparing environment..."
 
 # Initialization via the installation path
-CONDA_PATH="/home/$(whoami)/miniconda3/etc/profile.d/conda.sh"
-echo "Using conda from ${CONDA_PATH}"
-# shellcheck source=/home/<user>/<path_to_conda>
-. "${CONDA_PATH}"
+ENV_PATH="/home/$(whoami)/venv/orchid/bin/activate"
+echo "Using env from ${ENV_PATH}"
 
-echo "conda version: $(conda --version)"
-conda activate orchid
+source $ENV_PATH
+
+# ML dependencies
+echo "Activating the Torch module"
+module load torchvision/0.12.0-foss-2021a-CUDA-11.3.1 torchaudio/0.11.0-foss-2021a-CUDA-11.3.1
 
 echo "Running the job..."
 

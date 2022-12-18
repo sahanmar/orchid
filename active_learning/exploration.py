@@ -97,7 +97,6 @@ class GreedySampling:
         )
 
     @staticmethod
-    @overwrite_config
     def load_config(
         acquisition_function_type: str,
         batch_size: int,

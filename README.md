@@ -110,6 +110,14 @@ sbatch rci_run.batch
 ```
 from orchid root directory.
 
+**NB!** Before running, `rci_run.batch`, virtual environment is needed. Don't ask why it is done this way. 
+This is the only way that Slurm could handle. We are struggling with it non-stop... 
+
+1. Go to the root and create a folder `venv` there
+2. Create virtual environment `orchid` there and install everyhing from `rci_requirements.txt` (Normally, you do not need it, conda is more than enough)
+
+And... You are set!
+
 ## Development 🚧
 
 ### Pre-Commits
