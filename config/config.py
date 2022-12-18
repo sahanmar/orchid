@@ -9,11 +9,10 @@ from typing import Any, Dict, Optional, List
 import toml  # type: ignore
 from transformers import AutoTokenizer, AutoModel
 
-from coref.bert import load_bert
-
-from config.config_utils import overwrite_config, get_overwrite_value
 from config.active_learning import ActiveLearning
+from config.config_utils import overwrite_config, get_overwrite_value
 from config.metrics import Metrics
+from coref.bert import load_bert
 
 
 @dataclass
