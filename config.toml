@@ -136,6 +136,7 @@
         loss_name = "sq_rec_loss"
         # Metrics to display
         verbose_outputs = ["loss"]
+        reduction_ratio = 0.75
         [DEFAULT.manifold_learning.standalone]
             # For separate (non-CR) use cases
             input_dimensionality = 0
