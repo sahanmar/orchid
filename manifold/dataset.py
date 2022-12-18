@@ -39,21 +39,43 @@ class ManifoldDataloader(DataLoader):
 # region Artificial Datasets
 
 
-def get_embedded_2d_ellipsis(
+def get_embedded_2d_ellipse(
     dim: int = 2,
     a: float = 1.0,
     b: float = 1.0,
     x0: float = 0.0,
     y0: float = 0,
-    scale: float = 1.0,
     steps: int = 100,
     noise: float = 1e-2,
     random_state: Optional[float] = None,
 ) -> torch.Tensor:
+    """
+    Generate a 2D ellipsis that is then embedded into a multidimensional space.
+
+    Parameters
+    ----------
+
+    steps : int
+        The amount of points to sample in one direction (X/Y)
+    noise : float
+        The amount of noise to add to extra dimensions
+    random_state : float
+        Random state for reproducibility
+    y0 : float
+        Y-coordinate of the center
+    x0 : float
+        X-coordinate of the center
+    b : float
+        Semi-minor axis
+    a : float
+        Semi-major axis
+    dim : int
+        Target dimension of the ellipsis, must be >= 2
+
+    """
     assert dim >= 2
     assert a > 0
     assert b > 0
-    assert scale > 0
     assert steps > 2
     assert noise > 0
     phi = torch.linspace(-torch.pi, torch.pi, steps=steps)
