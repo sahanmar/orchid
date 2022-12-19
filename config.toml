@@ -234,7 +234,7 @@
         bert_model = "roberta-large"
         coref_model = "reduced_dimensionality"
     [reduced_dimensionality.training_params]
-        device = "cpu"
+        device = "cuda"
 
 [debug_gpu]
     [debug_gpu.model_params]
