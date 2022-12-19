@@ -40,6 +40,7 @@ class BasePCA(ManifoldLearningModule):
             linear_layer=self.pca_layer,
         )
         loss_ = self.loss(inputs=inputs, outputs=inputs_reconstructed)
+        loss_ *= self.loss_alpha
         return loss_
 
     def train_step(self, inputs: torch.Tensor) -> Dict[str, torch.Tensor]:
