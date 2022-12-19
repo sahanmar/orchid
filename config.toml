@@ -134,6 +134,7 @@
         # Manifold Learning parameters
         # Loss function to use
         loss_name = "sq_rec_loss"
+        loss_alpha = 1e-6
         # Metrics to display
         verbose_outputs = ["loss"]
         reduction_ratio = 0.75
@@ -225,6 +226,15 @@
     [mc_dropout.model_params]
         bert_model = "roberta-large"
         coref_model = "mc_dropout"
+
+
+# Reduced-dimensionality model configuration to overwrite
+[reduced_dimensionality]
+    [reduced_dimensionality.model_params]
+        bert_model = "roberta-large"
+        coref_model = "reduced_dimensionality"
+    [reduced_dimensionality.training_params]
+        device = "cpu"
 
 [debug_gpu]
     [debug_gpu.model_params]

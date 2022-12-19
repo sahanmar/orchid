@@ -99,6 +99,7 @@ class ManifoldLearningParamsStandalone:
 class ManifoldLearningParams:
     enable: bool
     loss_name: str
+    loss_alpha: float
     reduction_ratio: float
     standalone: ManifoldLearningParamsStandalone
     verbose_outputs: List[str] = field(default_factory=list)
