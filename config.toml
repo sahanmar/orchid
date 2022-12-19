@@ -134,7 +134,7 @@
         # Manifold Learning parameters
         # Loss function to use
         loss_name = "sq_rec_loss"
-        loss_alpha = 1e-6
+        loss_alpha = 5e-6
         # Metrics to display
         verbose_outputs = ["loss"]
         reduction_ratio = 0.75
