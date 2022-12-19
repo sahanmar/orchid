@@ -43,7 +43,9 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
         # embeddings      [n_subwords, target_emb]
-        words, cluster_ids, embeddings = self.we(doc, self._bertify(doc))
+        words, cluster_ids, inputs, embeddings = self.we(
+            doc, self._bertify(doc)
+        )
 
         # Obtain bilinear scores and leave only top-k antecedents for each word
         # top_rough_scores  [n_words, n_ants]
@@ -73,7 +75,7 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
             a_scores_lst.append(a_scores_batch)
 
         res = ReducedDimensionalityCorefResult()
-        res.inputs = words
+        res.inputs = inputs
         res.embeddings = embeddings
 
         # coref_scores   [n_spans, n_ants]
@@ -178,19 +180,21 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
         )
 
         bert_emb = self.bert.config.hidden_size
-        pair_emb = bert_emb * 3 + self.pw.shape
-
-        self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(
-            self.config.training_params.device
-        )
         self.we = ReducedDimensionalityWordEncoder(
             features=bert_emb,
             config=self.config,
         ).to(self.config.training_params.device)
-        self.rough_scorer = RoughScorer(bert_emb, self.config).to(
+
+        self.rough_scorer = RoughScorer(self.we.features_out, self.config).to(
             self.config.training_params.device
         )
-        self.sp = SpanPredictor(bert_emb, self.config).to(
+
+        pair_emb = self.we.features_out * 3 + self.pw.shape
+        self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(
+            self.config.training_params.device
+        )
+
+        self.sp = SpanPredictor(self.we.features_out, self.config).to(
             self.config.training_params.device
         )
 

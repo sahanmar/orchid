@@ -132,14 +132,18 @@ class WordEncoder(
 
 class ReducedDimensionalityWordEncoder(WordEncoder):
     def __init__(self, features: int, config: Config):
-        features_out = max(
+        self.features_in = features
+        self.features_out = max(
             0,
-            min(ceil(features * config.manifold.reduction_ratio), features),
+            min(
+                ceil(features * config.manifold.reduction_ratio),
+                self.features_in,
+            ),
         )
-        super().__init__(features=features_out, config=config)
+        super().__init__(features=self.features_out, config=config)
         assert config.manifold.enable, f"Manifold Learning must be enabled"
-        config.manifold.standalone.input_dimensionality = features
-        config.manifold.standalone.output_dimensionality = features_out
+        config.manifold.standalone.input_dimensionality = self.features_in
+        config.manifold.standalone.output_dimensionality = self.features_out
         self.manifold: BasePCA = BasePCA.from_config(config=config)
 
     def run(
@@ -150,4 +154,4 @@ class ReducedDimensionalityWordEncoder(WordEncoder):
         x_reduced: torch.Tensor = self.manifold(x)
         return super(ReducedDimensionalityWordEncoder, self).run(
             doc=doc, x=x_reduced
-        ) + (x_reduced,)
+        ) + (x, x_reduced)
