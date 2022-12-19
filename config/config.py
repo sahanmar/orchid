@@ -4,16 +4,15 @@ For description of all config values, refer to config.toml.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 import toml  # type: ignore
 from transformers import AutoTokenizer, AutoModel
 
-from coref.bert import load_bert
-
-from config.config_utils import overwrite_config, get_overwrite_value
 from config.active_learning import ActiveLearning
+from config.config_utils import overwrite_config, get_overwrite_value
 from config.metrics import Metrics
+from coref.bert import load_bert
 
 
 @dataclass
@@ -84,6 +83,48 @@ class TrainingParams:
     conll_log_dir: str
 
 
+# region Manifold Learning Configuration
+@dataclass
+class ManifoldLearningParamsStandalone:
+    # For separate (non-CR) use cases
+    batch_size: int
+    shuffle: bool
+    learning_rate: float
+    epochs: int
+    input_dimensionality: Optional[int] = None
+    output_dimensionality: Optional[int] = None
+
+
+@dataclass
+class ManifoldLearningParams:
+    enable: bool
+    loss_name: str
+    loss_alpha: float
+    reduction_ratio: float
+    standalone: ManifoldLearningParamsStandalone
+    verbose_outputs: List[str] = field(default_factory=list)
+
+    @staticmethod
+    @overwrite_config
+    def from_config(
+        **kwargs: Any,
+    ) -> "ManifoldLearningParams":
+        _manifold_standalone_dict = kwargs.pop("standalone")
+        _manifold_standalone = ManifoldLearningParamsStandalone(
+            **_manifold_standalone_dict,
+        )
+        return ManifoldLearningParams(
+            standalone=_manifold_standalone,
+            **kwargs,
+        )
+
+    def __post_init__(self) -> None:
+        assert 0.0 < self.reduction_ratio < 1.0
+
+
+# endregion
+
+
 @dataclass
 class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-methods
     """Contains values needed to set up the coreference model."""
@@ -97,6 +138,9 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     tokenizer_kwargs: Dict[str, str]
 
     active_learning: ActiveLearning
+
+    # Manifold Learning
+    manifold: ManifoldLearningParams
 
     model_bank: ModelBank = field(init=False)
 
@@ -141,6 +185,12 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
             get_overwrite_value(overwrite_conf, "metrics"),  # type: ignore
         )
 
+        # Loading the manifold learning configuration
+        manifold_learning = ManifoldLearningParams.from_config(  # type: ignore[call-arg]
+            config=default_conf["manifold_learning"],
+            overwrite=get_overwrite_value(overwrite_conf, "manifold_learning"),
+        )
+
         return Config(
             section=section,
             data=data,
@@ -149,6 +199,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
             tokenizer_kwargs=tokenizer_kwargs,
             active_learning=active_learning,
             metrics=metrics,
+            manifold=manifold_learning,
         )
 
     @staticmethod

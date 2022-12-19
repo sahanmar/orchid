@@ -1,12 +1,13 @@
 """ Describes WordEncoder. Extracts mention vectors from bert-encoded text.
 """
-
+from math import ceil
 from typing import Tuple
 
 import torch
 
 from config import Config
 from coref.const import Doc
+from manifold import BasePCA
 
 
 class WordEncoder(
@@ -18,7 +19,7 @@ class WordEncoder(
     def __init__(self, features: int, config: Config):
         """
         Args:
-            features (int): the number of featues in the input embeddings
+            features (int): the number of features in the input embeddings
             config (Config): the configuration of the current session
         """
         super().__init__()
@@ -31,8 +32,8 @@ class WordEncoder(
         device of the first parameter of one of the submodules)"""
         return next(self.attn.parameters()).device
 
-    def forward(
-        self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
+    def run(
+        self,
         doc: Doc,
         x: torch.Tensor,
     ) -> Tuple[torch.Tensor, ...]:
@@ -58,7 +59,14 @@ class WordEncoder(
 
         words = self.dropout(words)
 
-        return (words, self._cluster_ids(doc))
+        return words, self._cluster_ids(doc)
+
+    def forward(
+        self,
+        doc: Doc,
+        x: torch.Tensor,
+    ) -> Tuple[torch.Tensor, ...]:
+        return self.run(doc=doc, x=x)
 
     def _attn_scores(
         self,
@@ -82,9 +90,11 @@ class WordEncoder(
 
         # [n_mentions, n_subtokens]
         # with 0 at positions belonging to the words and -inf elsewhere
-        attn_mask = torch.arange(0, n_subtokens, device=self.device).expand(
-            (n_words, n_subtokens)
-        )
+        attn_mask: torch.Tensor = torch.arange(
+            0,
+            n_subtokens,
+            device=self.device,
+        ).expand((n_words, n_subtokens))
         attn_mask = (attn_mask >= word_starts.unsqueeze(1)) * (
             attn_mask < word_ends.unsqueeze(1)
         )
@@ -118,3 +128,30 @@ class WordEncoder(
             ],
             device=self.device,
         )
+
+
+class ReducedDimensionalityWordEncoder(WordEncoder):
+    def __init__(self, features: int, config: Config):
+        self.features_in = features
+        self.features_out = max(
+            0,
+            min(
+                ceil(features * config.manifold.reduction_ratio),
+                self.features_in,
+            ),
+        )
+        super().__init__(features=self.features_out, config=config)
+        assert config.manifold.enable, f"Manifold Learning must be enabled"
+        config.manifold.standalone.input_dimensionality = self.features_in
+        config.manifold.standalone.output_dimensionality = self.features_out
+        self.manifold: BasePCA = BasePCA.from_config(config=config)
+
+    def run(
+        self,
+        doc: Doc,
+        x: torch.Tensor,
+    ) -> Tuple[torch.Tensor, ...]:
+        x_reduced: torch.Tensor = self.manifold(x)
+        return super(ReducedDimensionalityWordEncoder, self).run(
+            doc=doc, x=x_reduced
+        ) + (x, x_reduced)

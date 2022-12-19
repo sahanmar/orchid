@@ -42,10 +42,24 @@ def overwrite_dict_keys(
 
 
 def get_overwrite_value(conf_dict: Dict[str, Any], key: str) -> Dict[str, Any]:
+    # Split the target key based on *.toml notation
+    keys: List[str] = key.split(".")
+    key = keys[0]
     value: Optional[Dict[str, Any]] = conf_dict.get(key, None)
     if value is None:
         print(
-            f"Empty dict to overwrite {key}, so lay back and chill. Unless you expect smth to be there\n"
+            f"Empty dict to overwrite {key}, so lay back and chill. "
+            f"Unless you expect something to be there :o\n"
         )
         return {}
-    return value
+    # Evaluate the remaining part of the key
+    key_rest = ".".join(keys[1:])
+    if not key_rest:
+        return value
+    else:
+        assert isinstance(value, dict), (
+            f"To overwrite the config recursively, "
+            f"individual elements must be dictionaries; "
+            f"for key={key} got {type(value)}"
+        )
+        return get_overwrite_value(conf_dict=value, key=key_rest)

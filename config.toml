@@ -129,6 +129,24 @@
             # the total number of planned samplings
             total_number_of_iterations = 10
 
+    [DEFAULT.manifold_learning]
+        enable = true
+        # Manifold Learning parameters
+        # Loss function to use
+        loss_name = "sq_rec_loss"
+        loss_alpha = 5e-6
+        # Metrics to display
+        verbose_outputs = ["loss"]
+        reduction_ratio = 0.75
+        [DEFAULT.manifold_learning.standalone]
+            # For separate (non-CR) use cases
+            input_dimensionality = 0
+            output_dimensionality = 0
+            batch_size = 32
+            shuffle = true
+            learning_rate = 1e-2
+            epochs = 10
+
 
     # =============================================================================
     # Extra keyword arguments to be passed to bert tokenizers of specified models
@@ -191,12 +209,32 @@
     [debug.metrics.pavpu]
         sliding_threshold = true
         static_theshold_value = 0.5
-
+    [debug.manifold_learning]
+        enable = true
+        # Manifold Learning parameters
+        loss_name = "sq_rec_loss"
+        verbose_outputs = ["loss"]
+        [debug.manifold_learning.standalone]
+            input_dimensionality = 10
+            output_dimensionality = 2
+            batch_size = 32
+            shuffle = true
+            learning_rate = 1e-2
+            epochs = 15
 
 [mc_dropout]
     [mc_dropout.model_params]
         bert_model = "roberta-large"
         coref_model = "mc_dropout"
+
+
+# Reduced-dimensionality model configuration to overwrite
+[reduced_dimensionality]
+    [reduced_dimensionality.model_params]
+        bert_model = "roberta-large"
+        coref_model = "reduced_dimensionality"
+    [reduced_dimensionality.training_params]
+        device = "cuda"
 
 [debug_gpu]
     [debug_gpu.model_params]

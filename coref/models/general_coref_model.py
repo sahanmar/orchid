@@ -32,6 +32,10 @@ from coref.span_predictor import SpanPredictor
 from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
 from uncertainty.uncertainty_metrics import pavpu_metric
+from coref.logging_utils import get_stream_logger
+
+
+_logger = get_stream_logger(f"coref-model")
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling
@@ -70,20 +74,21 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             epochs_trained (int): the number of epochs finished
                 (useful for warm start)
         """
+        _logger.info(f"Initializing the general coreference model")
         self.config = config
         self.epochs_trained = epochs_trained
         self._docs: Dict[str, List[Doc]] = {}
         self._build_model()
         self._build_optimizers()
         self._set_training(False)
-        self._coref_criterion = CorefLoss(
-            self.config.training_params.bce_loss_weight
-        )
-        self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
+        self._build_criteria()
 
         # Active Learning section
         self.sampling_strategy: GreedySampling = (
             config.active_learning.sampling_strategy
+        )
+        _logger.info(
+            "Initialization if the general coreference model is complete"
         )
 
     @property
@@ -259,7 +264,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 print(f"Loaded {key}")
 
     def run(
-        self,  # pylint: disable=too-many-locals
+        self,
         doc: Doc,
         normalize_anaphoras: bool = False,
     ) -> CorefResult:
@@ -505,6 +510,12 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             "a_scorer": self.a_scorer,
             "sp": self.sp,
         }
+
+    def _build_criteria(self) -> None:
+        self._coref_criterion = CorefLoss(
+            self.config.training_params.bce_loss_weight
+        )
+        self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
     def _build_optimizers(self) -> None:
         # This is very bad. Caching the entire dataset in order to get
