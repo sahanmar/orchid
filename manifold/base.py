@@ -17,7 +17,7 @@ class ManifoldLearningModule(torch.nn.Module, metaclass=abc.ABCMeta):
         super(ManifoldLearningModule, self).__init__()
         self._args = args
 
-        self.loss_alpha = torch.tensor(self._args.loss_alpha, dtype=torch.long)
+        self.loss_alpha = torch.tensor(self._args.loss_alpha, dtype=torch.float)
         self.loss = get_loss_by_name(name=self._args.loss_name)
 
     @classmethod
