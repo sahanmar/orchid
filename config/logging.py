@@ -6,10 +6,19 @@ from logging import (
     DEBUG,
 )
 
+from enum import Enum
+from pathlib import Path
 
-@dataclass(init=False, frozen=True)
+
+class LogVerbosityMapping(Enum):
+    error = ERROR
+    warning = WARNING
+    info = INFO
+    debug = DEBUG
+
+
 class LoggingConfig:
-    verbosity_mapping = {0: ERROR, 1: WARNING, 2: INFO, 3: DEBUG}
-    verbosity: int = 3
+    verbosity: LogVerbosityMapping = LogVerbosityMapping.debug
     stream_format: str = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
     datetime_format: str = "%Y-%m-%dT%H:%M:%S%z"
+    file: Path = Path("coref_model_logs.log")
