@@ -1,14 +1,15 @@
 from coref.logging_utils import get_stream_logger
-from config.logging import LoggingConfig
+from config.logging import Logging
+from config import Config
 
 
-def test_get_stream_logger() -> None:
+def test_get_stream_logger(config: Config) -> None:
     text = "Test file is created"
-    logger = get_stream_logger(f"coref-model")
+    logger = get_stream_logger(f"test-logging", logging_conf=config.logging)
     logger.info(text)
-    assert LoggingConfig.file.is_file()
-    with open(LoggingConfig.file, "r") as f:
+    assert config.logging.log_file.is_file()
+    with open(config.logging.log_file, "r") as f:
         log_text = [l.strip() for l in f.readlines()]
     assert text in log_text
-    LoggingConfig.file.unlink()
-    assert not LoggingConfig.file.is_file()
+    config.logging.log_file.unlink()
+    assert not config.logging.log_file.is_file()

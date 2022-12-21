@@ -3,19 +3,14 @@ from pytest import approx
 
 from config import Config
 from coref.const import Doc
-from coref.data_utils import get_docs, DataType
 
 
-def get_default_setup() -> Tuple[List[Doc], Config]:
-    config = Config.load_default_config(section="debug")
-    data = get_docs(DataType.test, config)
-    return data, config
-
-
-def test_exploration() -> None:
-    data, config = get_default_setup()
-    assert len(data) == 1  # By default there is only one document in debug test
-    augmented_data = 10 * data  # lets make 10 for test purposed
+def test_exploration(config: Config, dev_data: list[Doc]) -> None:
+    # data, config = get_default_setup()
+    assert (
+        len(dev_data) == 1
+    )  # By default there is only one document in debug test
+    augmented_data = 10 * dev_data  # lets make 10 for test purposed
     # First step
     sampled_data = config.active_learning.sampling_strategy.step(augmented_data)
     assert (

@@ -34,9 +34,6 @@ from coref.word_encoder import WordEncoder
 from uncertainty.uncertainty_metrics import pavpu_metric
 from coref.logging_utils import get_stream_logger
 
-
-_logger = get_stream_logger(f"coref-model")
-
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling
 
@@ -74,8 +71,13 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             epochs_trained (int): the number of epochs finished
                 (useful for warm start)
         """
-        _logger.info(f"Initializing the general coreference model")
         self.config = config
+
+        self._logger = get_stream_logger(
+            name=f"coref-model", logging_conf=self.config.logging
+        )
+        self._logger.info(f"Initializing the general coreference model")
+
         self.epochs_trained = epochs_trained
         self._docs: Dict[str, List[Doc]] = {}
         self._build_model()
@@ -87,7 +89,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self.sampling_strategy: GreedySampling = (
             config.active_learning.sampling_strategy
         )
-        _logger.info(
+        self._logger.info(
             "Initialization if the general coreference model is complete"
         )
 

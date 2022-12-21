@@ -8,6 +8,8 @@ from logging import (
 
 from enum import Enum
 from pathlib import Path
+from config.config_utils import overwrite_config
+from typing import Any
 
 
 class LogVerbosityMapping(Enum):
@@ -17,8 +19,25 @@ class LogVerbosityMapping(Enum):
     debug = DEBUG
 
 
-class LoggingConfig:
-    verbosity: LogVerbosityMapping = LogVerbosityMapping.debug
-    stream_format: str = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-    datetime_format: str = "%Y-%m-%dT%H:%M:%S%z"
-    file: Path = Path("coref_model_logs.log")
+@dataclass
+class Logging:
+    verbosity: LogVerbosityMapping
+    stream_format: str
+    datetime_format: str
+    log_file: Path
+
+    @staticmethod
+    @overwrite_config
+    def from_config(
+        verbosity: str,
+        stream_format: str,
+        datetime_format: str,
+        log_file: str,
+    ) -> "Logging":
+        return Logging(
+            # Th code has to fail if the config is bad
+            verbosity=LogVerbosityMapping[verbosity],
+            stream_format=stream_format,
+            datetime_format=datetime_format,
+            log_file=Path(log_file),
+        )

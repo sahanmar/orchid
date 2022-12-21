@@ -13,6 +13,7 @@ from config.active_learning import ActiveLearning
 from config.config_utils import overwrite_config, get_overwrite_value
 from config.metrics import Metrics
 from coref.bert import load_bert
+from config.logging import Logging
 
 
 @dataclass
@@ -146,6 +147,8 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
 
     metrics: Metrics
 
+    logging: Logging
+
     def __post_init__(self) -> None:
         encoder, tokenizer = load_bert(
             self.model_params.bert_model,
@@ -191,6 +194,11 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
             overwrite=get_overwrite_value(overwrite_conf, "manifold_learning"),
         )
 
+        logging = Logging.from_config(
+            config=default_conf["logging"],
+            overwrite=get_overwrite_value(overwrite_conf, "logging"),  # type: ignore
+        )
+
         return Config(
             section=section,
             data=data,
@@ -200,6 +208,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
             active_learning=active_learning,
             metrics=metrics,
             manifold=manifold_learning,
+            logging=logging,
         )
 
     @staticmethod

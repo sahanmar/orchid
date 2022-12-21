@@ -2,15 +2,14 @@ import logging
 from logging import Logger
 from typing import Any
 
-from config.logging import LoggingConfig
+from config.logging import Logging
 
 
 def get_stream_logger(
     name: str,
+    logging_conf: Logging,
     **stream_handler_kw: Any,
 ) -> Logger:
-
-    logging_conf = LoggingConfig()
 
     logger = logging.getLogger(name)
     logger.setLevel(logging_conf.verbosity.value)
@@ -18,7 +17,7 @@ def get_stream_logger(
     logger.propagate = False
 
     # Define handlers
-    logger.addHandler(logging.FileHandler(logging_conf.file))
+    logger.addHandler(logging.FileHandler(logging_conf.log_file))
     sh = logging.StreamHandler(**stream_handler_kw)
     assert isinstance(logging_conf.stream_format, str) and len(
         logging_conf.stream_format,
