@@ -6,12 +6,11 @@ from config.logging import Logging
 
 
 def get_stream_logger(
-    name: str,
     logging_conf: Logging,
     **stream_handler_kw: Any,
 ) -> Logger:
 
-    logger = logging.getLogger(name)
+    logger = logging.getLogger(logging_conf.logger_name)
     logger.setLevel(logging_conf.verbosity.value)
     logger.handlers.clear()
     logger.propagate = False

@@ -21,6 +21,7 @@ class LogVerbosityMapping(Enum):
 
 @dataclass
 class Logging:
+    logger_name: str
     verbosity: LogVerbosityMapping
     stream_format: str
     datetime_format: str
@@ -29,6 +30,7 @@ class Logging:
     @staticmethod
     @overwrite_config
     def from_config(
+        logger_name: str,
         verbosity: str,
         stream_format: str,
         datetime_format: str,
@@ -36,6 +38,7 @@ class Logging:
     ) -> "Logging":
         return Logging(
             # Th code has to fail if the config is bad
+            logger_name=logger_name,
             verbosity=LogVerbosityMapping[verbosity],
             stream_format=stream_format,
             datetime_format=datetime_format,

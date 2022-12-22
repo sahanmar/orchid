@@ -5,7 +5,7 @@ from config import Config
 
 def test_get_stream_logger(config: Config) -> None:
     text = "Test file is created"
-    logger = get_stream_logger(f"test-logging", logging_conf=config.logging)
+    logger = get_stream_logger(logging_conf=config.logging)
     logger.info(text)
     assert config.logging.log_file.is_file()
     with open(config.logging.log_file, "r") as f:
