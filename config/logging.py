@@ -37,7 +37,7 @@ class Logging:
         log_file: str,
     ) -> "Logging":
         return Logging(
-            # Th code has to fail if the config is bad
+            # The code has to fail if the config is bad
             logger_name=logger_name,
             verbosity=LogVerbosityMapping[verbosity],
             stream_format=stream_format,

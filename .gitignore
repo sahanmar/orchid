@@ -12,3 +12,6 @@ data/*
 
 # big cached data
 *.pickle
+
+# test output tmp files
+test_logs.log
