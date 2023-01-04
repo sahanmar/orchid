@@ -1,4 +1,5 @@
 import logging
+import time
 from logging import Logger
 from typing import Any
 
@@ -7,6 +8,7 @@ from config.logging import Logging
 
 def get_stream_logger(
     logging_conf: Logging,
+    experiment: str,
     **stream_handler_kw: Any,
 ) -> Logger:
 
@@ -15,8 +17,17 @@ def get_stream_logger(
     logger.handlers.clear()
     logger.propagate = False
 
+    if not logging_conf.log_folder.parent.is_dir():
+        raise FileNotFoundError(
+            "The data folder does not exist. Are you sure you are in the root dir?..."
+        )
+    if not logging_conf.log_folder.is_dir():
+        logging_conf.log_folder.mkdir()
+
+    log_file = logging_conf.log_folder / f"{experiment}_{int(time.time())}"
+
     # Define handlers
-    logger.addHandler(logging.FileHandler(logging_conf.log_file))
+    logger.addHandler(logging.FileHandler(log_file))
     sh = logging.StreamHandler(**stream_handler_kw)
     assert isinstance(logging_conf.stream_format, str) and len(
         logging_conf.stream_format,

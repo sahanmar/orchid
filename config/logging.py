@@ -25,7 +25,7 @@ class Logging:
     verbosity: LogVerbosityMapping
     stream_format: str
     datetime_format: str
-    log_file: Path
+    log_folder: Path
 
     @staticmethod
     @overwrite_config
@@ -34,13 +34,13 @@ class Logging:
         verbosity: str,
         stream_format: str,
         datetime_format: str,
-        log_file: str,
+        log_folder: str,
     ) -> "Logging":
         return Logging(
-            # Th code has to fail if the config is bad
+            # The code has to fail if the config is bad
             logger_name=logger_name,
             verbosity=LogVerbosityMapping[verbosity],
             stream_format=stream_format,
             datetime_format=datetime_format,
-            log_file=Path(log_file),
+            log_folder=Path(log_folder),
         )
