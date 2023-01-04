@@ -13,7 +13,6 @@ def run_simulation(
 ) -> None:
 
     al_config = config.active_learning
-
     # Training split
     training_data = train_docs[: al_config.simulation.initial_sample_size]
     complementary_data = train_docs[al_config.simulation.initial_sample_size :]

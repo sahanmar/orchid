@@ -99,7 +99,7 @@
     [DEFAULT.logging]
         # Set up for logging
         logger_name = "coref-model"
-        log_file = "coref_model_logs.log"
+        log_folder = "data/logs/"
         stream_format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
         datetime_format = "%Y-%m-%dT%H:%M:%S%z"
         verbosity = "debug"
@@ -231,7 +231,6 @@
             epochs = 15
     [debug.logging]
         logger_name = "test_run"
-        log_file = "test_logs.log"
 
 [mc_dropout]
     [mc_dropout.model_params]

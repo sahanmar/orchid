@@ -73,7 +73,10 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         """
         self.config = config
 
-        self._logger = get_stream_logger(logging_conf=self.config.logging)
+        self._logger = get_stream_logger(
+            logging_conf=self.config.logging,
+            experiment=self.config.model_params.bert_model,
+        )
         self._logger.info(f"Initializing the general coreference model")
 
         self.epochs_trained = epochs_trained
