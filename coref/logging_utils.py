@@ -1,5 +1,4 @@
 import logging
-import time
 from logging import Logger
 from typing import Any
 
@@ -24,7 +23,9 @@ def get_stream_logger(
     if not logging_conf.log_folder.is_dir():
         logging_conf.log_folder.mkdir()
 
-    log_file = logging_conf.log_folder / f"{experiment}_{int(time.time())}"
+    log_file = (
+        logging_conf.log_folder / f"{experiment}_{logging_conf.timestamp}"
+    )
 
     # Define handlers
     logger.addHandler(logging.FileHandler(log_file))

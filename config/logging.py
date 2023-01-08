@@ -1,3 +1,5 @@
+import time
+
 from dataclasses import dataclass
 from logging import (
     ERROR,
@@ -26,6 +28,7 @@ class Logging:
     stream_format: str
     datetime_format: str
     log_folder: Path
+    timestamp: int
 
     @staticmethod
     @overwrite_config
@@ -43,4 +46,5 @@ class Logging:
             stream_format=stream_format,
             datetime_format=datetime_format,
             log_folder=Path(log_folder),
+            timestamp=int(time.time()),
         )
