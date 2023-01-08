@@ -1,46 +1,41 @@
 import logging
-import warnings
 from logging import Logger
-from typing import Optional, Any
+from typing import Any
 
-from config.logging import LoggingConfig
-
-
-def get_logging_level(verbosity: int = LoggingConfig.verbosity) -> int:
-    try:
-        verbosity_mapped: int = LoggingConfig.verbosity_mapping[verbosity]
-        return verbosity_mapped
-    except (KeyError, NameError):
-        # Since these are logging utilities, we do not want to be dependent
-        #   on logging that can happen to be not set up;
-        # Using the UserWarning instead
-        warnings.warn(
-            f"verbosity={verbosity} could not be mapped to any logging level; "
-            f"returning the DEBUG level",
-        )
-        return logging.DEBUG
+from config.logging import Logging
 
 
 def get_stream_logger(
-    name: str,
-    verbosity: int = LoggingConfig.verbosity,
-    stream_format: Optional[str] = LoggingConfig.stream_format,
-    datetime_format: Optional[str] = LoggingConfig.datetime_format,
+    logging_conf: Logging,
+    experiment: str,
     **stream_handler_kw: Any,
 ) -> Logger:
-    logger = logging.getLogger(name)
-    logger.setLevel(get_logging_level(verbosity=verbosity))
+
+    logger = logging.getLogger(logging_conf.logger_name)
+    logger.setLevel(logging_conf.verbosity.value)
     logger.handlers.clear()
     logger.propagate = False
 
+    if not logging_conf.log_folder.parent.is_dir():
+        raise FileNotFoundError(
+            "The data folder does not exist. Are you sure you are in the root dir?..."
+        )
+    if not logging_conf.log_folder.is_dir():
+        logging_conf.log_folder.mkdir()
+
+    log_file = (
+        logging_conf.log_folder / f"{experiment}_{logging_conf.timestamp}"
+    )
+
     # Define handlers
+    logger.addHandler(logging.FileHandler(log_file))
     sh = logging.StreamHandler(**stream_handler_kw)
-    assert isinstance(stream_format, str) and len(
-        stream_format,
-    ), f"Invalid stream_format: {stream_format}"
+    assert isinstance(logging_conf.stream_format, str) and len(
+        logging_conf.stream_format,
+    ), f"Invalid stream_format: {logging_conf.stream_format}"
     formatter = logging.Formatter(
-        stream_format,
-        datefmt=datetime_format,
+        logging_conf.stream_format,
+        datefmt=logging_conf.datetime_format,
         style="%",
     )
     sh.setFormatter(formatter)

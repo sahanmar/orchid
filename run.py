@@ -124,7 +124,7 @@ if __name__ == "__main__":
         )
         model.evaluate(test_data, word_level_conll=args.word_level)
     elif args.mode == "simulation":
-        run_simulation(config, train_data, test_data, dev_data)
+        run_simulation(model, config, train_data, test_data, dev_data)
     else:
         model.load_weights(
             path=args.weights,

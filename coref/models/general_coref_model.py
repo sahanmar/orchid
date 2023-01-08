@@ -34,9 +34,6 @@ from coref.word_encoder import WordEncoder
 from uncertainty.uncertainty_metrics import pavpu_metric
 from coref.logging_utils import get_stream_logger
 
-
-_logger = get_stream_logger(f"coref-model")
-
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling
 
@@ -74,8 +71,14 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             epochs_trained (int): the number of epochs finished
                 (useful for warm start)
         """
-        _logger.info(f"Initializing the general coreference model")
         self.config = config
+
+        self._logger = get_stream_logger(
+            logging_conf=self.config.logging,
+            experiment=self.config.model_params.bert_model,
+        )
+        self._logger.info(f"Initializing the general coreference model")
+
         self.epochs_trained = epochs_trained
         self._docs: Dict[str, List[Doc]] = {}
         self._build_model()
@@ -87,8 +90,8 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self.sampling_strategy: GreedySampling = (
             config.active_learning.sampling_strategy
         )
-        _logger.info(
-            "Initialization if the general coreference model is complete"
+        self._logger.info(
+            "Initialization of the general coreference model is complete"
         )
 
     @property
@@ -213,6 +216,13 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 )
             print()
 
+        avg_loss = float(running_loss / len(docs))
+        tot_f1, tot_prec, tot_rec = s_checker.total_lea
+
+        self._logger.info(
+            f"EVAL METRICS | loss: {avg_loss:<.5f} | f1: {tot_f1:.5f} prec: {tot_prec:.5f} recall: {tot_rec:.5f}\n"
+        )
+
         return (
             float(running_loss / len(docs)),
             *s_checker.total_lea,
@@ -240,7 +250,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                     files.append((int(match_obj.group(1)), f))
             if not files:
                 if noexception:
-                    print("No weights have been loaded", flush=True)
+                    self._logger.info("No weights have been loaded")
                     return
                 raise OSError(
                     f"No weights found in {self.config.data.data_dir}!"
@@ -250,7 +260,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
         if map_location is None:
             map_location = self.config.training_params.device
-        print(f"Loading from {path}...")
+        self._logger.info(f"Loading weights from {path}...")
         state_dicts = torch.load(path, map_location=map_location)
         self.epochs_trained = state_dicts.pop("epochs_trained", 0)
         for key, state_dict in state_dicts.items():
@@ -261,7 +271,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                     self.schedulers[key].load_state_dict(state_dict)
                 else:
                     self.trainable[key].load_state_dict(state_dict)
-                print(f"Loaded {key}")
+                self._logger.info(f"Loaded {key}")
 
     def run(
         self,
@@ -417,6 +427,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             self.epochs_trained += 1
             self.save_weights()
             if docs_dev is not None:
+                self._logger.info(f"TRAINING | epoch {epoch} is finished")
                 self.evaluate(docs=docs_dev)
 
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
@@ -437,7 +448,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             np.array(metrics_vals), axis=0
         ).tolist()
 
-        print(f"Average PAVPU metrics is {metrics_val}")
+        self._logger.info(f"PAVPU METRICS | avg_pavpu: {metrics_val}")
 
         return metrics_val
 

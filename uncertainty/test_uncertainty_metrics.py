@@ -5,11 +5,9 @@ from config.metrics import PAVPU
 from typing import Tuple
 from uncertainty.uncertainty_metrics import pavpu_metric
 
-CONFIG = Config.load_default_config(section="debug")
-
 
 @pytest.fixture()
-def data() -> Tuple[torch.Tensor, torch.Tensor]:
+def data(config: Config) -> Tuple[torch.Tensor, torch.Tensor]:
     pred = torch.tensor(
         [
             [1, 0, 0, 0],
@@ -18,7 +16,7 @@ def data() -> Tuple[torch.Tensor, torch.Tensor]:
             [0.24, 0.26, 0.25, 0.25],
             [0, 0, 0, 1],
         ],
-        device=CONFIG.training_params.device,
+        device=config.training_params.device,
     )
 
     target = torch.tensor(
@@ -29,7 +27,7 @@ def data() -> Tuple[torch.Tensor, torch.Tensor]:
             [1, 0, 0, 0],
             [1, 0, 0, 0],
         ],
-        device=CONFIG.training_params.device,
+        device=config.training_params.device,
     )
     return pred, target
 

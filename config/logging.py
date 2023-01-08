@@ -1,3 +1,5 @@
+import time
+
 from dataclasses import dataclass
 from logging import (
     ERROR,
@@ -6,10 +8,43 @@ from logging import (
     DEBUG,
 )
 
+from enum import Enum
+from pathlib import Path
+from config.config_utils import overwrite_config
+from typing import Any
 
-@dataclass(init=False, frozen=True)
-class LoggingConfig:
-    verbosity_mapping = {0: ERROR, 1: WARNING, 2: INFO, 3: DEBUG}
-    verbosity: int = 3
-    stream_format: str = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-    datetime_format: str = "%Y-%m-%dT%H:%M:%S%z"
+
+class LogVerbosityMapping(Enum):
+    error = ERROR
+    warning = WARNING
+    info = INFO
+    debug = DEBUG
+
+
+@dataclass
+class Logging:
+    logger_name: str
+    verbosity: LogVerbosityMapping
+    stream_format: str
+    datetime_format: str
+    log_folder: Path
+    timestamp: int
+
+    @staticmethod
+    @overwrite_config
+    def from_config(
+        logger_name: str,
+        verbosity: str,
+        stream_format: str,
+        datetime_format: str,
+        log_folder: str,
+    ) -> "Logging":
+        return Logging(
+            # The code has to fail if the config is bad
+            logger_name=logger_name,
+            verbosity=LogVerbosityMapping[verbosity],
+            stream_format=stream_format,
+            datetime_format=datetime_format,
+            log_folder=Path(log_folder),
+            timestamp=int(time.time()),
+        )
