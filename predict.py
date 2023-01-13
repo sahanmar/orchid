@@ -17,9 +17,9 @@ def build_doc(doc: Doc, model: CorefModel) -> Doc:
     token_map = TOKENIZER_MAPS.get(model.config.model_params.bert_model, {})
 
     word2subword: List[Tuple[int, int]] = []
-    subwords: List[int] = []
+    subwords: List[str] = []
     word_id: List[int] = []
-    for i, word in enumerate(doc["cased_words"]):
+    for i, word in enumerate(doc.cased_words):
         tokenized_word = (
             token_map[word]
             if word in token_map
@@ -31,15 +31,15 @@ def build_doc(doc: Doc, model: CorefModel) -> Doc:
         )
         subwords.extend(tokenized_word)
         word_id.extend([i] * len(tokenized_word))
-    doc["word2subword"] = word2subword
-    doc["subwords"] = subwords
-    doc["word_id"] = word_id
+    doc.word2subword = word2subword
+    doc.subwords = subwords
+    doc.word_id = word_id
 
-    doc["head2span"] = []
-    if "speaker" not in doc:
-        doc["speaker"] = ["_" for _ in doc["cased_words"]]
-    doc["word_clusters"] = []
-    doc["span_clusters"] = []
+    doc.head2span = []
+    if doc.speaker:
+        doc.speaker = ["_" for _ in doc.cased_words]
+    doc.word_clusters = []
+    doc.span_clusters = []
 
     return doc
 

@@ -104,7 +104,7 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
         Trains all the trainable blocks in the model using the config provided.
         """
         docs_ids = list(range(len(docs)))
-        avg_spans = sum(len(doc["head2span"]) for doc in docs) / len(docs)
+        avg_spans = sum(len(doc.head2span) for doc in docs) / len(docs)
 
         for epoch in range(
             self.epochs_trained, self.config.training_params.train_epochs

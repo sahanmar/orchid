@@ -8,14 +8,31 @@ import torch
 EPSILON = 1e-7
 LARGE_VALUE = 1000  # used instead of inf due to bug #16762 in pytorch
 
-Doc = Dict[str, Any]
 Span = Tuple[int, int]
 
 
 @dataclass
+class Doc:
+    document_id: str
+    cased_words: list[str]
+    sent_id: list[int]
+    part_id: int
+    speaker: list[str]
+    pos: list[str]
+    deprel: list[str]
+    head: Optional[list[str]]
+    head2span: list[list[int]]
+    word_clusters: list[list[int]]
+    span_clusters: list[list[Tuple[int, int]]]
+    word2subword: list[Tuple[int, int]]
+    subwords: list[str]
+    word_id: list[int]
+
+
+@dataclass
 class SampledData:
-    indices: List[int]
-    instances: List[Doc]
+    indices: list[int]
+    instances: list[Doc]
 
 
 @dataclass
@@ -23,8 +40,8 @@ class CorefResult:
     coref_scores: torch.Tensor = None  # [n_words, k + 1]
     coref_y: torch.Tensor = None  # [n_words, k + 1]
 
-    word_clusters: Optional[List[List[int]]] = None
-    span_clusters: Optional[List[List[Span]]] = None
+    word_clusters: Optional[list[list[int]]] = None
+    span_clusters: Optional[list[list[Span]]] = None
 
     span_scores: Optional[torch.Tensor] = None  # [n_heads, n_words, 2]
     span_y: Optional[Tuple[torch.Tensor, torch.Tensor]] = None  # [n_heads] x2

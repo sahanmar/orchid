@@ -16,10 +16,10 @@ def write_conll(doc: Doc, clusters: List[List[Span]], f_obj: TextIO) -> None:
     """Writes span/cluster information to f_obj, which is assumed to be a file
     object open for writing"""
     placeholder = "  -" * 7
-    doc_id = doc["document_id"]
-    words = doc["cased_words"]
-    part_id = doc["part_id"]
-    sents = doc["sent_id"]
+    doc_id = doc.document_id
+    words = doc.cased_words
+    part_id = doc.part_id
+    sents = doc.sent_id
 
     max_word_len = max(len(w) for w in words)
 

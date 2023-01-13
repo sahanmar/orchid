@@ -49,7 +49,7 @@ class PairwiseEncoder(torch.nn.Module):
         top_indices: torch.Tensor,
         doc: Doc,
     ) -> torch.Tensor:
-        word_ids = torch.arange(0, len(doc["cased_words"]), device=self.device)
+        word_ids = torch.arange(0, len(doc.cased_words), device=self.device)
         speaker_map = torch.tensor(self._speaker_map(doc), device=self.device)
 
         same_speaker = speaker_map[top_indices] == speaker_map.unsqueeze(1)
@@ -65,7 +65,7 @@ class PairwiseEncoder(torch.nn.Module):
         distance = self.distance_emb(distance)
 
         genre = torch.tensor(
-            self.genre2int[doc["document_id"][:2]], device=self.device
+            self.genre2int[doc.document_id[:2]], device=self.device
         ).expand_as(top_indices)
         genre = self.genre_emb(genre)
 
@@ -80,10 +80,10 @@ class PairwiseEncoder(torch.nn.Module):
         Returns a tensor where i-th element is the speaker id of i-th word.
         """
         # speaker string -> speaker id
-        str2int = {s: i for i, s in enumerate(set(doc["speaker"]))}
+        str2int = {s: i for i, s in enumerate(set(doc.speaker))}
 
         # word id -> speaker id
-        return [str2int[s] for s in doc["speaker"]]
+        return [str2int[s] for s in doc.speaker]
 
 
 class MCDropoutPairwiseEncoder(PairwiseEncoder):

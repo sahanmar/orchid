@@ -50,7 +50,7 @@ class WordEncoder(
             cluster_ids: tensor of shape [n_words], containing cluster indices
                 for each word. Non-coreferent words have cluster id of zero.
         """
-        word_boundaries = torch.tensor(doc["word2subword"], device=self.device)
+        word_boundaries = torch.tensor(doc.word2subword, device=self.device)
         starts = word_boundaries[:, 0]
         ends = word_boundaries[:, 1]
 
@@ -117,14 +117,14 @@ class WordEncoder(
         """
         word2cluster = {
             word_i: i
-            for i, cluster in enumerate(doc["word_clusters"], start=1)
+            for i, cluster in enumerate(doc.word_clusters, start=1)
             for word_i in cluster
         }
 
         return torch.tensor(
             [
                 word2cluster.get(word_i, 0)
-                for word_i in range(len(doc["cased_words"]))
+                for word_i in range(len(doc.cased_words))
             ],
             device=self.device,
         )
