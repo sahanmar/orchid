@@ -20,7 +20,7 @@ class Doc:
     speaker: list[str]
     pos: list[str]
     deprel: list[str]
-    head: Optional[list[str]]
+    head: list[Optional[str]]
     head2span: list[list[int]]
     word_clusters: list[list[int]]
     span_clusters: list[list[Tuple[int, int]]]
