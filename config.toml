@@ -110,6 +110,9 @@
         # Number of neural network parameters that will represent NN empirical distribution
         parameters_samples = 10
 
+        # Turn on span sampling instead of documents sampling
+        span_sampling = false
+
         [DEFAULT.active_learning.simulation]
             # Simulation parameters (e.g. starting sample size, number of iterations, ...)
 

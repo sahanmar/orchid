@@ -290,10 +290,24 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         Returns:
             CorefResult (see const.py)
         """
+
+        # Rewrite the doc to a pseudo doc. This will use only spans, given in
+        # the simulation_span_annotations field. If the field is empty, the method
+        # will use all available annotated spans.
+        # N.B. The quality of encoding is not damaged because it is done on the whole
+        # article
+
         # Encode words with bert
+        encoded_doc = self._bertify(doc)
+
+        # if self.config.active_learning.span_sampling:
+        #     doc = doc.create_simulation_pseudodoc()
+        #     subwords_indices = [ for word in doc.word2subword]
+        #     encoded_doc =
+
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
-        words, cluster_ids = self.we(doc, self._bertify(doc))
+        words, cluster_ids = self.we(doc, encoded_doc)
 
         # Obtain bilinear scores and leave only top-k antecedents for each word
         # top_rough_scores  [n_words, n_ants]
