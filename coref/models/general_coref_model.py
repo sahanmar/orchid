@@ -300,10 +300,11 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         # Encode words with bert
         encoded_doc = self._bertify(doc)
 
-        # if self.config.active_learning.span_sampling:
-        #     doc = doc.create_simulation_pseudodoc()
-        #     subwords_indices = [ for word in doc.word2subword]
-        #     encoded_doc =
+        if self.config.active_learning.span_sampling:
+            doc = doc.create_simulation_pseudodoc()
+            encoded_doc = encoded_doc[
+                doc.simulation_span_annotations.original_subtokens_ids, :
+            ]
 
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]

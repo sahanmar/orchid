@@ -16,6 +16,7 @@ Span = Tuple[int, int]
 class SimulationSpanAnnotations:
     spans: list[Tuple[int, int]]
     old_2_new_ids_map: dict[int, int]
+    original_subtokens_ids: list[int]
 
 
 @dataclass
@@ -34,10 +35,9 @@ class Doc:
     word2subword: list[Tuple[int, int]]
     subwords: list[str]
     word_id: list[int]
-    simulation_span_annotations: SimulationSpanAnnotations = field(init=False)
-
-    def __post_init__(self) -> None:
-        self.simulation_span_annotations = SimulationSpanAnnotations([], {})
+    simulation_span_annotations: SimulationSpanAnnotations = (
+        SimulationSpanAnnotations([], {}, [])
+    )
 
     def create_simulation_pseudodoc(self) -> "Doc":
 
@@ -92,8 +92,6 @@ class Doc:
                 span_clusters.append(reindexed_span_cluster)
 
         # word to subword
-
-        #### FIX #####
         word2subword: list[Tuple[int, int]] = []
         shift = 0
         for w in word_ids:
@@ -101,8 +99,6 @@ class Doc:
             diff = end - start
             word2subword.append((shift, shift + diff))
             shift += diff
-            #     (new_w_ids_map[start], new_w_ids_map[start] + end - start)
-            # )
 
         return Doc(
             document_id=self.document_id,
@@ -124,6 +120,16 @@ class Doc:
                 for word in self.subwords[start:end]
             ],
             word_id=list(range(len(word_ids))),
+            simulation_span_annotations=SimulationSpanAnnotations(
+                self.simulation_span_annotations.spans,
+                new_w_ids_map,
+                [
+                    subtoken
+                    for i, (start, end) in enumerate(self.word2subword)
+                    if i in word_ids
+                    for subtoken in range(start, end)
+                ],
+            ),
         )
 
 

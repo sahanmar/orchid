@@ -39,3 +39,13 @@ def test_create_simulation_pseudodoc(dev_data: list[Doc]) -> None:
     ]
     assert pseudo_doc.head2span == [[0, 0, 1], [1, 1, 2], [4, 2, 5], [7, 5, 8]]
     assert pseudo_doc.span_clusters == [[(0, 1), (1, 2)], [(2, 5), (5, 8)]]
+    assert pseudo_doc.word2subword == [
+        (0, 1),
+        (1, 2),
+        (2, 3),
+        (3, 4),
+        (4, 5),
+        (5, 6),
+        (6, 7),
+        (7, 8),
+    ]
