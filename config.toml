@@ -254,3 +254,10 @@
         bert_window_size = 384
     [debug_gpu.training_params]
         bert_finetune = false
+
+# Active Learning
+[active_learning_simulation]
+    [active_learning.model_params]
+        bert_model = "roberta-large"
+[active_learning_simulation.active_learning]
+        span_sampling = true
