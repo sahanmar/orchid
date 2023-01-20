@@ -234,6 +234,9 @@
             epochs = 15
     [debug.logging]
         logger_name = "test_run"
+    [debug.active_learning]
+        span_sampling = true
+
 
 [mc_dropout]
     [mc_dropout.model_params]
@@ -257,7 +260,7 @@
 
 # Active Learning
 [active_learning_simulation]
-    [active_learning.model_params]
+    [active_learning_simulation.model_params]
         bert_model = "roberta-large"
 [active_learning_simulation.active_learning]
         span_sampling = true
