@@ -61,7 +61,7 @@ class SpanPredictor(torch.nn.Module):
         emb_ids[(emb_ids < 0) + (emb_ids > 126)] = 127  # "too_far"
 
         # Obtain "same sentence" boolean mask, [n_heads, n_words]
-        sent_id = torch.tensor(doc["sent_id"], device=words.device)
+        sent_id = torch.tensor(doc.sent_id, device=words.device)
         same_sent = sent_id[heads_ids].unsqueeze(1) == sent_id.unsqueeze(0)
 
         # To save memory, only pass candidates from one sentence for each head
@@ -125,7 +125,7 @@ class SpanPredictor(torch.nn.Module):
         Optional[torch.Tensor], Optional[Tuple[torch.Tensor, torch.Tensor]]
     ]:
         """Returns span starts/ends for gold mentions in the document."""
-        head2span = sorted(doc["head2span"])
+        head2span = sorted(doc.head2span)
         if not head2span:
             return None, None
         heads, starts, ends = zip(*head2span)

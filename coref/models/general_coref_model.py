@@ -167,7 +167,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                         doc,
                         [
                             [(i, i + 1) for i in cluster]
-                            for cluster in doc["word_clusters"]
+                            for cluster in doc.word_clusters
                         ],
                         gold_f,
                     )
@@ -180,7 +180,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                         pred_f,
                     )
                 else:
-                    conll.write_conll(doc, doc["span_clusters"], gold_f)
+                    conll.write_conll(doc, doc.span_clusters, gold_f)
                     if res.span_clusters is None:
                         raise RuntimeError(
                             f'"span_clusters" attribute must be set'
@@ -188,13 +188,13 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                     conll.write_conll(doc, res.span_clusters, pred_f)
 
                 w_checker.add_predictions(
-                    doc["word_clusters"],
+                    doc.word_clusters,
                     cast(List[List[Hashable]], res.word_clusters),
                 )
                 w_lea = w_checker.total_lea
 
                 s_checker.add_predictions(
-                    doc["span_clusters"],
+                    doc.span_clusters,
                     cast(List[List[Hashable]], res.span_clusters),
                 )
                 s_lea = s_checker.total_lea
@@ -290,10 +290,25 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         Returns:
             CorefResult (see const.py)
         """
+
+        # Rewrite the doc to a pseudo doc. This will use only spans, given in
+        # the simulation_span_annotations field. If the field is empty, the method
+        # will use all available annotated spans.
+        # N.B. The quality of encoding is not damaged because it is done on the whole
+        # article
+
         # Encode words with bert
+        encoded_doc = self._bertify(doc)
+
+        if self.config.active_learning.span_sampling:
+            doc = doc.create_simulation_pseudodoc()
+            encoded_doc = encoded_doc[
+                doc.simulation_span_annotations.original_subtokens_ids, :
+            ]
+
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
-        words, cluster_ids = self.we(doc, self._bertify(doc))
+        words, cluster_ids = self.we(doc, encoded_doc)
 
         # Obtain bilinear scores and leave only top-k antecedents for each word
         # top_rough_scores  [n_words, n_ants]
@@ -369,7 +384,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         Trains all the trainable blocks in the model using the config provided.
         """
         docs_ids = list(range(len(docs)))
-        avg_spans = sum(len(doc["head2span"]) for doc in docs) / len(docs)
+        avg_spans = sum(len(doc.head2span) for doc in docs) / len(docs)
 
         for epoch in range(
             self.epochs_trained, self.config.training_params.train_epochs
@@ -419,7 +434,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
                 pbar.set_description(
                     f"Epoch {epoch + 1}:"
-                    f" {doc['document_id']:26}"
+                    f" {doc.document_id:26}"
                     f" c_loss: {running_c_loss / (pbar.n + 1):<.5f}"
                     f" s_loss: {running_s_loss / (pbar.n + 1):<.5f}"
                 )
@@ -584,7 +599,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         coref_span_heads = torch.arange(0, len(scores))[not_dummy]
         antecedents = top_indices[coref_span_heads, antecedents[not_dummy]]
 
-        nodes = [GraphNode(i) for i in range(len(doc["cased_words"]))]
+        nodes = [GraphNode(i) for i in range(len(doc.cased_words))]
         for i, j in zip(coref_span_heads.tolist(), antecedents.tolist()):
             nodes[i].link(nodes[j])
             assert nodes[i] is not nodes[j]

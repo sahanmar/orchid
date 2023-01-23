@@ -110,6 +110,9 @@
         # Number of neural network parameters that will represent NN empirical distribution
         parameters_samples = 10
 
+        # Turn on span sampling instead of documents sampling
+        span_sampling = false
+
         [DEFAULT.active_learning.simulation]
             # Simulation parameters (e.g. starting sample size, number of iterations, ...)
 
@@ -231,6 +234,9 @@
             epochs = 15
     [debug.logging]
         logger_name = "test_run"
+    [debug.active_learning]
+        span_sampling = true
+
 
 [mc_dropout]
     [mc_dropout.model_params]
@@ -251,3 +257,10 @@
         bert_window_size = 384
     [debug_gpu.training_params]
         bert_finetune = false
+
+# Active Learning
+[active_learning_simulation]
+    [active_learning_simulation.model_params]
+        bert_model = "roberta-large"
+[active_learning_simulation.active_learning]
+        span_sampling = true

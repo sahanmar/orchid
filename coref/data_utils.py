@@ -52,7 +52,7 @@ def tokenize_docs(path: Path, config: Config) -> List[Doc]:
             doc["word2subword"] = word2subword
             doc["subwords"] = subwords
             doc["word_id"] = word_id
-            out.append(doc)
+            out.append(Doc(**doc))
     print("Tokenization OK", flush=True)
     return out
 

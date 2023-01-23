@@ -1,6 +1,6 @@
 """Functions related to BERT or similar models"""
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 
 import numpy as np  # type: ignore
 from transformers import AutoModel, AutoTokenizer  # type: ignore
@@ -22,7 +22,7 @@ def get_subwords_batches(
     """
     batch_size = bert_window_size - 2  # to save space for CLS and SEP
 
-    subwords: List[int] = doc["subwords"]
+    subwords: List[str] = doc.subwords
     subwords_batches = []
     start, end = 0, 0
 
@@ -31,8 +31,8 @@ def get_subwords_batches(
 
         # Move back till we hit a sentence end
         if end < len(subwords):
-            sent_id = doc["sent_id"][doc["word_id"][end]]
-            while end and doc["sent_id"][doc["word_id"][end - 1]] == sent_id:
+            sent_id = doc.sent_id[doc.word_id[end]]
+            while end and doc.sent_id[doc.word_id[end - 1]] == sent_id:
                 end -= 1
 
         length = end - start
