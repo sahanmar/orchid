@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from typing import Tuple, Optional
-from itertools import chain
+import hashlib
 
 import torch
 
@@ -35,9 +35,15 @@ class Doc:
     word2subword: list[Tuple[int, int]]
     subwords: list[str]
     word_id: list[int]
-    simulation_span_annotations: SimulationSpanAnnotations = (
-        SimulationSpanAnnotations([], {}, [])
+    orchid_id: str = field(default_factory=str)
+    simulation_span_annotations: SimulationSpanAnnotations = SimulationSpanAnnotations(
+        [], {}, []
     )
+
+    def __post_init__(self) -> None:
+        self.orchid_id = hashlib.sha1(
+            "".join(self.cased_words).encode("utf-8")
+        ).hexdigest()
 
     def create_simulation_pseudodoc(self) -> "Doc":
 
@@ -56,8 +62,7 @@ class Doc:
             )
         # create the mapping
         new_w_ids_map: dict[int, int] = {
-            w_id: new_w_id
-            for w_id, new_w_id in zip(word_ids, range(len(word_ids)))
+            w_id: new_w_id for w_id, new_w_id in zip(word_ids, range(len(word_ids)))
         }
 
         # reindex head to spans
@@ -100,6 +105,14 @@ class Doc:
             word2subword.append((shift, shift + diff))
             shift += diff
 
+        # subwords
+        subwords = [
+            word
+            for i, (start, end) in enumerate(self.word2subword)
+            if i in word_ids
+            for word in self.subwords[start:end]
+        ]
+
         return Doc(
             document_id=self.document_id,
             cased_words=[self.cased_words[w] for w in word_ids],
@@ -113,13 +126,8 @@ class Doc:
             word_clusters=word_clusters,
             span_clusters=span_clusters,
             word2subword=word2subword,
-            subwords=[
-                word
-                for i, (start, end) in enumerate(self.word2subword)
-                if i in word_ids
-                for word in self.subwords[start:end]
-            ],
-            word_id=list(range(len(word_ids))),
+            subwords=subwords,
+            word_id=list(range(len(subwords))),
             simulation_span_annotations=SimulationSpanAnnotations(
                 self.simulation_span_annotations.spans,
                 new_w_ids_map,
