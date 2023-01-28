@@ -19,12 +19,16 @@ def test_create_simulation_pseudodoc(dev_data: list[Doc]) -> None:
     assert doc.subwords == pseudo_doc.subwords
 
     # Create a pseudo doc from
-    doc.simulation_span_annotations.spans = [
-        (55, 56),
-        (70, 71),
-        (377, 380),
-        (411, 414),
-    ]
+    doc.simulation_token_annotations.tokens = {
+        55,
+        70,
+        377,
+        378,
+        379,
+        411,
+        412,
+        413,
+    }
     pseudo_doc = doc.create_simulation_pseudodoc()
     assert doc.document_id == pseudo_doc.document_id
     assert pseudo_doc.cased_words == [

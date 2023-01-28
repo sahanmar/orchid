@@ -15,8 +15,8 @@ class Simulation:
 
 @dataclass
 class ActiveLearning:
-    # Span sampling instead of documents sampling
-    span_sampling: bool
+    # Token sampling instead of documents sampling
+    token_sampling: bool
     # Active Learning parameters
     parameters_samples: int
     # Active Learning sampling strategy.
@@ -27,13 +27,13 @@ class ActiveLearning:
     @staticmethod
     @overwrite_config
     def load_config(
-        span_sampling: bool,
+        token_sampling: bool,
         parameters_samples: int,
         sampling_strategy: dict[str, Any],
         simulation: dict[str, Any],
     ) -> "ActiveLearning":
         return ActiveLearning(
-            span_sampling,
+            token_sampling,
             parameters_samples,
             GreedySampling.load_config(**sampling_strategy),
             Simulation(**simulation),

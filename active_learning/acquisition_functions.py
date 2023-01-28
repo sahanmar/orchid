@@ -17,127 +17,150 @@ def random_sampling(instances: list[Doc], batch_size: int) -> SampledData:
     return SampledData(indices, [instances[i] for i in indices])
 
 
-def span_sampling(docs: list[Doc], span_batch: int) -> SampledData:
+def token_sampling(docs: list[Doc], token_batch: int) -> SampledData:
     """
-    The method samples random spans from docs in the following way:
+    The method samples random tokens from docs in the following way:
 
-    Repeat until # sampled spans equals to the span_batch
+    Repeat until # sampled tokens equals to the token_batch
         - Sample a doc
-        - Sample a span
+        - Sample a token
 
-        if a span has antecedents
-            - find the closest one
-        else pass
+        if a token belongs to a coreference span and has other mentions
+            - take the full span and find the closest mention
+        else
+            - take the token as it is
 
         if the doc was already sampled before
-            - extend the simulation spans field
+            - extend the simulation tokens field and create a new pseudo doc
         else
-            - create a pseudo doc and write in simulation spans
+            - create a pseudo doc and write in simulation tokens
 
-    return all created pseudo docs with sampled spans
+    return all created pseudo docs with sampled tokens
     """
 
-    sampled_spans_counter = 0
+    sampled_tokens_counter = 0
     counter = 0  # variable to control infinite looping
     sampled_data = SampledData([], [])
     docs_copy = deepcopy(docs)
-    while sampled_spans_counter < span_batch:
+    doc_w_their_position = {doc.orchid_id: i for i, doc in enumerate(docs_copy)}
+    while sampled_tokens_counter < token_batch:
         # sample the doc and solve the use-cases
         sampled_doc_ids_w_order_id = {
-            d.document_id: i for i, d in enumerate(sampled_data.instances)
+            d.orchid_id: i
+            for i, d in enumerate(sampled_data.instances)
+            if d.orchid_id
         }
-        doc_w_doc_id = _choose_the_doc_for_span_sampling(
-            docs_copy, sampled_data, sampled_doc_ids_w_order_id
+        doc = _choose_the_doc_for_token_sampling(
+            docs_copy,
+            sampled_data,
+            sampled_doc_ids_w_order_id,
         )
-        # if no spans to sample return what we already have
-        if doc_w_doc_id is None:
-            return sampled_data
-
-        doc, doc_id = doc_w_doc_id
-        # choose new spans given that we already sampled from the doc
-        if doc.document_id in sampled_doc_ids_w_order_id:
-            sampled_spans = set(
-                sampled_data.instances[
-                    sampled_doc_ids_w_order_id[doc.document_id]
-                ].simulation_span_annotations.spans
-            )
-            docs_copy[doc_id].span_clusters = [
-                [span for span in cluster if span not in sampled_spans]
-                for cluster in doc.span_clusters
+        # if no tokens to sample return what we already have
+        if doc is None:
+            sampled_data.indices = [
+                doc_w_their_position[doc.orchid_id]
+                for doc in sampled_data.instances
             ]
-        elif len(list(chain.from_iterable(docs_copy[doc_id].span_clusters))) > 0:
-            sampled_data.indices.append(doc_id)
-        else:
             return sampled_data
 
-        cluster = choice(doc.span_clusters)
-        spans: list[Tuple[int, int]] = []
-        if len(cluster) > 1:
-            # choose the closes coreference
-            spans.extend(choice(_get_consecutive_pairs(cluster)))
-        elif len(cluster) == 1:
-            spans.extend(cluster)
+        # choose new tokens given that we already sampled from the doc
+        if doc.orchid_id in sampled_doc_ids_w_order_id:
+            sampled_tokens = sampled_data.instances[
+                sampled_doc_ids_w_order_id[doc.orchid_id]
+            ].simulation_token_annotations.tokens
+            token = choice(
+                [
+                    token_id
+                    for token_id in range(len(doc.cased_words))
+                    if token_id not in sampled_tokens
+                ]
+            )
+        else:
+            token = choice(list(range(len(doc.cased_words))))
 
-        if cluster:
-            sampled_spans_counter += 1
-            doc.simulation_span_annotations.spans.extend(spans)
+        token_in_cluster = _get_coref_if_token_in_cluster(
+            token, doc.span_clusters
+        )
+        if token_in_cluster is None:
+            sampled_tokens_counter += 1
+            doc.simulation_token_annotations.tokens.add(token)
+        else:
+            sampled_tokens_counter += len(token_in_cluster)
+            doc.simulation_token_annotations.tokens = (
+                doc.simulation_token_annotations.tokens.union(token_in_cluster)
+            )
+
+        if doc.orchid_id in sampled_doc_ids_w_order_id:
+            sampled_data.instances[
+                sampled_doc_ids_w_order_id[doc.orchid_id]
+            ] = doc.create_simulation_pseudodoc()
+        else:
             sampled_data.instances.append(doc.create_simulation_pseudodoc())
 
         if counter == 1_000_000:
             raise ValueError("Smth went wrong... The loop got infinite")
         counter += 1
-        print("*****")
-        print(doc.simulation_span_annotations.spans)
-        print("*")
-        print(docs[doc_id].span_clusters)
-        print("*****")
+
+    sampled_data.indices = [
+        doc_w_their_position[doc.orchid_id] for doc in sampled_data.instances
+    ]
     return sampled_data
 
 
-def _get_consecutive_pairs(list_to_pair: list[Any]) -> list[list[Any]]:
-    return [
-        [list_to_pair[i], list_to_pair[i + 1]] for i in range(len(list_to_pair) - 1)
-    ]
+def _get_coref_if_token_in_cluster(
+    token: int, span_clusters: list[list[Tuple[int, int]]]
+) -> Optional[set[int]]:
+    """
+    If a chosen token is in a coreference cluster then return the span tokens and
+    the closest mention. If not, returns None
+    """
+    for cluster in span_clusters:
+        for i, span in enumerate(cluster):
+            start, end = span
+            if token in range(start, end):
+                if i == 0:
+                    closest_span = cluster[i + 1]
+                else:
+                    closest_span = cluster[i - 1]
+                return set(
+                    [
+                        token
+                        for start, end in [span, closest_span]
+                        for token in range(start, end)
+                    ]
+                )
+    return None
 
 
-def _choose_the_doc_for_span_sampling(
+def _choose_the_doc_for_token_sampling(
     docs: list[Doc],
     sampled_data: SampledData,
     sampled_doc_ids_w_order_id: dict[str, int],
-) -> Optional[Tuple[Doc, int]]:
+) -> Optional[Doc]:
     """
     docs: list of Docs to sample from
-    sampled_data: the docs that the spans were already sampled from
+    sampled_data: the docs that the tokens were already sampled from
     sampled_doc_ids_w_order_id: mapping of sampled doc ids to their
     order in the SampleData instances list
 
     Returns doc and its id in the docs list
 
     Edge cases:
-        - If all spans were sampled from the doc, returns None
+        - If all tokens were sampled from the doc, returns None
     """
     if not docs:
         return None
     doc_id = choice(range(len(docs)))
     doc = docs[doc_id]
-    if doc.document_id in sampled_doc_ids_w_order_id and (
-        len(set(chain.from_iterable(doc.span_clusters)))
-        == len(
-            set(
-                chain.from_iterable(
-                    sampled_data.instances[
-                        sampled_doc_ids_w_order_id[doc.document_id]
-                    ].simulation_span_annotations.spans
-                )
-            )
-        )
+    if doc.orchid_id in sampled_doc_ids_w_order_id and (
+        set(range(len(doc.cased_words)))
+        == sampled_data.instances[
+            sampled_doc_ids_w_order_id[doc.orchid_id]
+        ].simulation_token_annotations.tokens
     ):
-        return _choose_the_doc_for_span_sampling(
+        return _choose_the_doc_for_token_sampling(
             [d for i, d in enumerate(docs) if i != doc_id],
             sampled_data,
             sampled_doc_ids_w_order_id,
         )
-    return doc, doc_id
-
-
-I sample from a wrong field! I have to sample for spans field and then take the cluster info if I get to a cluster span
+    return doc

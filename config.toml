@@ -111,7 +111,7 @@
         parameters_samples = 10
 
         # Turn on span sampling instead of documents sampling
-        span_sampling = false
+        token_sampling = false
 
         [DEFAULT.active_learning.simulation]
             # Simulation parameters (e.g. starting sample size, number of iterations, ...)
@@ -235,7 +235,7 @@
     [debug.logging]
         logger_name = "test_run"
     [debug.active_learning]
-        span_sampling = true
+        token_sampling = true
 
 
 [mc_dropout]
@@ -263,4 +263,4 @@
     [active_learning_simulation.model_params]
         bert_model = "roberta-large"
 [active_learning_simulation.active_learning]
-        span_sampling = true
+        token_sampling = true

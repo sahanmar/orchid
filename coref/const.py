@@ -14,7 +14,7 @@ Span = Tuple[int, int]
 
 @dataclass
 class SimulationSpanAnnotations:
-    spans: list[Tuple[int, int]]
+    tokens: set[int]
     old_2_new_ids_map: dict[int, int]
     original_subtokens_ids: list[int]
 
@@ -35,34 +35,27 @@ class Doc:
     word2subword: list[Tuple[int, int]]
     subwords: list[str]
     word_id: list[int]
-    orchid_id: str = field(default_factory=str)
-    simulation_span_annotations: SimulationSpanAnnotations = SimulationSpanAnnotations(
-        [], {}, []
+    orchid_id: Optional[str] = None
+    simulation_token_annotations: SimulationSpanAnnotations = (
+        SimulationSpanAnnotations(set(), {}, [])
     )
 
     def __post_init__(self) -> None:
-        self.orchid_id = hashlib.sha1(
-            "".join(self.cased_words).encode("utf-8")
-        ).hexdigest()
+        if not self.orchid_id:
+            self.orchid_id = hashlib.sha1(
+                "".join(self.cased_words).encode("utf-8")
+            ).hexdigest()
 
     def create_simulation_pseudodoc(self) -> "Doc":
 
-        if not self.simulation_span_annotations.spans:
+        if not self.simulation_token_annotations.tokens:
             word_ids = list(range(len(self.cased_words)))
         else:
-            # get the word ids that are in spans
-            word_ids = sorted(
-                set(
-                    [
-                        word
-                        for start, end in self.simulation_span_annotations.spans
-                        for word in range(start, end)
-                    ]
-                )
-            )
+            word_ids = sorted(self.simulation_token_annotations.tokens)
         # create the mapping
         new_w_ids_map: dict[int, int] = {
-            w_id: new_w_id for w_id, new_w_id in zip(word_ids, range(len(word_ids)))
+            w_id: new_w_id
+            for w_id, new_w_id in zip(word_ids, range(len(word_ids)))
         }
 
         # reindex head to spans
@@ -115,6 +108,7 @@ class Doc:
 
         return Doc(
             document_id=self.document_id,
+            orchid_id=self.orchid_id,
             cased_words=[self.cased_words[w] for w in word_ids],
             sent_id=[self.sent_id[w] for w in word_ids],
             part_id=self.part_id,
@@ -128,8 +122,8 @@ class Doc:
             word2subword=word2subword,
             subwords=subwords,
             word_id=list(range(len(subwords))),
-            simulation_span_annotations=SimulationSpanAnnotations(
-                self.simulation_span_annotations.spans,
+            simulation_token_annotations=SimulationSpanAnnotations(
+                self.simulation_token_annotations.tokens,
                 new_w_ids_map,
                 [
                     subtoken
