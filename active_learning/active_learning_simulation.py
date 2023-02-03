@@ -7,16 +7,9 @@ from config import Config
 def get_training_iteration_docs(
     docs: list[Doc], sampled_docs: SampledData
 ) -> list[Doc]:
-    for i, pseudo_doc in zip(sampled_docs.indices, sampled_docs.instances):
-        docs[
-            i
-        ].simulation_token_annotations = pseudo_doc.simulation_token_annotations
-    return sampled_docs.instances + [
-        doc
-        for i, doc in enumerate(docs)
-        if i not in sampled_docs.indices
-        and doc.simulation_token_annotations.tokens
-    ]
+    for i, doc in zip(sampled_docs.indices, sampled_docs.instances):
+        docs[i].simulation_token_annotations = doc.simulation_token_annotations
+    return [doc for doc in docs if doc.simulation_token_annotations.tokens]
 
 
 def run_simulation(
