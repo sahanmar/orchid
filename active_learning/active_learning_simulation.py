@@ -15,6 +15,7 @@ def get_training_iteration_docs(
         doc.create_simulation_pseudodoc()
         for i, doc in enumerate(docs)
         if i not in sampled_docs.indices
+        and doc.simulation_token_annotations.tokens
     ]
 
 
