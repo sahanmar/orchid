@@ -4,6 +4,20 @@ from coref.models import load_coref_model, GeneralCorefModel
 from config import Config
 
 
+def get_training_iteration_docs(
+    docs: list[Doc], sampled_docs: SampledData
+) -> list[Doc]:
+    for i, pseudo_doc in zip(sampled_docs.indices, sampled_docs.instances):
+        docs[
+            i
+        ].simulation_token_annotations = pseudo_doc.simulation_token_annotations
+    return sampled_docs.instances + [
+        doc.create_simulation_pseudodoc()
+        for i, doc in enumerate(docs)
+        if i not in sampled_docs.indices
+    ]
+
+
 def run_simulation(
     model: GeneralCorefModel,
     config: Config,
@@ -14,8 +28,9 @@ def run_simulation(
 
     al_config = config.active_learning
     # Training split
-    training_data = train_docs[: al_config.simulation.initial_sample_size]
-    complementary_data = train_docs[al_config.simulation.initial_sample_size :]
+    sampled_data = model.sample_unlabled_data(train_docs)
+    training_data = get_training_iteration_docs(train_docs, sampled_data)
+
     # First training
     model.train(docs=training_data, docs_dev=dev_docs)
     model.evaluate(docs=test_data)
@@ -25,13 +40,8 @@ def run_simulation(
     for i in range(al_config.simulation.active_learning_steps):
         model._logger.info(f" AL SIMULATION | round: {i}\n")
         # Prepare the data
-        batch: SampledData = model.sample_unlabled_data(complementary_data)
-        training_data.extend(batch.instances)
-        complementary_data = [
-            doc
-            for i, doc in enumerate(complementary_data)
-            if i not in batch.indices
-        ]
+        sampled_data = model.sample_unlabled_data(train_docs)
+        training_data = get_training_iteration_docs(train_docs, sampled_data)
 
         # Train the model
         model = load_coref_model(config)

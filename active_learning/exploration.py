@@ -6,8 +6,10 @@ from typing import Callable, Dict, List
 from random import random
 
 from coref.const import Doc, SampledData
-from active_learning.acquisition_functions import random_sampling
-from config.config_utils import overwrite_config
+from active_learning.acquisition_functions import (
+    random_sampling,
+    token_sampling,
+)
 
 
 class AcquisitionFunctionsType(Enum):
@@ -16,7 +18,7 @@ class AcquisitionFunctionsType(Enum):
 
 ACQUISITION_FUNCTION_MAPPER: Dict[
     AcquisitionFunctionsType, Callable[[List[Doc], int], SampledData]
-] = {AcquisitionFunctionsType.random: random_sampling}
+] = {AcquisitionFunctionsType.random: token_sampling}
 
 
 @dataclass
@@ -84,7 +86,7 @@ class GreedySampling:
         self.current_sampling_iteration += 1
         self.epsilon_greedy_prob = 1 - self.sigmoid()
         if random() <= self.epsilon_greedy_prob:
-            return random_sampling(instances, self.batch_size)
+            return token_sampling(instances, self.batch_size)
         return self.acquisition_function(instances, self.batch_size)
 
     def sigmoid(self) -> float:
