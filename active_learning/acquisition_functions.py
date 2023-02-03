@@ -50,10 +50,12 @@ def token_sampling(docs: list[Doc], token_batch: int) -> SampledData:
             for i, d in enumerate(sampled_data.instances)
             if d.orchid_id
         }
-        doc = _choose_the_doc_for_token_sampling(
-            docs_copy,
-            sampled_data,
-            sampled_doc_ids_w_order_id,
+        doc = deepcopy(
+            _choose_the_doc_for_token_sampling(
+                docs_copy,
+                sampled_data,
+                sampled_doc_ids_w_order_id,
+            )
         )
         # if no tokens to sample return what we already have
         if doc is None:
