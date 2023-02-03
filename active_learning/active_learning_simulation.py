@@ -12,7 +12,7 @@ def get_training_iteration_docs(
             i
         ].simulation_token_annotations = pseudo_doc.simulation_token_annotations
     return sampled_docs.instances + [
-        doc.create_simulation_pseudodoc()
+        doc
         for i, doc in enumerate(docs)
         if i not in sampled_docs.indices
         and doc.simulation_token_annotations.tokens

@@ -41,8 +41,7 @@ def token_sampling(docs: list[Doc], token_batch: int) -> SampledData:
     sampled_tokens_counter = 0
     counter = 0  # variable to control infinite looping
     sampled_data = SampledData([], [])
-    docs_copy = deepcopy(docs)
-    doc_w_their_position = {doc.orchid_id: i for i, doc in enumerate(docs_copy)}
+    doc_w_their_position = {doc.orchid_id: i for i, doc in enumerate(docs)}
     while sampled_tokens_counter < token_batch:
         # sample the doc and solve the use-cases
         sampled_doc_ids_w_order_id = {
@@ -52,7 +51,7 @@ def token_sampling(docs: list[Doc], token_batch: int) -> SampledData:
         }
         doc = deepcopy(
             _choose_the_doc_for_token_sampling(
-                docs_copy,
+                docs,
                 sampled_data,
                 sampled_doc_ids_w_order_id,
             )
@@ -86,18 +85,21 @@ def token_sampling(docs: list[Doc], token_batch: int) -> SampledData:
         if token_in_cluster is None:
             sampled_tokens_counter += 1
             doc.simulation_token_annotations.tokens.add(token)
+            print(token)
         else:
             sampled_tokens_counter += len(token_in_cluster)
             doc.simulation_token_annotations.tokens = (
                 doc.simulation_token_annotations.tokens.union(token_in_cluster)
             )
+            print(token_in_cluster)
 
+        docs[doc_w_their_position[doc.orchid_id]] = deepcopy(doc)
         if doc.orchid_id in sampled_doc_ids_w_order_id:
             sampled_data.instances[
                 sampled_doc_ids_w_order_id[doc.orchid_id]
-            ] = doc.create_simulation_pseudodoc()
+            ] = doc
         else:
-            sampled_data.instances.append(doc.create_simulation_pseudodoc())
+            sampled_data.instances.append(doc)
 
         if counter == 1_000_000:
             raise ValueError("Smth went wrong... The loop got infinite")

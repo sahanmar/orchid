@@ -1,6 +1,6 @@
 """ Contains type aliases for coref module """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Tuple, Optional
 import hashlib
 
