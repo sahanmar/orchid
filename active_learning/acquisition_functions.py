@@ -85,13 +85,11 @@ def token_sampling(docs: list[Doc], token_batch: int) -> SampledData:
         if token_in_cluster is None:
             sampled_tokens_counter += 1
             doc.simulation_token_annotations.tokens.add(token)
-            print(token)
         else:
             sampled_tokens_counter += len(token_in_cluster)
             doc.simulation_token_annotations.tokens = (
                 doc.simulation_token_annotations.tokens.union(token_in_cluster)
             )
-            print(token_in_cluster)
 
         docs[doc_w_their_position[doc.orchid_id]] = deepcopy(doc)
         if doc.orchid_id in sampled_doc_ids_w_order_id:
