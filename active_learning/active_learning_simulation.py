@@ -16,6 +16,36 @@ def get_training_iteration_docs(
     ], docs
 
 
+def train_split(
+    model: GeneralCorefModel, train_docs: list[Doc]
+) -> Tuple[list[Doc], list[Doc]]:
+    sampled_data = model.sample_unlabled_data(train_docs)
+    return get_training_iteration_docs(deepcopy(train_docs), sampled_data)
+
+
+def run_training(
+    model: GeneralCorefModel,
+    training_data: list[Doc],
+    dev_docs: list[Doc],
+    test_data: list[Doc],
+) -> None:
+    model._logger.info("Training\n")
+    model.train(docs=training_data, docs_dev=dev_docs)
+    model._logger.info("Evaluation\n")
+    model.evaluate(docs=test_data)
+
+
+def get_logging_info(
+    model: GeneralCorefModel, training_data: list[Doc], round: int
+) -> None:
+    tokens = sum(
+        len(doc.simulation_token_annotations.tokens) for doc in training_data
+    )
+    model._logger.info(
+        f" AL SIMULATION | round: {round}, Documents: {len(training_data)}, Tokens: {tokens}\n"
+    )
+
+
 def run_simulation(
     model: GeneralCorefModel,
     config: Config,
@@ -25,42 +55,18 @@ def run_simulation(
 ) -> None:
 
     al_config = config.active_learning
-    # Training split
-    sampled_data = model.sample_unlabled_data(train_docs)
-    training_data, train_docs = get_training_iteration_docs(
-        deepcopy(train_docs), sampled_data
-    )
-    tokens = sum(
-        len(doc.simulation_token_annotations.tokens) for doc in training_data
-    )
-    model._logger.info(
-        f" AL SIMULATION | round: 0, Documents: {len(training_data)}, Tokens: {tokens}\n"
-    )
 
-    # First training
-    model.train(docs=training_data, docs_dev=dev_docs)
-    model.evaluate(docs=test_data)
+    training_data, train_docs = train_split(model, train_docs)
+    get_logging_info(model, training_data, round=0)
+    run_training(
+        model, training_data, dev_docs, test_data
+    )  # First (zeroth) training
 
-    model._logger.info("Yo Yo! Initial training iteration is done...\n")
+    model._logger.info("Initial training iteration is done...\n")
 
     for i in range(al_config.simulation.active_learning_steps):
-        # Prepare the data
-        sampled_data = model.sample_unlabled_data(train_docs)
-        training_data, train_docs = get_training_iteration_docs(
-            deepcopy(train_docs), sampled_data
-        )
-
-        tokens = sum(
-            len(doc.simulation_token_annotations.tokens)
-            for doc in training_data
-        )
-        model._logger.info(
-            f" AL SIMULATION | round: {i+1}, Documents: {len(training_data)}, Tokens: {tokens}\n"
-        )
-
-        # Train the model
         model = load_coref_model(config)
-        model._logger.info("Training\n")
-        model.train(docs=training_data, docs_dev=dev_docs)
-        model._logger.info("Evaluation\n")
-        model.evaluate(docs=test_data)
+
+        training_data, train_docs = train_split(model, train_docs)
+        get_logging_info(model, training_data, round=i)
+        run_training(model, training_data, dev_docs, test_data)

@@ -262,5 +262,10 @@
 [active_learning_simulation]
     [active_learning_simulation.model_params]
         bert_model = "roberta-large"
-[active_learning_simulation.active_learning]
+    [active_learning_simulation.active_learning]
         token_sampling = true
+        [active_learning_simulation.active_learning.simulation]
+            initial_sample_size = 5000
+            active_learning_steps = 10
+    [active_learning_simulation.training_params]
+        train_epochs = 20
