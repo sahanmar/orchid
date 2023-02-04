@@ -265,7 +265,7 @@
     [active_learning_simulation.active_learning]
         token_sampling = true
     [active_learning_simulation.active_learning.sampling_strategy]
-        initial_sample_size = 5000
-        active_learning_steps = 10
+        batch_size = 5000
+        total_number_of_iterations = 10
     [active_learning_simulation.training_params]
         train_epochs = 2
