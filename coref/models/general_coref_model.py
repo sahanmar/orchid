@@ -14,6 +14,7 @@ from typing import (
     TYPE_CHECKING,
     TypeVar,
 )
+from copy import deepcopy
 
 import numpy as np  # type: ignore
 import torch
@@ -135,7 +136,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         ):
             pbar = tqdm(docs, unit="docs", ncols=0)
             for doc in pbar:
-                res = self.run(doc, True)
+                res = self.run(deepcopy(doc), True)
 
                 running_loss += self._coref_criterion(
                     res.coref_scores, res.coref_y
@@ -399,7 +400,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 for optim in self.optimizers.values():
                     optim.zero_grad()
 
-                res = self.run(doc)
+                res = self.run(deepcopy(doc))
 
                 c_loss = self._coref_criterion(res.coref_scores, res.coref_y)
                 if res.span_y and res.span_scores is not None:
@@ -452,7 +453,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         metrics_vals: list[list[float]] = []
         pbar = tqdm(docs, unit="docs", ncols=0)
         for doc in pbar:
-            res = self.run(doc, True)
+            res = self.run(deepcopy(doc), True)
             pavpu_output = pavpu_metric(
                 res.coref_scores, res.coref_y, self.config.metrics.pavpu
             )
