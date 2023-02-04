@@ -1,8 +1,7 @@
-from typing import Tuple, Any
+from typing import Tuple
 from random import sample, choice
 
 from coref.const import Doc, SampledData, Optional
-from itertools import chain
 from copy import deepcopy
 
 
@@ -31,11 +30,11 @@ def token_sampling(docs: list[Doc], token_batch: int) -> SampledData:
             - take the token as it is
 
         if the doc was already sampled before
-            - extend the simulation tokens field and create a new pseudo doc
+            - extend the simulation tokens field and save a doc
         else
-            - create a pseudo doc and write in simulation tokens
+            - save a doc and write in simulation tokens
 
-    return all created pseudo docs with sampled tokens
+    return all created docs with sampled tokens
     """
 
     sampled_tokens_counter = 0

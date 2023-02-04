@@ -9,8 +9,8 @@ from typing import Dict, Any
 class Simulation:
     # Number of instances used for the first training iteration
     initial_sample_size: int
-    # Active learning steps to perform
-    active_learning_steps: int
+    # Active learning loops to perform
+    active_learning_loops: int
 
 
 @dataclass

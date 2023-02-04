@@ -120,7 +120,7 @@
             initial_sample_size = 100
 
             # Active learning steps to perform
-            active_learning_steps = 5
+            active_learning_loops = 5
 
 
         [DEFAULT.active_learning.sampling_strategy]
