@@ -284,7 +284,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         several ones to let one see the data flow.
 
         Args:
-            doc (Doc): a dictionary with the document data.
+            doc (Doc): a dataframe with the document data.
             normalize_anaphoras (bool) apply softmax or not
             to anaphoras scorer
 
@@ -301,10 +301,14 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         # N.B. The quality of encoding is not damaged because it is done on the whole
         # article
         if self.config.active_learning.token_sampling:
-            doc = doc.create_simulation_pseudodoc()
-            encoded_doc = encoded_doc[
+            pseudo_doc = doc.create_simulation_pseudodoc()
+            del doc
+            doc = pseudo_doc
+            pseudo_encoded_doc = encoded_doc[
                 doc.simulation_token_annotations.original_subtokens_ids, :
             ]
+            del encoded_doc
+            encoded_doc = pseudo_encoded_doc
 
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]

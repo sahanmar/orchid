@@ -4,6 +4,7 @@ from coref.models import load_coref_model, GeneralCorefModel
 from config import Config
 from typing import Tuple
 from copy import deepcopy
+from random import shuffle
 
 
 def get_training_iteration_docs(
@@ -19,6 +20,7 @@ def get_training_iteration_docs(
 def train_split(
     model: GeneralCorefModel, train_docs: list[Doc]
 ) -> Tuple[list[Doc], list[Doc]]:
+    shuffle(train_docs)
     sampled_data = model.sample_unlabled_data(train_docs)
     return get_training_iteration_docs(deepcopy(train_docs), sampled_data)
 
