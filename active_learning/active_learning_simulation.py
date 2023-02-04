@@ -30,6 +30,12 @@ def run_simulation(
     training_data, train_docs = get_training_iteration_docs(
         deepcopy(train_docs), sampled_data
     )
+    tokens = sum(
+        len(doc.simulation_token_annotations.tokens) for doc in training_data
+    )
+    model._logger.info(
+        f" AL SIMULATION | round: 0, Documents: {len(training_data)}, Tokens: {tokens}\n"
+    )
 
     # First training
     model.train(docs=training_data, docs_dev=dev_docs)
@@ -38,11 +44,18 @@ def run_simulation(
     model._logger.info("Yo Yo! Initial training iteration is done...\n")
 
     for i in range(al_config.simulation.active_learning_steps):
-        model._logger.info(f" AL SIMULATION | round: {i}\n")
         # Prepare the data
         sampled_data = model.sample_unlabled_data(train_docs)
         training_data, train_docs = get_training_iteration_docs(
             deepcopy(train_docs), sampled_data
+        )
+
+        tokens = sum(
+            len(doc.simulation_token_annotations.tokens)
+            for doc in training_data
+        )
+        model._logger.info(
+            f" AL SIMULATION | round: {i+1}, Documents: {len(training_data)}, Tokens: {tokens}\n"
         )
 
         # Train the model
