@@ -140,6 +140,9 @@
             # the total number of planned samplings
             total_number_of_iterations = 10
 
+            # Prioritize taking tokens from 0th to docs_of_interest-th idex, given the batch size
+            docs_of_interest = 100
+
     [DEFAULT.manifold_learning]
         enable = true
         # Manifold Learning parameters
@@ -266,6 +269,7 @@
         token_sampling = true
     [active_learning_simulation.active_learning.sampling_strategy]
         batch_size = 5000
+        docs_of_interest = 100
         total_number_of_iterations = 10
     [active_learning_simulation.training_params]
         train_epochs = 2
