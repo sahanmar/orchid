@@ -1,5 +1,5 @@
 from typing import Tuple
-from random import sample, choice
+from random import sample, choice, uniform
 
 from coref.const import Doc, SampledData, Optional
 from copy import deepcopy
@@ -17,15 +17,15 @@ def random_sampling(instances: list[Doc], batch_size: int) -> SampledData:
 
 
 def token_sampling(
-    docs: list[Doc], token_batch: int, exhaust_doc: bool = True
+    docs: list[Doc], token_batch: int, docs_of_interest: int
 ) -> SampledData:
     """
     The method samples random tokens from docs in the following way:
 
     Repeat until # sampled tokens equals to the token_batch
         - Sample a doc (
-            if exhaust_doc == True, then tokens will be
-            sampled till the doc is fully exhausted of tokens
+            if docs_of_interest are set, then tokens will be
+            preferred from first docs_of_interest docs
         )
         - Sample a token
 
@@ -46,7 +46,7 @@ def token_sampling(
     counter = 0  # variable to control infinite looping
     sampled_data = SampledData([], [])
     doc_w_their_position = {doc.orchid_id: i for i, doc in enumerate(docs)}
-    while sampled_tokens_counter < token_batch:
+    while sampled_tokens_counter <= token_batch:
         # sample the doc and solve the use-cases
         sampled_doc_ids_w_order_id = {
             d.orchid_id: i
@@ -55,7 +55,7 @@ def token_sampling(
         }
         doc = deepcopy(
             _choose_the_doc_for_token_sampling(
-                docs, sampled_data, sampled_doc_ids_w_order_id, exhaust_doc
+                docs, sampled_data, sampled_doc_ids_w_order_id, docs_of_interest
             )
         )
         # if no tokens to sample return what we already have
@@ -142,14 +142,15 @@ def _choose_the_doc_for_token_sampling(
     docs: list[Doc],
     sampled_data: SampledData,
     sampled_doc_ids_w_order_id: dict[str, int],
-    exhaust_doc: bool,
+    docs_of_interest: int,
 ) -> Optional[Doc]:
     """
     docs: list of Docs to sample from
     sampled_data: the docs that the tokens were already sampled from
     sampled_doc_ids_w_order_id: mapping of sampled doc ids to their
     order in the SampleData instances list
-    exhaust_doc: strategy to always sample the first doc
+    docs_of_interest: strategy that will always prefer selection from the
+    docs_of_interest indices.
 
     Returns doc and its id in the docs list
 
@@ -158,7 +159,11 @@ def _choose_the_doc_for_token_sampling(
     """
     if not docs:
         return None
-    doc_id = choice(range(len(docs))) if not exhaust_doc else 0
+    doc_id = (
+        choice(range(len(docs)))
+        if len(docs) < docs_of_interest
+        else choice(range(docs_of_interest))
+    )
     doc = docs[doc_id]
     if doc.orchid_id in sampled_doc_ids_w_order_id and (
         set(range(len(doc.cased_words)))
@@ -170,6 +175,6 @@ def _choose_the_doc_for_token_sampling(
             [d for i, d in enumerate(docs) if i != doc_id],
             sampled_data,
             sampled_doc_ids_w_order_id,
-            exhaust_doc,
+            docs_of_interest,
         )
     return doc

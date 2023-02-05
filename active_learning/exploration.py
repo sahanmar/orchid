@@ -16,7 +16,7 @@ class AcquisitionFunctionsType(Enum):
     random = "random"
 
 
-acquisition_func_typing = Callable[[List[Doc], int, bool], SampledData]
+acquisition_func_typing = Callable[[List[Doc], int, int], SampledData]
 
 
 ACQUISITION_FUNCTION_MAPPER: Dict[
@@ -40,8 +40,8 @@ class GreedySampling:
     args:
         acquisition_function_type - the function name to sample new data
 
-        exhaust_document - strategy flag which allows to samples all tokens from a document,
-        given the batch size. ( TODO Will not be binary in future iterations )
+        docs_of_interest - strategy which prioritizes taking tokens from 0th to docs_of_interest-th
+        idex, given the batch size
 
         batch_size - Batch size to sample
 
@@ -53,7 +53,7 @@ class GreedySampling:
     """
 
     acquisition_function_type: AcquisitionFunctionsType
-    exhaust_document: bool
+    docs_of_interest: int
     batch_size: int
     strategy_flip: float
     total_number_of_iterations: int
@@ -92,10 +92,10 @@ class GreedySampling:
         self.epsilon_greedy_prob = 1 - self.sigmoid()
         if random() <= self.epsilon_greedy_prob:
             return token_sampling(
-                instances, self.batch_size, self.exhaust_document
+                instances, self.batch_size, self.docs_of_interest
             )
         return self.acquisition_function(
-            instances, self.batch_size, self.exhaust_document
+            instances, self.batch_size, self.docs_of_interest
         )
 
     def sigmoid(self) -> float:
@@ -110,14 +110,14 @@ class GreedySampling:
     @staticmethod
     def load_config(
         acquisition_function_type: str,
-        exhaust_document: bool,
+        docs_of_interest: int,
         batch_size: int,
         strategy_flip: float,
         total_number_of_iterations: int,
     ) -> "GreedySampling":
         return GreedySampling(
             AcquisitionFunctionsType(acquisition_function_type),
-            exhaust_document,
+            docs_of_interest,
             batch_size,
             strategy_flip,
             total_number_of_iterations,

@@ -140,8 +140,8 @@
             # the total number of planned samplings
             total_number_of_iterations = 10
 
-            # Prioritize taking all possible tokens from a document, given the batch size
-            exhaust_document = false
+            # Prioritize taking tokens from 0th to docs_of_interest-th idex, given the batch size
+            docs_of_interest = 100
 
     [DEFAULT.manifold_learning]
         enable = true
@@ -269,7 +269,7 @@
         token_sampling = true
     [active_learning_simulation.active_learning.sampling_strategy]
         batch_size = 5000
-        exhaust_document = false
+        docs_of_interest = 100
         total_number_of_iterations = 10
     [active_learning_simulation.training_params]
         train_epochs = 2
