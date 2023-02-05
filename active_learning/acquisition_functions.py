@@ -171,10 +171,11 @@ def _choose_the_doc_for_token_sampling(
             sampled_doc_ids_w_order_id[doc.orchid_id]
         ].simulation_token_annotations.tokens
     ):
+        new_docs_of_interest = docs_of_interest - 1
         return _choose_the_doc_for_token_sampling(
             [d for i, d in enumerate(docs) if i != doc_id],
             sampled_data,
             sampled_doc_ids_w_order_id,
-            docs_of_interest,
+            new_docs_of_interest if new_docs_of_interest >= 1 else 1,
         )
     return doc
