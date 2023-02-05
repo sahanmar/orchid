@@ -84,13 +84,13 @@ def token_sampling(
         token_in_cluster = _get_coref_if_token_in_cluster(
             token, doc.span_clusters
         )
-        doc_tokens_number = len(doc.simulation_token_annotations.tokens)
         if token_in_cluster is None:
-            doc.simulation_token_annotations.tokens.add(token)
-        else:
-            doc.simulation_token_annotations.tokens = (
-                doc.simulation_token_annotations.tokens.union(token_in_cluster)
-            )
+            token_in_cluster = {token}
+
+        doc_tokens_number = len(doc.simulation_token_annotations.tokens)
+        doc.simulation_token_annotations.tokens = (
+            doc.simulation_token_annotations.tokens.union(token_in_cluster)
+        )
         sampled_tokens_counter += (
             len(doc.simulation_token_annotations.tokens) - doc_tokens_number
         )
