@@ -7,7 +7,7 @@ from random import random
 
 from coref.const import Doc, SampledData
 from active_learning.acquisition_functions import (
-    random_sampling,
+    # random_sampling,
     token_sampling,
 )
 
@@ -16,8 +16,11 @@ class AcquisitionFunctionsType(Enum):
     random = "random"
 
 
+acquisition_func_typing = Callable[[List[Doc], int, bool], SampledData]
+
+
 ACQUISITION_FUNCTION_MAPPER: Dict[
-    AcquisitionFunctionsType, Callable[[List[Doc], int], SampledData]
+    AcquisitionFunctionsType, acquisition_func_typing
 ] = {AcquisitionFunctionsType.random: token_sampling}
 
 
@@ -37,6 +40,9 @@ class GreedySampling:
     args:
         acquisition_function_type - the function name to sample new data
 
+        exhaust_document - strategy flag which allows to samples all tokens from a document,
+        given the batch size. ( TODO Will not be binary in future iterations )
+
         batch_size - Batch size to sample
 
         strategy_flip - Prob[random_strategy|current_sampling_iteration/total_number_of_iterations] = 0.5
@@ -47,12 +53,11 @@ class GreedySampling:
     """
 
     acquisition_function_type: AcquisitionFunctionsType
+    exhaust_document: bool
     batch_size: int
     strategy_flip: float
     total_number_of_iterations: int
-    acquisition_function: Callable[[List[Doc], int], SampledData] = field(
-        init=False
-    )
+    acquisition_function: acquisition_func_typing = field(init=False)
     epsilon_greedy_prob: float = field(init=False)
     current_sampling_iteration: int = field(init=False)
     flip_iteration: int = field(init=False)
@@ -86,8 +91,12 @@ class GreedySampling:
         self.current_sampling_iteration += 1
         self.epsilon_greedy_prob = 1 - self.sigmoid()
         if random() <= self.epsilon_greedy_prob:
-            return token_sampling(instances, self.batch_size)
-        return self.acquisition_function(instances, self.batch_size)
+            return token_sampling(
+                instances, self.batch_size, self.exhaust_document
+            )
+        return self.acquisition_function(
+            instances, self.batch_size, self.exhaust_document
+        )
 
     def sigmoid(self) -> float:
         return 1 / (
@@ -101,12 +110,14 @@ class GreedySampling:
     @staticmethod
     def load_config(
         acquisition_function_type: str,
+        exhaust_document: bool,
         batch_size: int,
         strategy_flip: float,
         total_number_of_iterations: int,
     ) -> "GreedySampling":
         return GreedySampling(
             AcquisitionFunctionsType(acquisition_function_type),
+            exhaust_document,
             batch_size,
             strategy_flip,
             total_number_of_iterations,

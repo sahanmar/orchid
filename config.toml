@@ -140,6 +140,9 @@
             # the total number of planned samplings
             total_number_of_iterations = 10
 
+            # Prioritize taking all possible tokens from a document, given the batch size
+            exhaust_document = false
+
     [DEFAULT.manifold_learning]
         enable = true
         # Manifold Learning parameters
@@ -266,6 +269,7 @@
         token_sampling = true
     [active_learning_simulation.active_learning.sampling_strategy]
         batch_size = 5000
+        exhaust_document = false
         total_number_of_iterations = 10
     [active_learning_simulation.training_params]
         train_epochs = 2

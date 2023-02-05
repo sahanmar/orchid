@@ -17,7 +17,7 @@ def random_sampling(instances: list[Doc], batch_size: int) -> SampledData:
 
 
 def token_sampling(
-    docs: list[Doc], token_batch: int, exhaust_doc: bool = False
+    docs: list[Doc], token_batch: int, exhaust_doc: bool = True
 ) -> SampledData:
     """
     The method samples random tokens from docs in the following way:
@@ -84,14 +84,16 @@ def token_sampling(
         token_in_cluster = _get_coref_if_token_in_cluster(
             token, doc.span_clusters
         )
+        doc_tokens_number = len(doc.simulation_token_annotations.tokens)
         if token_in_cluster is None:
-            sampled_tokens_counter += 1
             doc.simulation_token_annotations.tokens.add(token)
         else:
-            sampled_tokens_counter += len(token_in_cluster)
             doc.simulation_token_annotations.tokens = (
                 doc.simulation_token_annotations.tokens.union(token_in_cluster)
             )
+        sampled_tokens_counter += (
+            len(doc.simulation_token_annotations.tokens) - doc_tokens_number
+        )
 
         docs[doc_w_their_position[doc.orchid_id]] = deepcopy(doc)
         if doc.orchid_id in sampled_doc_ids_w_order_id:
