@@ -14,6 +14,7 @@ from typing import (
     TYPE_CHECKING,
     TypeVar,
 )
+from copy import deepcopy
 
 import numpy as np  # type: ignore
 import torch
@@ -135,7 +136,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         ):
             pbar = tqdm(docs, unit="docs", ncols=0)
             for doc in pbar:
-                res = self.run(doc, True)
+                res = self.run(deepcopy(doc), True)
 
                 running_loss += self._coref_criterion(
                     res.coref_scores, res.coref_y
@@ -283,7 +284,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         several ones to let one see the data flow.
 
         Args:
-            doc (Doc): a dictionary with the document data.
+            doc (Doc): a dataframe with the document data.
             normalize_anaphoras (bool) apply softmax or not
             to anaphoras scorer
 
@@ -291,19 +292,18 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             CorefResult (see const.py)
         """
 
-        # Rewrite the doc to a pseudo doc. This will use only spans, given in
-        # the simulation_span_annotations field. If the field is empty, the method
-        # will use all available annotated spans.
-        # N.B. The quality of encoding is not damaged because it is done on the whole
-        # article
-
         # Encode words with bert
         encoded_doc = self._bertify(doc)
 
-        if self.config.active_learning.span_sampling:
+        # If token_sampling is on, then rewrite the doc to a pseudo doc. This will use
+        # only tokens, given in the simulation_token_annotations field. If the field
+        # is empty, the method will use all available annotated tokens.
+        # N.B. The quality of encoding is not damaged because it is done on the whole
+        # article
+        if self.config.active_learning.token_sampling:
             doc = doc.create_simulation_pseudodoc()
             encoded_doc = encoded_doc[
-                doc.simulation_span_annotations.original_subtokens_ids, :
+                doc.simulation_token_annotations.original_subtokens_ids, :
             ]
 
         # words           [n_words, span_emb]
@@ -400,7 +400,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 for optim in self.optimizers.values():
                     optim.zero_grad()
 
-                res = self.run(doc)
+                res = self.run(deepcopy(doc))
 
                 c_loss = self._coref_criterion(res.coref_scores, res.coref_y)
                 if res.span_y and res.span_scores is not None:
@@ -453,7 +453,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         metrics_vals: list[list[float]] = []
         pbar = tqdm(docs, unit="docs", ncols=0)
         for doc in pbar:
-            res = self.run(doc, True)
+            res = self.run(deepcopy(doc), True)
             pavpu_output = pavpu_metric(
                 res.coref_scores, res.coref_y, self.config.metrics.pavpu
             )

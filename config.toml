@@ -111,7 +111,7 @@
         parameters_samples = 10
 
         # Turn on span sampling instead of documents sampling
-        span_sampling = false
+        token_sampling = false
 
         [DEFAULT.active_learning.simulation]
             # Simulation parameters (e.g. starting sample size, number of iterations, ...)
@@ -120,7 +120,7 @@
             initial_sample_size = 100
 
             # Active learning steps to perform
-            active_learning_steps = 5
+            active_learning_loops = 5
 
 
         [DEFAULT.active_learning.sampling_strategy]
@@ -139,6 +139,9 @@
 
             # the total number of planned samplings
             total_number_of_iterations = 10
+
+            # Prioritize taking tokens from 0th to docs_of_interest-th idex, given the batch size
+            docs_of_interest = 100
 
     [DEFAULT.manifold_learning]
         enable = true
@@ -235,7 +238,7 @@
     [debug.logging]
         logger_name = "test_run"
     [debug.active_learning]
-        span_sampling = true
+        token_sampling = true
 
 
 [mc_dropout]
@@ -262,5 +265,11 @@
 [active_learning_simulation]
     [active_learning_simulation.model_params]
         bert_model = "roberta-large"
-[active_learning_simulation.active_learning]
-        span_sampling = true
+    [active_learning_simulation.active_learning]
+        token_sampling = true
+    [active_learning_simulation.active_learning.sampling_strategy]
+        batch_size = 5000
+        docs_of_interest = 100
+        total_number_of_iterations = 10
+    [active_learning_simulation.training_params]
+        train_epochs = 2
