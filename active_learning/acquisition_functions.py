@@ -1,5 +1,5 @@
 from typing import Tuple
-from random import sample, choice, uniform
+from random import sample, choice
 
 from coref.const import Doc, SampledData, Optional
 from copy import deepcopy
@@ -17,7 +17,10 @@ def random_sampling(instances: list[Doc], batch_size: int) -> SampledData:
 
 
 def token_sampling(
-    docs: list[Doc], token_batch: int, docs_of_interest: int
+    docs: list[Doc],
+    token_batch: int,
+    docs_of_interest: int,
+    _: list[list[int]] = [],
 ) -> SampledData:
     """
     The method samples random tokens from docs in the following way:
@@ -46,7 +49,7 @@ def token_sampling(
     counter = 0  # variable to control infinite looping
     sampled_data = SampledData([], [])
     doc_w_their_position = {doc.orchid_id: i for i, doc in enumerate(docs)}
-    while sampled_tokens_counter <= token_batch:
+    while sampled_tokens_counter < token_batch:
         # sample the doc and solve the use-cases
         sampled_doc_ids_w_order_id = {
             d.orchid_id: i
@@ -179,3 +182,114 @@ def _choose_the_doc_for_token_sampling(
             new_docs_of_interest if new_docs_of_interest >= 1 else 1,
         )
     return doc
+
+
+# TODO This must be fully refactored because 95% of code was taken from "token_sampling"
+def mentions_sampling(
+    docs: list[Doc],
+    token_batch: int,
+    docs_of_interest: int,
+    mention_indices: list[list[int]],
+) -> SampledData:
+    sampled_tokens_counter = 0
+    exhausted_doc_mentions: set[str] = {
+        doc.orchid_id
+        for mention_id, doc in zip(mention_indices, docs)
+        if not mention_id and doc.orchid_id
+    }
+    counter = 0  # variable to control infinite looping
+    sampled_data = SampledData([], [])
+    doc_w_their_position = {doc.orchid_id: i for i, doc in enumerate(docs)}
+    while sampled_tokens_counter < token_batch:
+        # sample the doc and solve the use-cases
+        sampled_doc_ids_w_order_id = {
+            d.orchid_id: i
+            for i, d in enumerate(sampled_data.instances)
+            if d.orchid_id
+        }
+        docs_w_mentions_to_sample = [
+            doc for doc in docs if doc.orchid_id not in exhausted_doc_mentions
+        ]
+        doc = deepcopy(
+            _choose_the_doc_for_token_sampling(
+                docs_w_mentions_to_sample
+                if docs_w_mentions_to_sample
+                else docs,
+                sampled_data,
+                sampled_doc_ids_w_order_id,
+                docs_of_interest,
+            )
+        )
+        # if no tokens to sample return what we already have
+        if doc is None:
+            sampled_data.indices = [
+                doc_w_their_position[doc.orchid_id]
+                for doc in sampled_data.instances
+            ]
+            return sampled_data
+
+        mention_tokens = mention_indices[doc_w_their_position[doc.orchid_id]]
+
+        # choose new tokens given that we already sampled from the doc
+        if doc.orchid_id in sampled_doc_ids_w_order_id:
+            sampled_tokens = sampled_data.instances[
+                sampled_doc_ids_w_order_id[doc.orchid_id]
+            ].simulation_token_annotations.tokens
+            ######## MENTION CHANGE ########
+            if docs_w_mentions_to_sample:
+                tokens = [
+                    token_id
+                    for token_id in mention_tokens
+                    if token_id not in sampled_tokens
+                ]
+                if not tokens:
+                    exhausted_doc_mentions.add(doc.orchid_id)
+                else:
+                    token = choice(tokens)
+            ###### MENTION CHANGE END ######
+            else:
+                token = choice(
+                    [
+                        token_id
+                        for token_id in range(len(doc.cased_words))
+                        if token_id not in sampled_tokens
+                    ]
+                )
+        else:
+            ######## MENTION CHANGE ########
+            if docs_w_mentions_to_sample:
+                token = choice(mention_tokens)
+            ###### MENTION CHANGE END ######
+            else:
+                token = choice(list(range(len(doc.cased_words))))
+
+        token_in_cluster = _get_coref_if_token_in_cluster(
+            token, doc.span_clusters
+        )
+        if token_in_cluster is None:
+            token_in_cluster = {token}
+
+        doc_tokens_number = len(doc.simulation_token_annotations.tokens)
+        doc.simulation_token_annotations.tokens = (
+            doc.simulation_token_annotations.tokens.union(token_in_cluster)
+        )
+        sampled_tokens_counter += (
+            len(doc.simulation_token_annotations.tokens) - doc_tokens_number
+        )
+
+        docs[doc_w_their_position[doc.orchid_id]] = deepcopy(doc)
+        if doc.orchid_id in sampled_doc_ids_w_order_id:
+            sampled_data.instances[
+                sampled_doc_ids_w_order_id[doc.orchid_id]
+            ] = doc
+        else:
+            sampled_data.instances.append(doc)
+
+        if counter == 1_000_000:
+            raise ValueError("Smth went wrong... The loop got infinite")
+        counter += 1
+
+    sampled_data.indices = [
+        doc_w_their_position[doc.orchid_id] for doc in sampled_data.instances
+    ]
+    return sampled_data

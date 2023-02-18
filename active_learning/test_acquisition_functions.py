@@ -2,6 +2,7 @@ from coref.const import Doc
 from active_learning.acquisition_functions import (
     random_sampling,
     token_sampling,
+    mentions_sampling,
 )
 from copy import deepcopy
 
@@ -23,7 +24,7 @@ def test_random_sampling_w_too_large_batch_size(dev_data: list[Doc]) -> None:
 
 
 def test_token_sampling(dev_data: list[Doc]) -> None:
-    # if we some batch size, we will sample at least
+    # if we sample some batch size, we will sample at least
     # the amount we want to sample due to the possible spans
     assert (
         len(
@@ -34,7 +35,7 @@ def test_token_sampling(dev_data: list[Doc]) -> None:
         >= BATCH_SIZE
     )
 
-    # if ask to sample more that we have in docs we will get all
+    # if we ask to sample more than we have in docs we will get all
     # tokens from all docs
     assert len(
         token_sampling(dev_data, 1_000_000, 100_000)
@@ -53,6 +54,43 @@ def test_token_sampling(dev_data: list[Doc]) -> None:
     new_docs[2].orchid_id = "id_3"
 
     sampled_tokens = token_sampling(new_docs, 1_000_000, 100_000)
+
+    assert len(
+        sampled_tokens.instances[0].simulation_token_annotations.tokens
+    ) == len(new_docs[sampled_tokens.indices[0]].cased_words)
+    assert len(
+        sampled_tokens.instances[1].simulation_token_annotations.tokens
+    ) == len(new_docs[sampled_tokens.indices[1]].cased_words)
+    assert len(
+        sampled_tokens.instances[2].simulation_token_annotations.tokens
+    ) == len(new_docs[sampled_tokens.indices[2]].cased_words)
+
+
+def test_rough_scorer_sampling(dev_data: list[Doc]) -> None:
+    # if we sample some batch size, we will sample at least
+    # the amount we want to sample due to the possible spans
+    mentions = [[1, 10, 100]]
+    sampled_mentions = (
+        mentions_sampling(dev_data, BATCH_SIZE, 100_000, mentions)
+        .instances[0]
+        .simulation_token_annotations.tokens
+    )
+
+    assert len(sampled_mentions) >= len(mentions)
+
+    # Test multiple docs
+    new_docs = [
+        deepcopy(dev_data[0]),
+        deepcopy(dev_data[0]),
+        deepcopy(dev_data[0]),
+    ]
+    new_docs[0].orchid_id = "id_0"
+    new_docs[1].orchid_id = "id_1"
+    new_docs[2].orchid_id = "id_3"
+
+    mentions = [[1, 10, 100], [50, 30, 115], [1, 10, 100, 200]]
+
+    sampled_tokens = mentions_sampling(new_docs, 1_000_000, 100_000, mentions)
 
     assert len(
         sampled_tokens.instances[0].simulation_token_annotations.tokens

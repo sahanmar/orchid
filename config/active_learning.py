@@ -1,8 +1,20 @@
-from active_learning.exploration import GreedySampling
+from active_learning.exploration import GreedySampling, NaiveSampling
 from config.config_utils import overwrite_config
 from dataclasses import dataclass
 
-from typing import Dict, Any
+from typing import Any, Union
+from enum import Enum
+
+
+class SamplingStrategy(Enum):
+    naive_sampling = "naive_sampling"
+    greedy_sampling = "greedy_sampling"
+
+
+class InstanceSampling(Enum):
+    document = "document"
+    token = "token"
+    mention = "mention"
 
 
 @dataclass
@@ -15,26 +27,37 @@ class Simulation:
 
 @dataclass
 class ActiveLearning:
-    # Token sampling instead of documents sampling
-    token_sampling: bool
+    # Instance type to sample
+    instance_sampling: InstanceSampling
     # Active Learning parameters
     parameters_samples: int
     # Active Learning sampling strategy.
-    sampling_strategy: GreedySampling
+    sampling_strategy: Union[GreedySampling, NaiveSampling]
 
     simulation: Simulation
 
     @staticmethod
     @overwrite_config
     def load_config(
-        token_sampling: bool,
+        instance_sampling: str,
         parameters_samples: int,
+        strategy: str,
         sampling_strategy: dict[str, Any],
         simulation: dict[str, Any],
     ) -> "ActiveLearning":
+
+        if SamplingStrategy(strategy) == SamplingStrategy.greedy_sampling:
+            strategy_config: Union[
+                GreedySampling, NaiveSampling
+            ] = GreedySampling.load_config(**sampling_strategy[strategy])
+        if SamplingStrategy(strategy) == SamplingStrategy.naive_sampling:
+            strategy_config = NaiveSampling.load_config(
+                **sampling_strategy[strategy]
+            )
+
         return ActiveLearning(
-            token_sampling,
+            InstanceSampling(instance_sampling),
             parameters_samples,
-            GreedySampling.load_config(**sampling_strategy),
+            strategy_config,
             Simulation(**simulation),
         )

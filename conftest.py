@@ -10,5 +10,10 @@ def config() -> Config:
 
 
 @fixture(scope="session")
+def al_config() -> Config:
+    return Config.load_default_config(section="debug_active_learning")
+
+
+@fixture(scope="session")
 def dev_data(config: Config) -> list[Doc]:
     return get_docs(DataType.test, config)

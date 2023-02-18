@@ -16,13 +16,14 @@ class WordEncoder(
     """Receives bert contextual embeddings of a text, extracts all the
     possible mentions in that text."""
 
-    def __init__(self, features: int, config: Config):
+    def __init__(self, config: Config):
         """
         Args:
-            features (int): the number of features in the input embeddings
             config (Config): the configuration of the current session
         """
         super().__init__()
+        # features (int): the number of features in the input embeddings
+        features = config.model_bank.encoder.config.hidden_size
         self.attn = torch.nn.Linear(in_features=features, out_features=1)
         self.dropout = torch.nn.Dropout(config.training_params.dropout_rate)
 
@@ -131,16 +132,17 @@ class WordEncoder(
 
 
 class ReducedDimensionalityWordEncoder(WordEncoder):
-    def __init__(self, features: int, config: Config):
-        self.features_in = features
+    def __init__(self, config: Config):
+        self.features_in = config.model_bank.encoder.config.hidden_size
         self.features_out = max(
             0,
             min(
-                ceil(features * config.manifold.reduction_ratio),
+                ceil(self.features_in * config.manifold.reduction_ratio),
                 self.features_in,
             ),
         )
-        super().__init__(features=self.features_out, config=config)
+        config.model_bank.encoder.config.hidden_size = self.features_out
+        super().__init__(config=config)
         assert config.manifold.enable, f"Manifold Learning must be enabled"
         config.manifold.standalone.input_dimensionality = self.features_in
         config.manifold.standalone.output_dimensionality = self.features_out
