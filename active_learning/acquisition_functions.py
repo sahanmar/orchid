@@ -52,9 +52,7 @@ def token_sampling(
     while sampled_tokens_counter < token_batch:
         # sample the doc and solve the use-cases
         sampled_doc_ids_w_order_id = {
-            d.orchid_id: i
-            for i, d in enumerate(sampled_data.instances)
-            if d.orchid_id
+            d.orchid_id: i for i, d in enumerate(sampled_data.instances) if d.orchid_id
         }
         doc = deepcopy(
             _choose_the_doc_for_token_sampling(
@@ -64,8 +62,7 @@ def token_sampling(
         # if no tokens to sample return what we already have
         if doc is None:
             sampled_data.indices = [
-                doc_w_their_position[doc.orchid_id]
-                for doc in sampled_data.instances
+                doc_w_their_position[doc.orchid_id] for doc in sampled_data.instances
             ]
             return sampled_data
 
@@ -84,9 +81,7 @@ def token_sampling(
         else:
             token = choice(list(range(len(doc.cased_words))))
 
-        token_in_cluster = _get_coref_if_token_in_cluster(
-            token, doc.span_clusters
-        )
+        token_in_cluster = _get_coref_if_token_in_cluster(token, doc.span_clusters)
         if token_in_cluster is None:
             token_in_cluster = {token}
 
@@ -100,9 +95,7 @@ def token_sampling(
 
         docs[doc_w_their_position[doc.orchid_id]] = deepcopy(doc)
         if doc.orchid_id in sampled_doc_ids_w_order_id:
-            sampled_data.instances[
-                sampled_doc_ids_w_order_id[doc.orchid_id]
-            ] = doc
+            sampled_data.instances[sampled_doc_ids_w_order_id[doc.orchid_id]] = doc
         else:
             sampled_data.instances.append(doc)
 
@@ -203,18 +196,14 @@ def mentions_sampling(
     while sampled_tokens_counter < token_batch:
         # sample the doc and solve the use-cases
         sampled_doc_ids_w_order_id = {
-            d.orchid_id: i
-            for i, d in enumerate(sampled_data.instances)
-            if d.orchid_id
+            d.orchid_id: i for i, d in enumerate(sampled_data.instances) if d.orchid_id
         }
         docs_w_mentions_to_sample = [
             doc for doc in docs if doc.orchid_id not in exhausted_doc_mentions
         ]
         doc = deepcopy(
             _choose_the_doc_for_token_sampling(
-                docs_w_mentions_to_sample
-                if docs_w_mentions_to_sample
-                else docs,
+                docs_w_mentions_to_sample if docs_w_mentions_to_sample else docs,
                 sampled_data,
                 sampled_doc_ids_w_order_id,
                 docs_of_interest,
@@ -223,8 +212,7 @@ def mentions_sampling(
         # if no tokens to sample return what we already have
         if doc is None:
             sampled_data.indices = [
-                doc_w_their_position[doc.orchid_id]
-                for doc in sampled_data.instances
+                doc_w_their_position[doc.orchid_id] for doc in sampled_data.instances
             ]
             return sampled_data
 
@@ -263,10 +251,10 @@ def mentions_sampling(
             else:
                 token = choice(list(range(len(doc.cased_words))))
 
-        token_in_cluster = _get_coref_if_token_in_cluster(
-            token, doc.span_clusters
-        )
+        token_in_cluster = _get_coref_if_token_in_cluster(token, doc.span_clusters)
         if token_in_cluster is None:
+            print()
+            print(token)
             token_in_cluster = {token}
 
         doc_tokens_number = len(doc.simulation_token_annotations.tokens)
@@ -279,9 +267,7 @@ def mentions_sampling(
 
         docs[doc_w_their_position[doc.orchid_id]] = deepcopy(doc)
         if doc.orchid_id in sampled_doc_ids_w_order_id:
-            sampled_data.instances[
-                sampled_doc_ids_w_order_id[doc.orchid_id]
-            ] = doc
+            sampled_data.instances[sampled_doc_ids_w_order_id[doc.orchid_id]] = doc
         else:
             sampled_data.instances.append(doc)
 
