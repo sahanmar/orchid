@@ -94,9 +94,13 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             GreedySampling, NaiveSampling
         ] = config.active_learning.sampling_strategy
         ###### BUUUUUUUUUUUUUUUG #######
-        self.sampling_strategy_type: SamplingStrategy = SamplingStrategy.naive_sampling
+        self.sampling_strategy_type: SamplingStrategy = (
+            SamplingStrategy.naive_sampling
+        )
         ######## END OF THE BUG ########
-        self._logger.info("Initialization of the general coreference model is complete")
+        self._logger.info(
+            "Initialization of the general coreference model is complete"
+        )
 
     @property
     def training(self) -> bool:
@@ -153,7 +157,10 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                     pred_starts = res.span_scores[:, :, 0].argmax(dim=1)
                     pred_ends = res.span_scores[:, :, 1].argmax(dim=1)
                     s_correct += (
-                        ((res.span_y[0] == pred_starts) * (res.span_y[1] == pred_ends))
+                        (
+                            (res.span_y[0] == pred_starts)
+                            * (res.span_y[1] == pred_ends)
+                        )
                         .sum()
                         .item()
                     )
@@ -161,7 +168,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
                 if word_level_conll:
                     if res.word_clusters is None:
-                        raise RuntimeError(f'"word_clusters" attribute must be set')
+                        raise RuntimeError(
+                            f'"word_clusters" attribute must be set'
+                        )
                     conll.write_conll(
                         doc,
                         [
@@ -181,7 +190,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 else:
                     conll.write_conll(doc, doc.span_clusters, gold_f)
                     if res.span_clusters is None:
-                        raise RuntimeError(f'"span_clusters" attribute must be set')
+                        raise RuntimeError(
+                            f'"span_clusters" attribute must be set'
+                        )
                     conll.write_conll(doc, res.span_clusters, pred_f)
 
                 w_checker.add_predictions(
@@ -249,7 +260,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 if noexception:
                     self._logger.info("No weights have been loaded")
                     return
-                raise OSError(f"No weights found in {self.config.data.data_dir}!")
+                raise OSError(
+                    f"No weights found in {self.config.data.data_dir}!"
+                )
             _, path = sorted(files)[-1]
             path = os.path.join(self.config.data.data_dir, path)
 
@@ -300,14 +313,6 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             InstanceSampling.token,
             InstanceSampling.mention,
         }:
-            # if return_mention we have to do the inverse of simulation token annotations field
-            # because we want to have rough scores predictions from non-sampled tokens
-            if return_mention:
-                doc.simulation_token_annotations.tokens = {
-                    i
-                    for i in range(len(doc.cased_words))
-                    if i not in doc.simulation_token_annotations.tokens
-                }
             doc = doc.create_simulation_pseudodoc()
             encoded_doc = encoded_doc[
                 doc.simulation_token_annotations.original_subtokens_ids, :
@@ -388,7 +393,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         savedict["epochs_trained"] = self.epochs_trained  # type: ignore
         torch.save(savedict, path)
 
-    def train(self, docs: List[Doc], docs_dev: Optional[List[Doc]] = None) -> None:
+    def train(
+        self, docs: List[Doc], docs_dev: Optional[List[Doc]] = None
+    ) -> None:
         """
         Trains all the trainable blocks in the model using the config provided.
         """
@@ -455,9 +462,15 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 self.evaluate(docs=docs_dev)
 
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
-        if self.config.active_learning.instance_sampling == InstanceSampling.mention:
+        if (
+            self.config.active_learning.instance_sampling
+            == InstanceSampling.mention
+        ):
             mentions = [
-                list(self.run(deepcopy(doc), return_mention=True) for doc in documents)
+                list(
+                    cast(set[int], self.run(deepcopy(doc), return_mention=True))
+                )
+                for doc in documents
             ]
 
         if SamplingStrategy.greedy_sampling == self.sampling_strategy_type:
@@ -480,7 +493,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             )
             metrics_vals.append(pavpu_output)
 
-        metrics_val: list[float] = np.mean(np.array(metrics_vals), axis=0).tolist()
+        metrics_val: list[float] = np.mean(
+            np.array(metrics_vals), axis=0
+        ).tolist()
 
         self._logger.info(f"PAVPU METRICS | avg_pavpu: {metrics_val}")
 
@@ -526,7 +541,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     def _build_model(self) -> None:
         self.bert = self.config.model_bank.encoder
         self.tokenizer = self.config.model_bank.tokenizer
-        self.pw = PairwiseEncoder(self.config).to(self.config.training_params.device)
+        self.pw = PairwiseEncoder(self.config).to(
+            self.config.training_params.device
+        )
 
         bert_emb = self.bert.config.hidden_size
         pair_emb = bert_emb * 3 + self.pw.shape
@@ -535,13 +552,17 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(
             self.config.training_params.device
         )
-        self.we = WordEncoder(self.config).to(self.config.training_params.device)
+        self.we = WordEncoder(self.config).to(
+            self.config.training_params.device
+        )
         self.rough_scorer = RoughScorer(
             bert_emb,
             self.config.model_params.rough_k,
             self.config.training_params.dropout_rate,
         ).to(self.config.training_params.device)
-        self.sp = SpanPredictor(self.config).to(self.config.training_params.device)
+        self.sp = SpanPredictor(self.config).to(
+            self.config.training_params.device
+        )
 
         self.trainable: Dict[str, torch.nn.Module] = {
             "bert": self.bert,
@@ -553,7 +574,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         }
 
     def _build_criteria(self) -> None:
-        self._coref_criterion = CorefLoss(self.config.training_params.bce_loss_weight)
+        self._coref_criterion = CorefLoss(
+            self.config.training_params.bce_loss_weight
+        )
         self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
 
     def _build_optimizers(self) -> None:
@@ -583,7 +606,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
         # Must ensure the same ordering of parameters between launches
         modules = sorted(
-            (key, value) for key, value in self.trainable.items() if key != "bert"
+            (key, value)
+            for key, value in self.trainable.items()
+            if key != "bert"
         )
         params = []
         for _, module in modules:
