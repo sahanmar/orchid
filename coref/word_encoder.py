@@ -160,6 +160,14 @@ class ReducedDimensionalityWordEncoder(WordEncoder):
         config.manifold.standalone.output_dimensionality = self.features_out
         self.manifold: BasePCA = BasePCA.from_config(config=config)
 
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"input_dim={self.features_in},"
+            f"output_dim={self.features_out},"
+            f")"
+        )
+
     def run(
         self,
         doc: Doc,
