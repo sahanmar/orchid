@@ -7,7 +7,6 @@ from tqdm.auto import tqdm
 from config import Config
 from coref.anaphoricity_scorer import AnaphoricityScorer
 from coref.const import ReducedDimensionalityCorefResult, Doc
-from coref.loss import CorefLoss
 from coref.models.general_coref_model import GeneralCorefModel
 from coref.pairwise_encoder import PairwiseEncoder
 from coref.rough_scorer import RoughScorer
@@ -161,7 +160,7 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
 
                 pbar.set_description(
                     f"Epoch {epoch + 1}:"
-                    f" {doc['document_id']:26}"
+                    f" {doc.document_id:26}"
                     f" c_loss: {running_c_loss / (pbar.n + 1):<.5f}"
                     f" s_loss: {running_s_loss / (pbar.n + 1):<.5f}"
                     f" emb_loss: {running_emb_loss / (pbar.n + 1):<.5f}"
@@ -206,10 +205,3 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
             "a_scorer": self.a_scorer,
             "sp": self.sp,
         }
-
-    def _build_criteria(self) -> None:
-        self._coref_criterion = CorefLoss(
-            self.config.training_params.bce_loss_weight
-        )
-        self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
-        self._manifold_criterion = self.we.manifold.loss
