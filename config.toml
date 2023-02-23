@@ -148,10 +148,11 @@
         # Manifold Learning parameters
         # Loss function to use
         loss_name = "sq_rec_loss"
-        loss_alpha = 5e-6
+        loss_in_forward = true
+        loss_alpha = 1e-6
         # Metrics to display
         verbose_outputs = ["loss"]
-        reduction_ratio = 0.75
+        reduction_ratio = 0.9
         [DEFAULT.manifold_learning.standalone]
             # For separate (non-CR) use cases
             input_dimensionality = 0
@@ -227,6 +228,7 @@
         enable = true
         # Manifold Learning parameters
         loss_name = "sq_rec_loss"
+        loss_in_forward = true
         verbose_outputs = ["loss"]
         [debug.manifold_learning.standalone]
             input_dimensionality = 10
