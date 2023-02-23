@@ -152,7 +152,7 @@
             docs_of_interest = 100
 
     [DEFAULT.manifold_learning]
-        enable = true
+        enable = false
         # Manifold Learning parameters
         # Loss function to use
         loss_name = "sq_rec_loss"
@@ -160,7 +160,7 @@
         loss_alpha = 1e-6
         # Metrics to display
         verbose_outputs = ["loss"]
-        reduction_ratio = 0.9
+        reduction_ratio = 0.75
         [DEFAULT.manifold_learning.standalone]
             # For separate (non-CR) use cases
             input_dimensionality = 0
@@ -264,6 +264,9 @@
         coref_model = "reduced_dimensionality"
     [reduced_dimensionality.training_params]
         device = "cuda"
+    [reduced_dimensionality.manifold_learning]
+        enable = true
+        reduction_ratio = 0.75
 
 [debug_gpu]
     [debug_gpu.model_params]
