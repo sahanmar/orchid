@@ -7,7 +7,8 @@ import torch
 
 from config import Config
 from coref.const import Doc
-from manifold import BasePCA
+from manifold.base import ManifoldLearningForwardOutput
+from manifold.linear import BasePCA
 
 
 class WordEncoder(
@@ -164,7 +165,7 @@ class ReducedDimensionalityWordEncoder(WordEncoder):
         doc: Doc,
         x: torch.Tensor,
     ) -> Tuple[torch.Tensor, ...]:
-        x_reduced: torch.Tensor = self.manifold(x)
+        output: ManifoldLearningForwardOutput = self.manifold(x)
         return super(ReducedDimensionalityWordEncoder, self).run(
-            doc=doc, x=x_reduced
-        ) + (x, x_reduced)
+            doc=doc, x=output.embeddings
+        ) + (output.loss,)
