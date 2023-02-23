@@ -131,7 +131,17 @@ class WordEncoder(
 
 
 class ReducedDimensionalityWordEncoder(WordEncoder):
-    def __init__(self, features: int, config: Config):
+    """
+    Word Encoder with the ability to reduce input data dimensionality
+
+    @param features: int; input dimensionality; output dimensionality is
+        computed automatically based on the reduction_ratio specified
+        in the configuration
+    @param config: Config; current run configuration to use for initialization
+    """
+
+    def __init__(self, features: int, config: Config) -> None:
+        # Compute the output dimensionality
         self.features_in = features
         self.features_out = max(
             0,
@@ -141,6 +151,9 @@ class ReducedDimensionalityWordEncoder(WordEncoder):
             ),
         )
         super().__init__(features=self.features_out, config=config)
+
+        # Initialize the manifold learning model parts
+        # TODO: Generalize the approach for multiple methods
         assert config.manifold.enable, f"Manifold Learning must be enabled"
         config.manifold.standalone.input_dimensionality = self.features_in
         config.manifold.standalone.output_dimensionality = self.features_out
