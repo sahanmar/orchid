@@ -6,10 +6,11 @@
 echo "Preparing environment..."
 
 # Initialization via the installation path
+SRC_PATH="/home/$(whoami)/orchid/rci_run.batch"
 ENV_PATH="/home/$(whoami)/venv/orchid/bin/activate"
 echo "Using env from ${ENV_PATH}"
-
-source $ENV_PATH
+# shellcheck source="${SRC_PATH}"
+. "${ENV_PATH}"
 
 # ML dependencies
 echo "Activating the Torch module"
