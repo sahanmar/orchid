@@ -229,6 +229,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 "f1_lea": f"{tot_f1:.5f}",
                 "precision_lea": f"{tot_precision:.5f}",
                 "recall_lea": f"{tot_recall:.5f}",
+                "epoch": f"{self.epochs_trained - 1}",
             }
         }
         self._logger.info(_eval_metrics)
@@ -451,7 +452,10 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             self.epochs_trained += 1
             self.save_weights()
             if docs_dev is not None:
-                self._logger.info(f"TRAINING | epoch {epoch} is finished")
+                _train_msg = {
+                    "train_metrics": {"epoch": self.epochs_trained - 1},
+                }
+                self._logger.info(_train_msg)
                 self.evaluate(docs=docs_dev)
 
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
