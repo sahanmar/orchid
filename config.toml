@@ -100,10 +100,18 @@
         # Set up for logging
         logger_name = "coref-model"
         log_folder = "data/logs/"
-        stream_format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
         datetime_format = "%Y-%m-%dT%H:%M:%S%z"
         verbosity = "debug"
-
+        stream_format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+            [DEFAULT.logging.jsonl_format]
+                timestamp="asctime"
+                level="levelname"
+                message="message"
+                loggerName="name"
+                processName="processName"
+                processID="process"
+                threadName="threadName"
+                threadID="thread"
 
     [DEFAULT.active_learning]
         # Active Learning parameters
