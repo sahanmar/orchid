@@ -145,9 +145,11 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
                 del res
 
                 (c_loss + s_loss + emb_loss).backward()
-                running_c_loss += c_loss.item()
-                running_s_loss += s_loss.item()
-                running_emb_loss += emb_loss
+                # Detaching the reported loss so that the computation
+                # graph can be cleared
+                running_c_loss += c_loss.detach().item()
+                running_s_loss += s_loss.detach().item()
+                running_emb_loss += emb_loss.detach().item()
 
                 del c_loss, s_loss, emb_loss
 

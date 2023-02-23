@@ -432,8 +432,10 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 del res
 
                 (c_loss + s_loss).backward()
-                running_c_loss += c_loss.item()
-                running_s_loss += s_loss.item()
+                # Detaching the reported loss so that the computation
+                # graph can be cleared
+                running_c_loss += c_loss.detach().item()
+                running_s_loss += s_loss.detach().item()
 
                 del c_loss, s_loss
 
