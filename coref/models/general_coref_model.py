@@ -455,7 +455,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             self.save_weights()
             if docs_dev is not None:
                 _train_msg = {
-                    "train_metrics": {"epoch": self.epochs_trained - 1},
+                    "train_metrics": {"epoch": f"{self.epochs_trained - 1}"},
                 }
                 self._logger.info(_train_msg)
                 self.evaluate(docs=docs_dev)
