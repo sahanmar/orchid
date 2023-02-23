@@ -220,11 +220,18 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             print()
 
         avg_loss = float(running_loss / len(docs))
-        tot_f1, tot_prec, tot_rec = s_checker.total_lea
+        tot_f1, tot_precision, tot_recall = s_checker.total_lea
 
-        self._logger.info(
-            f"EVAL METRICS | loss: {avg_loss:<.5f} | f1: {tot_f1:.5f} prec: {tot_prec:.5f} recall: {tot_rec:.5f}\n"
-        )
+        # Log evaluation metrics
+        _eval_metrics = {
+            "eval_metrics": {
+                "loss": f"{avg_loss:<.5f}",
+                "f1_lea": f"{tot_f1:.5f}",
+                "precision_lea": f"{tot_precision:.5f}",
+                "recall_lea": f"{tot_recall:.5f}",
+            }
+        }
+        self._logger.info(_eval_metrics)
 
         return (
             float(running_loss / len(docs)),
