@@ -9,7 +9,7 @@ from manifold.dataset import get_embedded_2d_ellipse
 from manifold.linear import BasePCA
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def manifold_learning_test_data(config: Config) -> torch.Tensor:
     assert config.manifold.standalone.input_dimensionality is not None
     assert config.manifold.standalone.output_dimensionality is not None
