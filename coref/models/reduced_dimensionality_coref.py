@@ -38,11 +38,12 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
         Returns:
             CorefResult (see const.py)
         """
+        res = ReducedDimensionalityCorefResult()
         # Encode words with bert
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
         # embeddings      [n_subwords, target_emb]
-        words, cluster_ids, inputs, embeddings = self.we(
+        words, cluster_ids, res.manifold_learning_loss = self.we(
             doc, self._bertify(doc)
         )
 
@@ -72,10 +73,6 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
                 top_rough_scores_batch=top_rough_scores_batch,
             )
             a_scores_lst.append(a_scores_batch)
-
-        res = ReducedDimensionalityCorefResult()
-        res.inputs = inputs
-        res.embeddings = embeddings
 
         # coref_scores   [n_spans, n_ants]
         cat_anaphora_scores = torch.cat(a_scores_lst, dim=0)
@@ -124,9 +121,10 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
 
                 # Evaluate losses
                 c_loss = self._coref_criterion(res.coref_scores, res.coref_y)
-                emb_loss = self.we.manifold.evaluate_criterion(
-                    inputs=res.inputs,
-                    embeddings=res.embeddings,
+                emb_loss = res.manifold_learning_loss
+                assert emb_loss is not None, (
+                    f"Manifold Learning loss is not allowed to be "
+                    f"None during training"
                 )
                 if res.span_y and res.span_scores is not None:
                     s_loss = (
