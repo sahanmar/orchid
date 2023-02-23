@@ -110,17 +110,19 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
     @torch.no_grad()
     def evaluate(
-        self, docs: List[Doc], word_level_conll: bool = False
-    ) -> Tuple[float, float, float, float]:
+        self,
+        docs: List[Doc],
+        word_level_conll: bool = False,
+    ) -> Tuple[float, ...]:
         """Evaluates the modes on the data split provided.
 
         Args:
-            data_split (str): one of 'dev'/'test'/'train'
+            docs (list): list of documents to evaluate
             word_level_conll (bool): if True, outputs conll files on word-level
 
         Returns:
             mean loss
-            span-level LEA: f1, precision, recal
+            span-level LEA: f1, precision, recall
         """
         self.training = False
         w_checker = ClusterChecker()
