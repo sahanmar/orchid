@@ -1,6 +1,7 @@
 import os
 import random
 import re
+from copy import deepcopy
 from datetime import datetime
 from typing import (
     Any,
@@ -14,18 +15,18 @@ from typing import (
     TYPE_CHECKING,
     TypeVar,
 )
-from copy import deepcopy
 
 import numpy as np  # type: ignore
 import torch
 import transformers  # type: ignore
 from tqdm import tqdm
 
+from config import Config
 from coref import bert, conll, utils
 from coref.anaphoricity_scorer import AnaphoricityScorer
 from coref.cluster_checker import ClusterChecker
-from config import Config
 from coref.const import CorefResult, Doc, SampledData
+from coref.logging_utils import get_stream_logger
 from coref.loss import CorefLoss
 from coref.pairwise_encoder import PairwiseEncoder
 from coref.rough_scorer import RoughScorer
@@ -33,7 +34,6 @@ from coref.span_predictor import SpanPredictor
 from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
 from uncertainty.uncertainty_metrics import pavpu_metric
-from coref.logging_utils import get_stream_logger
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling
