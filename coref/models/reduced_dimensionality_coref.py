@@ -181,6 +181,7 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
             features=bert_emb,
             config=self.config,
         ).to(self.config.training_params.device)
+        self._logger.info(f"Initialized {self.we!r}")
 
         self.rough_scorer = RoughScorer(self.we.features_out, self.config).to(
             self.config.training_params.device
