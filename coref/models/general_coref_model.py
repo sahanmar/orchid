@@ -317,15 +317,6 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             }
             and not return_mention
         ):
-            doc_subwords = list(range(len(doc.subwords)))
-            print("^^^^^^^")
-            print(
-                [
-                    i
-                    for i in doc.simulation_token_annotations.tokens
-                    if i not in doc_subwords
-                ]
-            )
             doc = doc.create_simulation_pseudodoc()
             encoded_doc = encoded_doc[
                 doc.simulation_token_annotations.original_subtokens_ids, :
