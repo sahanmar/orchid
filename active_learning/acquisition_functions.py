@@ -244,6 +244,7 @@ def mentions_sampling(
                 ]
                 if not tokens:
                     exhausted_doc_mentions.add(doc.orchid_id)
+                    continue
                 else:
                     token = choice(tokens)
             ###### MENTION CHANGE END ######
