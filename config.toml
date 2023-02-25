@@ -309,7 +309,8 @@
     [active_learning_simulation.model_params]
         bert_model = "roberta-large"
     [active_learning_simulation.active_learning]
-        instance_sampling = "token"
+        instance_sampling = "mention"
+        strategy = "naive_sampling"
     [active_learning_simulation.active_learning.sampling_strategy.naive_sampling]
         batch_size = 5000
         docs_of_interest = 100
