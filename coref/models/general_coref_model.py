@@ -333,7 +333,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             Tuple[torch.Tensor, torch.Tensor], self.rough_scorer(words)
         )
         if return_mention:
-            return set(int(i) for i in top_indices.flatten().tolist())
+            return doc.subwords_2_words(
+                set(int(i) for i in top_indices.flatten().tolist())
+            )
 
         # Get pairwise features [n_words, n_ants, n_pw_features]
         pw = self.pw(top_indices, doc)

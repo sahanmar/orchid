@@ -1,7 +1,7 @@
 """ Contains type aliases for coref module """
 
 from dataclasses import dataclass
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Iterable
 import hashlib
 
 import torch
@@ -133,6 +133,14 @@ class Doc:
                 ],
             ),
         )
+
+    def subwords_2_words(self, subwords: Iterable[int]) -> set[int]:
+        words_2_subwords_map = {
+            subtoken: i
+            for i, (start, end) in enumerate(self.word2subword)
+            for subtoken in range(start, end)
+        }
+        return set(words_2_subwords_map[subword] for subword in subwords)
 
 
 @dataclass
