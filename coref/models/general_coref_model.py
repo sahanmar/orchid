@@ -309,10 +309,14 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         # is empty, the method will use all available annotated tokens.
         # N.B. The quality of encoding is not damaged because it is done on the whole
         # article
-        if self.config.active_learning.instance_sampling in {
-            InstanceSampling.token,
-            InstanceSampling.mention,
-        }:
+        if (
+            self.config.active_learning.instance_sampling
+            in {
+                InstanceSampling.token,
+                InstanceSampling.mention,
+            }
+            and not return_mention
+        ):
             doc = doc.create_simulation_pseudodoc()
             encoded_doc = encoded_doc[
                 doc.simulation_token_annotations.original_subtokens_ids, :
