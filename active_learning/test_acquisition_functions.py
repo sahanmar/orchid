@@ -69,7 +69,8 @@ def test_token_sampling(dev_data: list[Doc]) -> None:
 def test_rough_scorer_sampling(dev_data: list[Doc]) -> None:
     # if we sample some batch size, we will sample at least
     # the amount we want to sample due to the possible spans
-    mentions = [[1, 10, 100]]
+    doc_ids = [doc.orchid_id for doc in dev_data if doc.orchid_id is not None]
+    mentions = {doc_ids[0]: [1, 10, 100]}
     sampled_mentions = (
         mentions_sampling(dev_data, BATCH_SIZE, 100_000, mentions)
         .instances[0]
@@ -88,7 +89,11 @@ def test_rough_scorer_sampling(dev_data: list[Doc]) -> None:
     new_docs[1].orchid_id = "id_1"
     new_docs[2].orchid_id = "id_3"
 
-    mentions = [[1, 10, 100], [50, 30, 115], [1, 10, 100, 200]]
+    mentions = {
+        new_docs[0].orchid_id: [1, 10, 100],
+        new_docs[1].orchid_id: [50, 30, 115],
+        new_docs[2].orchid_id: [1, 10, 100, 200],
+    }
 
     sampled_tokens = mentions_sampling(new_docs, 1_000_000, 100_000, mentions)
 

@@ -317,6 +317,15 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             }
             and not return_mention
         ):
+            doc_subwords = list(range(len(doc.subwords)))
+            print("^^^^^^^")
+            print(
+                [
+                    i
+                    for i in doc.simulation_token_annotations.tokens
+                    if i not in doc_subwords
+                ]
+            )
             doc = doc.create_simulation_pseudodoc()
             encoded_doc = encoded_doc[
                 doc.simulation_token_annotations.original_subtokens_ids, :
@@ -472,18 +481,18 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             self.config.active_learning.instance_sampling
             == InstanceSampling.mention
         ):
-            mentions = [
-                list(
+            mentions = {
+                doc.orchid_id: list(
                     cast(set[int], self.run(deepcopy(doc), return_mention=True))
                 )
                 for doc in documents
-            ]
+            }
 
         if SamplingStrategy.greedy_sampling == self.sampling_strategy_type:
             return self.sampling_strategy_config.step(documents)  # type: ignore
         if SamplingStrategy.naive_sampling == self.sampling_strategy_type:
             return self.sampling_strategy_config.step(  # type: ignore
-                documents, cast(list[list[int]], mentions)
+                documents, cast(dict[str, list[int]], mentions)
             )
 
         raise ValueError("Wrong sampling strategy... Executor not likey...")

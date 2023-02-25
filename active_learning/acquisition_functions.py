@@ -20,7 +20,7 @@ def token_sampling(
     docs: list[Doc],
     token_batch: int,
     docs_of_interest: int,
-    _: list[list[int]] = [],
+    _: dict[str, list[int]] = {},
 ) -> SampledData:
     """
     The method samples random tokens from docs in the following way:
@@ -189,19 +189,17 @@ def mentions_sampling(
     docs: list[Doc],
     token_batch: int,
     docs_of_interest: int,
-    mention_indices: list[list[int]],
+    mentions: dict[str, list[int]],
 ) -> SampledData:
     sampled_tokens_counter = 0
     exhausted_doc_mentions: set[str] = {
-        doc.orchid_id
-        for mention_id, doc in zip(mention_indices, docs)
-        if not mention_id and doc.orchid_id
+        doc_id for doc_id, mentions in mentions.items() if not mentions
     }
     counter = 0  # variable to control infinite looping
     sampled_data = SampledData([], [])
     doc_w_their_position = {doc.orchid_id: i for i, doc in enumerate(docs)}
     while sampled_tokens_counter < token_batch:
-        # sample the doc and solve the use-cases
+        # sample the doc and solve the edge-cases
         sampled_doc_ids_w_order_id = {
             d.orchid_id: i
             for i, d in enumerate(sampled_data.instances)
@@ -228,7 +226,9 @@ def mentions_sampling(
             ]
             return sampled_data
 
-        mention_tokens = mention_indices[doc_w_their_position[doc.orchid_id]]
+        if not doc.orchid_id:
+            raise ValueError("No doc id. This is bad...")
+        mention_tokens = mentions[doc.orchid_id]
 
         # choose new tokens given that we already sampled from the doc
         if doc.orchid_id in sampled_doc_ids_w_order_id:

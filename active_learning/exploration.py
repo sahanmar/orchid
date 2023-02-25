@@ -19,7 +19,7 @@ class AcquisitionFunctionsType(Enum):
 
 
 acquisition_func_typing = Callable[
-    [list[Doc], int, int, list[list[int]]], SampledData
+    [list[Doc], int, int, dict[str, list[int]]], SampledData
 ]
 
 
@@ -44,7 +44,7 @@ class NaiveSampling:
         ]
 
     def step(
-        self, instances: list[Doc], indices: list[list[int]]
+        self, instances: list[Doc], indices: dict[str, list[int]]
     ) -> SampledData:
         return self.acquisition_function(
             instances, self.batch_size, self.docs_of_interest, indices
@@ -136,7 +136,7 @@ class GreedySampling:
                 instances, self.batch_size, self.docs_of_interest
             )
         return self.acquisition_function(
-            instances, self.batch_size, self.docs_of_interest, []
+            instances, self.batch_size, self.docs_of_interest, {}
         )
 
     def sigmoid(self) -> float:
