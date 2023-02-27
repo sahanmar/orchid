@@ -39,6 +39,14 @@ class ManifoldLearningModule(torch.nn.Module, metaclass=abc.ABCMeta):
         self.loss_alpha = torch.tensor(self._args.loss_alpha, dtype=torch.float)
         self.loss = get_loss_by_name(name=self._args.loss_name)
 
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"loss_alpha={self.loss_alpha.detach().item()},"
+            f"loss={self.loss.name},"
+            f")"
+        )
+
     @classmethod
     def from_config(cls, config: Config) -> "ManifoldLearningModule":
         """Initialization from the Config object"""
