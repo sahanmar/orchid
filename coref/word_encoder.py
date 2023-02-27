@@ -165,6 +165,7 @@ class ReducedDimensionalityWordEncoder(WordEncoder):
             f"{self.__class__.__name__}("
             f"input_dim={self.features_in},"
             f"output_dim={self.features_out},"
+            f"manifold={self.manifold!r},"
             f")"
         )
 
