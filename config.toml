@@ -114,7 +114,7 @@
         # document - sample the document to train
         # token - sample tokens from documents to train
         # mention - sample mentions from rough_scorer prediction to train
-        instance_sampling = "token"
+        instance_sampling = "token" # options {token, mention}
 
         # Sampling stratedy
         strategy = "naive_sampling" # options: {naive_sampling, greedy_sampling}
