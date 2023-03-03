@@ -66,7 +66,7 @@ def test_token_sampling(dev_data: list[Doc]) -> None:
     ) == len(new_docs[sampled_tokens.indices[2]].cased_words)
 
 
-def test_rough_scorer_sampling(dev_data: list[Doc]) -> None:
+def test_mentions_sampling(dev_data: list[Doc]) -> None:
     # if we sample some batch size, we will sample at least
     # the amount we want to sample due to the possible spans
     doc_ids = [doc.orchid_id for doc in dev_data if doc.orchid_id is not None]

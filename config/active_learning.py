@@ -31,6 +31,9 @@ class ActiveLearning:
     instance_sampling: InstanceSampling
     # Active Learning parameters
     parameters_samples: int
+
+    strategy_type: SamplingStrategy
+
     # Active Learning sampling strategy.
     sampling_strategy: Union[GreedySampling, NaiveSampling]
 
@@ -45,12 +48,12 @@ class ActiveLearning:
         sampling_strategy: dict[str, Any],
         simulation: dict[str, Any],
     ) -> "ActiveLearning":
-
-        if SamplingStrategy(strategy) == SamplingStrategy.greedy_sampling:
+        strategy_type = SamplingStrategy(strategy)
+        if strategy_type == SamplingStrategy.greedy_sampling:
             strategy_config: Union[
                 GreedySampling, NaiveSampling
             ] = GreedySampling.load_config(**sampling_strategy[strategy])
-        if SamplingStrategy(strategy) == SamplingStrategy.naive_sampling:
+        if strategy_type == SamplingStrategy.naive_sampling:
             strategy_config = NaiveSampling.load_config(
                 **sampling_strategy[strategy]
             )
@@ -58,6 +61,7 @@ class ActiveLearning:
         return ActiveLearning(
             InstanceSampling(instance_sampling),
             parameters_samples,
+            strategy_type,
             strategy_config,
             Simulation(**simulation),
         )

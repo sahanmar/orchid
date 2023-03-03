@@ -50,9 +50,6 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         config (config.Config): the model's configuration,
             see config.toml for the details
         epochs_trained (int): number of epochs the model has been trained for
-        trainable (Dict[str, torch.nn.Module]): trainable submodules with their
-            names used as keys
-        training (bool): used to toggle train/eval modes
 
     Submodules (in the order of their usage in the pipeline):
         tokenizer (transformers.AutoTokenizer)
@@ -69,8 +66,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         A newly created model is set to evaluation mode.
 
         Args:
-            config_path (str): the path to the toml file with the configuration
-            section (str): the selected section of the config file
+            config (Config): config dataclass created from toml
             epochs_trained (int): the number of epochs finished
                 (useful for warm start)
         """
@@ -93,11 +89,9 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self.sampling_strategy_config: Union[
             GreedySampling, NaiveSampling
         ] = config.active_learning.sampling_strategy
-        ###### BUUUUUUUUUUUUUUUG #######
         self.sampling_strategy_type: SamplingStrategy = (
-            SamplingStrategy.naive_sampling
+            config.active_learning.strategy_type
         )
-        ######## END OF THE BUG ########
         self._logger.info(
             "Initialization of the general coreference model is complete"
         )
@@ -478,6 +472,8 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 )
                 for doc in documents
             }
+        else:
+            mentions = {}
 
         if SamplingStrategy.greedy_sampling == self.sampling_strategy_type:
             return self.sampling_strategy_config.step(documents)  # type: ignore
