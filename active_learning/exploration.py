@@ -2,26 +2,67 @@ from enum import Enum
 import math
 
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List
+from typing import Callable, Union
 from random import random
 
 from coref.const import Doc, SampledData
 from active_learning.acquisition_functions import (
     # random_sampling,
     token_sampling,
+    mentions_sampling,
 )
 
 
 class AcquisitionFunctionsType(Enum):
     random = "random"
+    random_mention = "random_mention"
 
 
-acquisition_func_typing = Callable[[List[Doc], int, int], SampledData]
+acquisition_func_typing = Callable[
+    [list[Doc], int, int, dict[str, list[int]]], SampledData
+]
 
 
-ACQUISITION_FUNCTION_MAPPER: Dict[
+ACQUISITION_FUNCTION_MAPPER: dict[
     AcquisitionFunctionsType, acquisition_func_typing
-] = {AcquisitionFunctionsType.random: token_sampling}
+] = {
+    AcquisitionFunctionsType.random: token_sampling,
+    AcquisitionFunctionsType.random_mention: mentions_sampling,
+}
+
+
+@dataclass
+class NaiveSampling:
+    docs_of_interest: int
+    batch_size: int
+    acquisition_function_type: AcquisitionFunctionsType
+    total_number_of_iterations: int
+
+    def __post_init__(self) -> None:
+        self.acquisition_function = ACQUISITION_FUNCTION_MAPPER[
+            self.acquisition_function_type
+        ]
+
+    def step(
+        self, instances: list[Doc], indices: dict[str, list[int]]
+    ) -> SampledData:
+        return self.acquisition_function(
+            instances, self.batch_size, self.docs_of_interest, indices
+        )
+
+    @staticmethod
+    def load_config(
+        docs_of_interest: int,
+        batch_size: int,
+        acquisition_function_type: str,
+        total_number_of_iterations: int,
+    ) -> "NaiveSampling":
+        return NaiveSampling(
+            docs_of_interest,
+            batch_size,
+            AcquisitionFunctionsType(acquisition_function_type),
+            total_number_of_iterations,
+        )
 
 
 @dataclass
@@ -76,8 +117,8 @@ class GreedySampling:
         # for current_sampling_iteration = 0
         self.normalizing_coef = 5 / self.flip_iteration
 
-    def step(self, instances: List[Doc]) -> SampledData:
-        ##### This check is done because mypy is bitching to that #####
+    def step(self, instances: list[Doc]) -> SampledData:
+        ##### This check is done because of mypy #####
         if (
             self.epsilon_greedy_prob is None
             or self.current_sampling_iteration is None
@@ -95,7 +136,7 @@ class GreedySampling:
                 instances, self.batch_size, self.docs_of_interest
             )
         return self.acquisition_function(
-            instances, self.batch_size, self.docs_of_interest
+            instances, self.batch_size, self.docs_of_interest, {}
         )
 
     def sigmoid(self) -> float:

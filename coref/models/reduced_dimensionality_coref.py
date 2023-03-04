@@ -26,6 +26,7 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
         self,
         doc: Doc,
         normalize_anaphoras: bool = False,
+        return_mention: bool = False,
     ) -> ReducedDimensionalityCorefResult:
         """
         This is a massive method, but it made sense to me to not split it into
@@ -181,20 +182,21 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
 
         bert_emb = self.bert.config.hidden_size
         self.we = ReducedDimensionalityWordEncoder(
-            features=bert_emb,
             config=self.config,
         ).to(self.config.training_params.device)
 
-        self.rough_scorer = RoughScorer(self.we.features_out, self.config).to(
-            self.config.training_params.device
-        )
+        self.rough_scorer = RoughScorer(
+            self.we.features_out,
+            self.config.model_params.rough_k,
+            self.config.training_params.dropout_rate,
+        ).to(self.config.training_params.device)
 
         pair_emb = self.we.features_out * 3 + self.pw.shape
         self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(
             self.config.training_params.device
         )
 
-        self.sp = SpanPredictor(self.we.features_out, self.config).to(
+        self.sp = SpanPredictor(self.config).to(
             self.config.training_params.device
         )
 

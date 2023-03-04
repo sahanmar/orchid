@@ -49,7 +49,7 @@ def get_logging_info(
 
 
 def run_simulation(
-    model: GeneralCorefModel,  # unused for now
+    model: GeneralCorefModel,
     config: Config,
     train_docs: list[Doc],
     test_data: list[Doc],
@@ -59,8 +59,7 @@ def run_simulation(
     al_config = config.active_learning
 
     for i in range(al_config.sampling_strategy.total_number_of_iterations):
-        model = load_coref_model(config)
-
         training_data, train_docs = train_split(model, train_docs)
+        model = load_coref_model(config)
         get_logging_info(model, training_data, round=i)
         run_training(model, training_data, dev_docs, test_data)

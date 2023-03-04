@@ -14,6 +14,7 @@ from config.config_utils import overwrite_config, get_overwrite_value
 from config.metrics import Metrics
 from coref.bert import load_bert
 from config.logging import Logging
+from dataclasses import field
 
 
 @dataclass

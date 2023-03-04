@@ -1,12 +1,11 @@
-""" Describes RoughScorer, a simple bilinear module to calculate rough
+"""
+Describes RoughScorer, a simple bilinear module to calculate rough
 anaphoricity scores.
 """
 
 from typing import Tuple
 
 import torch
-
-from config import Config
 
 
 class RoughScorer(torch.nn.Module):
@@ -16,12 +15,13 @@ class RoughScorer(torch.nn.Module):
     computational complexity.
     """
 
-    def __init__(self, features: int, config: Config):
+    def __init__(self, features: int, rough_k: int, dropout_rate: float):
         super().__init__()
-        self.dropout = torch.nn.Dropout(config.training_params.dropout_rate)
+        features = features
+        self.dropout = torch.nn.Dropout(dropout_rate)
         self.bilinear = torch.nn.Linear(features, features)
 
-        self.k = config.model_params.rough_k
+        self.k = rough_k
 
     def forward(
         self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
@@ -71,9 +71,15 @@ class RoughScorer(torch.nn.Module):
 
 class MCDropoutRoughScorer(RoughScorer):
     # TODO add documentation
-    def __init__(self, features: int, config: Config):
-        self.parameters_samples = config.active_learning.parameters_samples
-        super().__init__(features, config)
+    def __init__(
+        self,
+        features: int,
+        rough_k: int,
+        dropout_rate: int,
+        parameters_samples: int,
+    ):
+        self.parameters_samples = parameters_samples
+        super().__init__(features, rough_k, dropout_rate)
 
     def forward(
         self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
