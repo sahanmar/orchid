@@ -1,4 +1,4 @@
-from typing import Tuple, Any
+from typing import Tuple, cast
 from random import sample, choice
 
 from coref.const import Doc, SampledData, Optional
@@ -49,7 +49,7 @@ def token_sampling(
         sampled_tokens_counter,
         counter,
         sampled_data,
-        doc_w_their_position,
+        docs_w_their_positions,
     ) = _setup(docs)
     while sampled_tokens_counter < token_batch:
         # sample the doc and solve the use-cases
@@ -66,23 +66,30 @@ def token_sampling(
         # if no tokens to sample return what we already have
         if doc is None:
             return _fill_sampled_data_indices(
-                sampled_data, doc_w_their_position
+                sampled_data, docs_w_their_positions
             )
 
         if not doc.orchid_id:
             raise ValueError("No doc id. This is bad...")
 
         # choose new tokens given that we already sampled from the doc
+        previously_sampled_tokens = doc.simulation_token_annotations.tokens
         if doc.orchid_id in sampled_doc_ids_w_order_id:
-            sampled_tokens = sampled_data.instances[
+            currently_sampled_tokens = sampled_data.instances[
                 sampled_doc_ids_w_order_id[doc.orchid_id]
             ].simulation_token_annotations.tokens
             tokens = _filtered_tokens_to_sample(
-                list(range(len(doc.cased_words))), sampled_tokens
+                list(range(len(doc.cased_words))),
+                currently_sampled_tokens.union(previously_sampled_tokens),
             )
         else:
             tokens = _filtered_tokens_to_sample(
-                list(range(len(doc.cased_words))), set()
+                list(range(len(doc.cased_words))), previously_sampled_tokens
+            )
+
+        if not tokens:
+            raise ValueError(
+                "No tokens available... This should never happened. Do your refactor brew"
             )
 
         token = choice(tokens)
@@ -95,14 +102,13 @@ def token_sampling(
             sampled_data,
             sampled_doc_ids_w_order_id.get(doc.orchid_id),
         )
-        sampled_tokens_counter = (
+        sampled_tokens_counter += (
             len(doc.simulation_token_annotations.tokens) - doc_tokens_number
         )
-        docs[doc_w_their_position[doc.orchid_id]] = deepcopy(doc)
+        docs[docs_w_their_positions[doc.orchid_id]] = deepcopy(doc)
 
         counter = _counter_update(counter)
-
-    return _fill_sampled_data_indices(sampled_data, doc_w_their_position)
+    return _fill_sampled_data_indices(sampled_data, docs_w_their_positions)
 
 
 def _get_coref_if_token_in_cluster(
@@ -161,7 +167,9 @@ def _choose_the_doc_for_token_sampling(
         set(range(len(doc.cased_words)))
         == sampled_data.instances[
             sampled_doc_ids_w_order_id[doc.orchid_id]
-        ].simulation_token_annotations.tokens
+        ].simulation_token_annotations.tokens.union(
+            doc.simulation_token_annotations.tokens
+        )
     ):
         new_docs_of_interest = docs_of_interest - 1
         return _choose_the_doc_for_token_sampling(
@@ -203,16 +211,20 @@ def mentions_sampling(
 
     return all created docs with sampled tokens
     """
-
+    orchid_id_nullability_check(docs)
     exhausted_doc_mentions: set[str] = {
-        doc_id for doc_id, mentions in mentions.items() if not mentions
+        doc.orchid_id
+        for doc in docs
+        if doc.orchid_id
+        and set(mentions[doc.orchid_id])
+        - doc.simulation_token_annotations.tokens
     }
     all_docs_w_mentions = len(exhausted_doc_mentions)
     (
         sampled_tokens_counter,
         counter,
         sampled_data,
-        doc_w_their_position,
+        docs_w_their_positions,
     ) = _setup(docs)
     while sampled_tokens_counter < token_batch:
         # sample the doc and solve the edge-cases
@@ -237,22 +249,30 @@ def mentions_sampling(
         # if no tokens to sample return what we already have
         if doc is None:
             return _fill_sampled_data_indices(
-                sampled_data, doc_w_their_position
+                sampled_data, docs_w_their_positions
             )
 
         if not doc.orchid_id:
             raise ValueError("No doc id. This is bad...")
-        mention_tokens = mentions[doc.orchid_id]
+        tokens_to_sample = (
+            list(range(len(doc.cased_words)))
+            if doc.orchid_id in exhausted_doc_mentions
+            else mentions[doc.orchid_id]
+        )
 
         # choose new tokens given that we already sampled from the doc
+        previously_sampled_tokens = doc.simulation_token_annotations.tokens
         if doc.orchid_id in sampled_doc_ids_w_order_id:
-            sampled_tokens = sampled_data.instances[
+            currently_sampled_tokens = sampled_data.instances[
                 sampled_doc_ids_w_order_id[doc.orchid_id]
             ].simulation_token_annotations.tokens
             # sample from mentions
+            sampled_tokens = currently_sampled_tokens.union(
+                previously_sampled_tokens
+            )
             if docs_w_mentions_to_sample:
                 tokens = _filtered_tokens_to_sample(
-                    mention_tokens, sampled_tokens
+                    tokens_to_sample, sampled_tokens
                 )
                 if not tokens:
                     exhausted_doc_mentions.add(doc.orchid_id)
@@ -265,16 +285,21 @@ def mentions_sampling(
             else:
                 continue
         else:
-            # sample from mentions
-            if docs_w_mentions_to_sample:
-                tokens = _filtered_tokens_to_sample(mention_tokens, set())
-            # if no mention docs left sample ordinary token
-            elif len(exhausted_doc_mentions) == all_docs_w_mentions:
+            # sample from mentions or if no mention docs left sample ordinary token
+            if (
+                docs_w_mentions_to_sample
+                or len(exhausted_doc_mentions) == all_docs_w_mentions
+            ):
                 tokens = _filtered_tokens_to_sample(
-                    list(range(len(doc.cased_words))), set()
+                    tokens_to_sample, previously_sampled_tokens
                 )
             else:
                 continue
+
+        if not tokens:
+            raise ValueError(
+                "No tokens available... This should never happened. Do your refactor brew"
+            )
 
         token = choice(tokens)
 
@@ -289,11 +314,11 @@ def mentions_sampling(
         sampled_tokens_counter = (
             len(doc.simulation_token_annotations.tokens) - doc_tokens_number
         )
-        docs[doc_w_their_position[doc.orchid_id]] = deepcopy(doc)
+        docs[docs_w_their_positions[doc.orchid_id]] = deepcopy(doc)
 
         counter = _counter_update(counter)
 
-    return _fill_sampled_data_indices(sampled_data, doc_w_their_position)
+    return _fill_sampled_data_indices(sampled_data, docs_w_their_positions)
 
 
 def _handle_sampled_token_into_sampled_data_mutable(
@@ -327,6 +352,9 @@ def _handle_sampled_token_into_sampled_data_mutable(
         sampled_data.instances[doc_idx_in_sampled_data] = doc
     else:
         sampled_data.instances.append(doc)
+
+    # print("INSIDE MUTATION")
+    # print(len(doc.simulation_token_annotations.tokens))
 
 
 def orchid_id_nullability_check(docs: list[Doc]) -> None:

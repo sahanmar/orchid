@@ -28,7 +28,7 @@ def test_token_sampling(dev_data: list[Doc]) -> None:
     # the amount we want to sample due to the possible spans
     assert (
         len(
-            token_sampling(dev_data, BATCH_SIZE, 100_000)
+            token_sampling(deepcopy(dev_data), BATCH_SIZE, 100_000)
             .instances[0]
             .simulation_token_annotations.tokens
         )
@@ -38,7 +38,7 @@ def test_token_sampling(dev_data: list[Doc]) -> None:
     # if we ask to sample more than we have in docs we will get all
     # tokens from all docs
     assert len(
-        token_sampling(dev_data, 1_000_000, 100_000)
+        token_sampling(deepcopy(dev_data), 1_000_000, 100_000)
         .instances[0]
         .simulation_token_annotations.tokens
     ) == len(dev_data[0].cased_words)
@@ -72,7 +72,7 @@ def test_mentions_sampling(dev_data: list[Doc]) -> None:
     doc_ids = [doc.orchid_id for doc in dev_data if doc.orchid_id is not None]
     mentions = {doc_ids[0]: [1, 10, 100]}
     sampled_mentions = (
-        mentions_sampling(dev_data, BATCH_SIZE, 100_000, mentions)
+        mentions_sampling(deepcopy(dev_data), BATCH_SIZE, 100_000, mentions)
         .instances[0]
         .simulation_token_annotations.tokens
     )
