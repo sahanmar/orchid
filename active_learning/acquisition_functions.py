@@ -167,9 +167,7 @@ def _choose_the_doc_for_token_sampling(
         set(range(len(doc.cased_words)))
         == sampled_data.instances[
             sampled_doc_ids_w_order_id[doc.orchid_id]
-        ].simulation_token_annotations.tokens.union(
-            doc.simulation_token_annotations.tokens
-        )
+        ].simulation_token_annotations.tokens
     ):
         new_docs_of_interest = docs_of_interest - 1
         return _choose_the_doc_for_token_sampling(
@@ -261,15 +259,11 @@ def mentions_sampling(
         )
 
         # choose new tokens given that we already sampled from the doc
-        previously_sampled_tokens = doc.simulation_token_annotations.tokens
         if doc.orchid_id in sampled_doc_ids_w_order_id:
-            currently_sampled_tokens = sampled_data.instances[
+            sampled_tokens = sampled_data.instances[
                 sampled_doc_ids_w_order_id[doc.orchid_id]
             ].simulation_token_annotations.tokens
             # sample from mentions
-            sampled_tokens = currently_sampled_tokens.union(
-                previously_sampled_tokens
-            )
             if docs_w_mentions_to_sample:
                 tokens = _filtered_tokens_to_sample(
                     tokens_to_sample, sampled_tokens
@@ -291,8 +285,11 @@ def mentions_sampling(
                 or len(exhausted_doc_mentions) == all_docs_w_mentions
             ):
                 tokens = _filtered_tokens_to_sample(
-                    tokens_to_sample, previously_sampled_tokens
+                    tokens_to_sample, doc.simulation_token_annotations.tokens
                 )
+                if not tokens:
+                    exhausted_doc_mentions.add(doc.orchid_id)
+                    continue
             else:
                 continue
 
