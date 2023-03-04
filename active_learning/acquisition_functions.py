@@ -88,9 +88,7 @@ def token_sampling(
             )
 
         if not tokens:
-            raise ValueError(
-                "No tokens available... This should never happened. Do your refactor brew"
-            )
+            continue
 
         token = choice(tokens)
 
@@ -295,7 +293,7 @@ def mentions_sampling(
 
         if not tokens:
             raise ValueError(
-                "No tokens available... This should never happened. Do your refactor brew"
+                "No tokens available... This should never happened. Do your refactor bruv"
             )
 
         token = choice(tokens)
