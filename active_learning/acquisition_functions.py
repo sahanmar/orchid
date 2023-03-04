@@ -212,10 +212,18 @@ def mentions_sampling(
         doc.orchid_id
         for doc in docs
         if doc.orchid_id
-        and set(mentions[doc.orchid_id])
+        and not set(mentions[doc.orchid_id])
         - doc.simulation_token_annotations.tokens
     }
-    all_docs_w_mentions = len(exhausted_doc_mentions)
+    all_docs_w_mentions = len(
+        {
+            doc.orchid_id
+            for doc in docs
+            if doc.orchid_id
+            and set(mentions[doc.orchid_id])
+            - doc.simulation_token_annotations.tokens
+        }
+    )
     (
         sampled_tokens_counter,
         counter,
