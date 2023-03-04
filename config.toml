@@ -309,9 +309,10 @@
     [active_learning_simulation.model_params]
         bert_model = "roberta-large"
     [active_learning_simulation.active_learning]
-        instance_sampling = "mention"
-        strategy = "naive_sampling"
+        instance_sampling = "mention" # token
+        strategy = "naive_sampling" # greedy_sampling
     [active_learning_simulation.active_learning.sampling_strategy.naive_sampling]
+        acquisition_function_type = "random_mention" # random
         batch_size = 5000
         docs_of_interest = 100
         total_number_of_iterations = 10
