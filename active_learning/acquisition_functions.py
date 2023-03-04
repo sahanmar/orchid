@@ -311,7 +311,7 @@ def mentions_sampling(
             sampled_data,
             sampled_doc_ids_w_order_id.get(doc.orchid_id),
         )
-        sampled_tokens_counter = (
+        sampled_tokens_counter += (
             len(doc.simulation_token_annotations.tokens) - doc_tokens_number
         )
         docs[docs_w_their_positions[doc.orchid_id]] = deepcopy(doc)
@@ -352,9 +352,6 @@ def _handle_sampled_token_into_sampled_data_mutable(
         sampled_data.instances[doc_idx_in_sampled_data] = doc
     else:
         sampled_data.instances.append(doc)
-
-    # print("INSIDE MUTATION")
-    # print(len(doc.simulation_token_annotations.tokens))
 
 
 def orchid_id_nullability_check(docs: list[Doc]) -> None:
