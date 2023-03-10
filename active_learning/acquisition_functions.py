@@ -1,7 +1,7 @@
-from typing import Tuple, cast
+from typing import Tuple, Optional, cast, Any
 from random import sample, choice
 
-from coref.const import Doc, SampledData, Optional
+from coref.const import Doc, SampledData
 from copy import deepcopy
 
 
@@ -16,11 +16,14 @@ def random_sampling(instances: list[Doc], batch_size: int) -> SampledData:
     return SampledData(indices, [instances[i] for i in indices])
 
 
+MentionType = Tuple[int, float]
+
+
 def token_sampling(
     docs: list[Doc],
     token_batch: int,
     docs_of_interest: int,
-    _: dict[str, list[int]] = {},
+    _: dict[str, Any] = {},
 ) -> SampledData:
     """
     The method samples random tokens from docs in the following way:
@@ -181,7 +184,7 @@ def mentions_sampling(
     docs: list[Doc],
     token_batch: int,
     docs_of_interest: int,
-    mentions: dict[str, list[int]],
+    mentions: dict[str, Any],  # list[MentionType]
 ) -> SampledData:
 
     """
@@ -208,6 +211,8 @@ def mentions_sampling(
     return all created docs with sampled tokens
     """
     orchid_id_nullability_check(docs)
+    mentions = {key: [i for i, _ in val] for key, val in mentions.items()}
+
     exhausted_doc_mentions: set[str] = {
         doc.orchid_id
         for doc in docs

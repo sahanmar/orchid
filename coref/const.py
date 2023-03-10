@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 from typing import Tuple, Optional, Iterable
 import hashlib
-
 import torch
+import numpy as np
 
 EPSILON = 1e-7
 LARGE_VALUE = 1000  # used instead of inf due to bug #16762 in pytorch
@@ -134,13 +134,17 @@ class Doc:
             ),
         )
 
-    def subwords_2_words(self, subwords: Iterable[int]) -> set[int]:
+    def subwords_2_words_w_payload(
+        self, subwords: Iterable[int], payload: Iterable[float]
+    ) -> list[Tuple[int, float]]:
         words_2_subwords_map = {
             subtoken: i
             for i, (start, end) in enumerate(self.word2subword)
             for subtoken in range(start, end)
         }
-        return set(words_2_subwords_map[subword] for subword in subwords)
+        res = [(words_2_subwords_map[s], p) for s, p in zip(subwords, payload)]
+
+        return [(k, np.mean(group)) for k, group in res]
 
 
 @dataclass

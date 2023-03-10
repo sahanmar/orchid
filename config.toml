@@ -110,11 +110,12 @@
         # Number of neural network parameters that will represent NN empirical distribution
         parameters_samples = 10
 
-        # Instance type to sample. Options to choose from {document, token, mention}
+        # Instance type to sample.
         # document - sample the document to train
-        # token - sample tokens from documents to train
-        # mention - sample mentions from rough_scorer prediction to train
-        instance_sampling = "token" # options {token, mention}
+        # random_token - random tokens sampling from documents to train
+        # random_mention - random mentions samling from rough_scorer prediction to train
+        # entropy_mention - entropy mentions samling from rough_scorer prediction to train
+        instance_sampling = "random_token"
 
         # Sampling stratedy
         strategy = "naive_sampling" # options: {naive_sampling, greedy_sampling}
@@ -135,9 +136,6 @@
                 # This is just an abstraction on the top of direct usage of acquisition function with config
                 # values
 
-                # The function name to sample new data
-                acquisition_function_type = "random_mention" # options: {random_mention, random}
-
                 # Batch size to sample
                 batch_size = 50
 
@@ -150,9 +148,6 @@
 
             [DEFAULT.active_learning.sampling_strategy.greedy_sampling]
                 # Active Learning sampling strategy based on greedy sampling
-
-                # The function name to sample new data
-                acquisition_function_type = "random" # options: {random_mention, random}
 
                 # Batch size to sample
                 batch_size = 50
@@ -243,7 +238,7 @@
         device = "cpu"
         bert_finetune = false
     [debug.active_learning]
-        instance_sampling = "token"
+        instance_sampling = "random_token"
         strategy = "greedy_sampling"
     [debug.active_learning.sampling_strategy.greedy_sampling]
         batch_size = 1
@@ -280,7 +275,7 @@
         device = "cpu"
         bert_finetune = false
     [debug_active_learning.active_learning]
-        instance_sampling = "mention"
+        instance_sampling = "random_mention"
         strategy = "naive_sampling"
 
 
@@ -309,10 +304,9 @@
     [active_learning_simulation.model_params]
         bert_model = "roberta-large"
     [active_learning_simulation.active_learning]
-        instance_sampling = "mention" # token
+        instance_sampling = "random_mention"
         strategy = "naive_sampling" # greedy_sampling
     [active_learning_simulation.active_learning.sampling_strategy.naive_sampling]
-        acquisition_function_type = "random_mention" # random
         batch_size = 5000
         docs_of_interest = 100
         total_number_of_iterations = 10

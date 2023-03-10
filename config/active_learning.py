@@ -13,8 +13,9 @@ class SamplingStrategy(Enum):
 
 class InstanceSampling(Enum):
     document = "document"
-    token = "token"
-    mention = "mention"
+    random_token = "random_token"
+    random_mention = "random_mention"
+    entropy_mention = "entropy_mention"
 
 
 @dataclass
@@ -52,10 +53,18 @@ class ActiveLearning:
         if strategy_type == SamplingStrategy.greedy_sampling:
             strategy_config: Union[
                 GreedySampling, NaiveSampling
-            ] = GreedySampling.load_config(**sampling_strategy[strategy])
+            ] = GreedySampling.load_config(
+                **{
+                    **sampling_strategy[strategy],
+                    **{"acquisition_function_type": instance_sampling},
+                }
+            )
         if strategy_type == SamplingStrategy.naive_sampling:
             strategy_config = NaiveSampling.load_config(
-                **sampling_strategy[strategy]
+                **{
+                    **sampling_strategy[strategy],
+                    **{"acquisition_function_type": instance_sampling},
+                }
             )
 
         return ActiveLearning(

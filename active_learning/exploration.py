@@ -14,8 +14,9 @@ from active_learning.acquisition_functions import (
 
 
 class AcquisitionFunctionsType(Enum):
-    random = "random"
+    random_token = "random_token"
     random_mention = "random_mention"
+    entropy_mention = "entropy_mention"
 
 
 acquisition_func_typing = Callable[
@@ -26,7 +27,7 @@ acquisition_func_typing = Callable[
 ACQUISITION_FUNCTION_MAPPER: dict[
     AcquisitionFunctionsType, acquisition_func_typing
 ] = {
-    AcquisitionFunctionsType.random: token_sampling,
+    AcquisitionFunctionsType.random_token: token_sampling,
     AcquisitionFunctionsType.random_mention: mentions_sampling,
 }
 
