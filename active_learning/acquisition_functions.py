@@ -384,14 +384,14 @@ def entropy_mentions_sampling(
         doc_tokens_number = len(doc.simulation_token_annotations.tokens)
         _handle_sampled_token_into_sampled_data_mutable(
             token,
-            doc,
+            deepcopy(doc),
             sampled_data,
             sampled_doc_ids_w_order_id.get(doc.orchid_id),  # type: ignore
         )
         sampled_tokens_counter += (
             len(doc.simulation_token_annotations.tokens) - doc_tokens_number
         )
-        docs[docs_w_their_positions[doc.orchid_id]] = deepcopy(doc)  # type: ignore
+        docs_dict[doc.orchid_id] = deepcopy(doc)  # type: ignore
 
         counter = _counter_update(counter)
 
