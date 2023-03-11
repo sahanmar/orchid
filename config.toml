@@ -304,7 +304,7 @@
     [active_learning_simulation.model_params]
         bert_model = "roberta-large"
     [active_learning_simulation.active_learning]
-        instance_sampling = "random_mention"
+        instance_sampling = "entropy_mention" # "random_mention"
         strategy = "naive_sampling" # greedy_sampling
     [active_learning_simulation.active_learning.sampling_strategy.naive_sampling]
         batch_size = 5000
