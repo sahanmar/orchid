@@ -44,7 +44,7 @@ class RoughScorer(torch.nn.Module):
 
         if scoring_fn:
             # [n_mentions, 1]
-            scores = scoring_fn(bilinear_scores)
+            scores = scoring_fn(torch.softmax(bilinear_scores, dim=1))
             return cast(Tuple[torch.Tensor, torch.Tensor], torch.sort(scores))
 
         # [n_mentions, top_k_mentions]
@@ -118,7 +118,7 @@ class MCDropoutRoughScorer(RoughScorer):
 
         if scoring_fn:
             # [n_mentions, 1]
-            scores = scoring_fn(bilinear_scores)
+            scores = scoring_fn(torch.softmax(bilinear_scores, dim=1))
             return cast(Tuple[torch.Tensor, torch.Tensor], torch.sort(scores))
 
         rough_scores = pair_mask + bilinear_scores
