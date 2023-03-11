@@ -378,13 +378,13 @@ def entropy_mentions_sampling(
                 sampled_data, docs_w_their_positions
             )
         score, token, doc_id = ment_score_doc_id.pop(0)
-        doc = docs_dict[doc_id]
+        doc = deepcopy(docs_dict[doc_id])
 
         # Handle sampled data extension
         doc_tokens_number = len(doc.simulation_token_annotations.tokens)
         _handle_sampled_token_into_sampled_data_mutable(
             token,
-            deepcopy(doc),
+            doc,
             sampled_data,
             sampled_doc_ids_w_order_id.get(doc.orchid_id),  # type: ignore
         )
