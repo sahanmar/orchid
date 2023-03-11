@@ -3,6 +3,7 @@ from active_learning.acquisition_functions import (
     random_sampling,
     token_sampling,
     mentions_sampling,
+    entropy_mentions_sampling,
 )
 from copy import deepcopy
 
@@ -77,7 +78,7 @@ def test_mentions_sampling(dev_data: list[Doc]) -> None:
         .simulation_token_annotations.tokens
     )
 
-    assert len(sampled_mentions) >= len(mentions)
+    assert len(sampled_mentions) >= len(mentions.values())
 
     # Test multiple docs
     new_docs = [
@@ -106,3 +107,61 @@ def test_mentions_sampling(dev_data: list[Doc]) -> None:
     assert len(
         sampled_tokens.instances[2].simulation_token_annotations.tokens
     ) == len(new_docs[sampled_tokens.indices[2]].cased_words)
+
+
+def test_entropy_sampling(dev_data: list[Doc]) -> None:
+    # if we sample some batch size, we will sample at least
+    # the amount we want to sample due to the possible spans
+    doc_ids = [doc.orchid_id for doc in dev_data if doc.orchid_id is not None]
+    mentions = {doc_ids[0]: [(1, 0.0), (10, 0.5), (100, 1.0)]}
+    sampled_mentions = (
+        entropy_mentions_sampling(
+            deepcopy(dev_data), BATCH_SIZE, 100_000, mentions
+        )
+        .instances[0]
+        .simulation_token_annotations.tokens
+    )
+
+    assert len(sampled_mentions) >= len(mentions.values())
+
+    # Check if ordering is correct
+    sampled_mentions = (
+        entropy_mentions_sampling(deepcopy(dev_data), 1, 100_000, mentions)
+        .instances[0]
+        .simulation_token_annotations.tokens
+    )
+
+    assert 100 in sampled_mentions and len(sampled_mentions) == 1
+
+    # Test multiple docs
+    new_docs = [
+        deepcopy(dev_data[0]),
+        deepcopy(dev_data[0]),
+        deepcopy(dev_data[0]),
+    ]
+    new_docs[0].orchid_id = "id_0"
+    new_docs[1].orchid_id = "id_1"
+    new_docs[2].orchid_id = "id_3"
+
+    mentions = {
+        new_docs[0].orchid_id: [(1, 0.5), (10, 0.5), (100, 0.5)],
+        new_docs[1].orchid_id: [(50, 0.5), (30, 0.5), (115, 0.5)],
+        new_docs[2].orchid_id: [(1, 0.5), (10, 0.5), (100, 0.5), (200, 0.5)],
+    }
+
+    sampled_tokens = entropy_mentions_sampling(
+        new_docs, 1_000_000, 100_000, mentions
+    )
+
+    assert (
+        len(sampled_tokens.instances[0].simulation_token_annotations.tokens)
+        == 4
+    )
+    assert (
+        len(sampled_tokens.instances[1].simulation_token_annotations.tokens)
+        == 3
+    )
+    assert (
+        len(sampled_tokens.instances[2].simulation_token_annotations.tokens)
+        == 3
+    )

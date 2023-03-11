@@ -10,6 +10,7 @@ from active_learning.acquisition_functions import (
     # random_sampling,
     token_sampling,
     mentions_sampling,
+    entropy_mentions_sampling,
 )
 
 
@@ -29,6 +30,7 @@ ACQUISITION_FUNCTION_MAPPER: dict[
 ] = {
     AcquisitionFunctionsType.random_token: token_sampling,
     AcquisitionFunctionsType.random_mention: mentions_sampling,
+    AcquisitionFunctionsType.entropy_mention: entropy_mentions_sampling,
 }
 
 

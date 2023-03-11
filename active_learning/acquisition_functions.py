@@ -329,6 +329,83 @@ def mentions_sampling(
     return _fill_sampled_data_indices(sampled_data, docs_w_their_positions)
 
 
+def entropy_mentions_sampling(
+    docs: list[Doc],
+    token_batch: int,
+    docs_of_interest: int,
+    mentions: dict[str, Any],  # list[MentionType]
+) -> SampledData:
+    orchid_id_nullability_check(docs)
+
+    # Get only mentions that are not sampled
+    filtered_mentions: dict[str, Any] = {
+        doc.orchid_id: [  # type: ignore
+            (ment, score)
+            for ment, score in mentions[doc.orchid_id]  # type: ignore
+            if ment not in doc.simulation_token_annotations.tokens
+        ]
+        for doc in docs
+    }
+    docs_dict = {doc.orchid_id: doc for doc in docs}
+
+    (
+        sampled_tokens_counter,
+        counter,
+        sampled_data,
+        docs_w_their_positions,
+    ) = _setup(docs)
+
+    # Get a monstrous sorted array
+    ment_score_doc_id = sorted(
+        [
+            (score, ment, doc_id)
+            for doc_id, ments_w_scores in filtered_mentions.items()
+            for ment, score in ments_w_scores
+        ],
+        key=lambda x: (x[0], x[1], x[2]),
+        reverse=True,
+    )
+
+    # Sample the data
+    while sampled_tokens_counter < token_batch:
+        sampled_doc_ids_w_order_id = {
+            d.orchid_id: i
+            for i, d in enumerate(sampled_data.instances)
+            if d.orchid_id
+        }
+        if not ment_score_doc_id:
+            return _fill_sampled_data_indices(
+                sampled_data, docs_w_their_positions
+            )
+        score, token, doc_id = ment_score_doc_id.pop(0)
+        doc = docs_dict[doc_id]
+
+        # Handle sampled data extension
+        doc_tokens_number = len(doc.simulation_token_annotations.tokens)
+        _handle_sampled_token_into_sampled_data_mutable(
+            token,
+            doc,
+            sampled_data,
+            sampled_doc_ids_w_order_id.get(doc.orchid_id),  # type: ignore
+        )
+        sampled_tokens_counter += (
+            len(doc.simulation_token_annotations.tokens) - doc_tokens_number
+        )
+        docs[docs_w_their_positions[doc.orchid_id]] = deepcopy(doc)  # type: ignore
+
+        counter = _counter_update(counter)
+
+    return _fill_sampled_data_indices(sampled_data, docs_w_their_positions)
+
+
+def orchid_id_nullability_check(docs: list[Doc]) -> None:
+    for doc in docs:
+        if doc.orchid_id is None:
+            raise ValueError(
+                "Its kinda has optional typing but it can't be None"
+            )
+
+
 def _handle_sampled_token_into_sampled_data_mutable(
     token: int,
     doc: Doc,
@@ -360,14 +437,6 @@ def _handle_sampled_token_into_sampled_data_mutable(
         sampled_data.instances[doc_idx_in_sampled_data] = doc
     else:
         sampled_data.instances.append(doc)
-
-
-def orchid_id_nullability_check(docs: list[Doc]) -> None:
-    for doc in docs:
-        if doc.orchid_id is None:
-            raise ValueError(
-                "Its kinda has optional typing but it can't be None"
-            )
 
 
 def _fill_sampled_data_indices(

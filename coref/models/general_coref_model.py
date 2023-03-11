@@ -37,6 +37,7 @@ from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
 from uncertainty.uncertainty_metrics import pavpu_metric
 from coref.logging_utils import get_stream_logger
+from active_learning.uncertainty_functions import entropy
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling, NaiveSampling
@@ -485,7 +486,12 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             self.config.active_learning.instance_sampling
             == InstanceSampling.entropy_mention
         ):
-            ...
+            mentions = {
+                doc.orchid_id: self.run(
+                    deepcopy(doc), return_mention=True, scoring_fn=entropy
+                )
+                for doc in documents
+            }
         else:
             mentions = {}
 
