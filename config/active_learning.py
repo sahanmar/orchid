@@ -54,17 +54,11 @@ class ActiveLearning:
             strategy_config: Union[
                 GreedySampling, NaiveSampling
             ] = GreedySampling.load_config(
-                **{
-                    **sampling_strategy[strategy],
-                    **{"acquisition_function_type": instance_sampling},
-                }
+                **sampling_strategy[strategy],
             )
         if strategy_type == SamplingStrategy.naive_sampling:
             strategy_config = NaiveSampling.load_config(
-                **{
-                    **sampling_strategy[strategy],
-                    **{"acquisition_function_type": instance_sampling},
-                }
+                **sampling_strategy[strategy],
             )
 
         return ActiveLearning(

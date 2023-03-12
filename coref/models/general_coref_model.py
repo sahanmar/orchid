@@ -476,33 +476,54 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
         if (
             self.config.active_learning.instance_sampling
-            == InstanceSampling.random_mention
+            == InstanceSampling.random_token  # random token
         ):
+            # Random token need all possible tokens/mentions with the same rank
             mentions = {
-                doc.orchid_id: self.run(deepcopy(doc), return_mention=True)
+                doc.orchid_id: [(i, 0.0) for i in range(len(doc.cased_words))]
                 for doc in documents
             }
         elif (
             self.config.active_learning.instance_sampling
-            == InstanceSampling.entropy_mention
+            == InstanceSampling.random_mention  # random predicted mention
         ):
+            # Predicted mentions must be diluted with the rest of the mentions/tokens.
+            # In order to give predicted mentions more weight we add score == 1
             mentions = {
-                doc.orchid_id: self.run(
-                    deepcopy(doc), return_mention=True, scoring_fn=entropy
+                doc.orchid_id: [
+                    (token, 1 if pred_mention == token else 0.0)
+                    for pred_mention, _ in cast(
+                        list[Tuple[int, float]],
+                        self.run(deepcopy(doc), return_mention=True),
+                    )
+                    for token in range(len(doc.cased_words))
+                ]
+                for doc in documents
+            }
+        elif (
+            self.config.active_learning.instance_sampling
+            == InstanceSampling.entropy_mention  # mentions with entropy prediction
+        ):
+            # Every mention gets entropy scoring. Unlike the previous case we get cores
+            # for every mention/token in the document. Hence, no need for dilution.
+            mentions = {
+                doc.orchid_id: cast(
+                    list[Tuple[int, float]],
+                    self.run(
+                        deepcopy(doc), return_mention=True, scoring_fn=entropy
+                    ),
                 )
                 for doc in documents
             }
         else:
-            mentions = {}
-
-        if SamplingStrategy.greedy_sampling == self.sampling_strategy_type:
-            return self.sampling_strategy_config.step(documents)  # type: ignore
-        if SamplingStrategy.naive_sampling == self.sampling_strategy_type:
-            return self.sampling_strategy_config.step(  # type: ignore
-                documents, cast(dict[str, list[int]], mentions)
+            instance_samp_type = self.config.active_learning.instance_sampling
+            raise ValueError(
+                f"None of InstanceSampling options matched {instance_samp_type}..."
             )
 
-        raise ValueError("Wrong sampling strategy... Executor not likey...")
+        return self.sampling_strategy_config.step(  # type: ignore
+            documents, cast(dict[str, list[Tuple[int, float]]], mentions)
+        )
 
     def get_uncertainty_metrics(self, docs: List[Doc]) -> list[float]:
 

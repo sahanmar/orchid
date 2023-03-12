@@ -1,5 +1,5 @@
 from typing import Tuple, Optional, cast, Any
-from random import sample, choice
+from random import sample, shuffle
 
 from coref.const import Doc, SampledData
 from copy import deepcopy
@@ -19,165 +19,275 @@ def random_sampling(instances: list[Doc], batch_size: int) -> SampledData:
 MentionType = Tuple[int, float]
 
 
-def token_sampling(
-    docs: list[Doc],
-    token_batch: int,
-    docs_of_interest: int,
-    _: dict[str, Any] = {},
-) -> SampledData:
-    """
-    The method samples random tokens from docs in the following way:
+# def token_sampling(
+#     docs: list[Doc],
+#     token_batch: int,
+#     docs_of_interest: int,
+#     _: dict[str, Any] = {},
+# ) -> SampledData:
+#     """
+#     The method samples random tokens from docs in the following way:
 
-    Repeat until # sampled tokens equals to the token_batch
-        - Sample a doc (
-            if docs_of_interest are set, then tokens will be
-            preferred from first docs_of_interest docs
-        )
-        - Sample a token
+#     Repeat until # sampled tokens equals to the token_batch
+#         - Sample a doc (
+#             if docs_of_interest are set, then tokens will be
+#             preferred from first docs_of_interest docs
+#         )
+#         - Sample a token
 
-        if a token belongs to a coreference span and has other mentions
-            - take the full span and find the closest mention
-        else
-            - take the token as it is
+#         if a token belongs to a coreference span and has other mentions
+#             - take the full span and find the closest mention
+#         else
+#             - take the token as it is
 
-        if the doc was already sampled before
-            - extend the simulation tokens field and save a doc
-        else
-            - save a doc and write in simulation tokens
+#         if the doc was already sampled before
+#             - extend the simulation tokens field and save a doc
+#         else
+#             - save a doc and write in simulation tokens
 
-    return all created docs with sampled tokens
-    """
+#     return all created docs with sampled tokens
+#     """
 
-    (
-        sampled_tokens_counter,
-        counter,
-        sampled_data,
-        docs_w_their_positions,
-    ) = _setup(docs)
-    while sampled_tokens_counter < token_batch:
-        # sample the doc and solve the use-cases
-        sampled_doc_ids_w_order_id = {
-            d.orchid_id: i
-            for i, d in enumerate(sampled_data.instances)
-            if d.orchid_id
-        }
-        doc = deepcopy(
-            _choose_the_doc_for_token_sampling(
-                docs, sampled_data, sampled_doc_ids_w_order_id, docs_of_interest
-            )
-        )
-        # if no tokens to sample return what we already have
-        if doc is None:
-            return _fill_sampled_data_indices(
-                sampled_data, docs_w_their_positions
-            )
+#     (
+#         sampled_tokens_counter,
+#         counter,
+#         sampled_data,
+#         docs_w_their_positions,
+#     ) = _setup(docs)
+#     while sampled_tokens_counter < token_batch:
+#         # sample the doc and solve the use-cases
+#         sampled_doc_ids_w_order_id = {
+#             d.orchid_id: i for i, d in enumerate(sampled_data.instances) if d.orchid_id
+#         }
+#         doc = deepcopy(
+#             _choose_the_doc_for_token_sampling(
+#                 docs, sampled_data, sampled_doc_ids_w_order_id, docs_of_interest
+#             )
+#         )
+#         # if no tokens to sample return what we already have
+#         if doc is None:
+#             return _fill_sampled_data_indices(sampled_data, docs_w_their_positions)
 
-        if not doc.orchid_id:
-            raise ValueError("No doc id. This is bad...")
+#         if not doc.orchid_id:
+#             raise ValueError("No doc id. This is bad...")
 
-        # choose new tokens given that we already sampled from the doc
-        previously_sampled_tokens = doc.simulation_token_annotations.tokens
-        if doc.orchid_id in sampled_doc_ids_w_order_id:
-            currently_sampled_tokens = sampled_data.instances[
-                sampled_doc_ids_w_order_id[doc.orchid_id]
-            ].simulation_token_annotations.tokens
-            tokens = _filtered_tokens_to_sample(
-                list(range(len(doc.cased_words))),
-                currently_sampled_tokens.union(previously_sampled_tokens),
-            )
-        else:
-            tokens = _filtered_tokens_to_sample(
-                list(range(len(doc.cased_words))), previously_sampled_tokens
-            )
+#         # choose new tokens given that we already sampled from the doc
+#         previously_sampled_tokens = doc.simulation_token_annotations.tokens
+#         if doc.orchid_id in sampled_doc_ids_w_order_id:
+#             currently_sampled_tokens = sampled_data.instances[
+#                 sampled_doc_ids_w_order_id[doc.orchid_id]
+#             ].simulation_token_annotations.tokens
+#             tokens = _filtered_tokens_to_sample(
+#                 list(range(len(doc.cased_words))),
+#                 currently_sampled_tokens.union(previously_sampled_tokens),
+#             )
+#         else:
+#             tokens = _filtered_tokens_to_sample(
+#                 list(range(len(doc.cased_words))), previously_sampled_tokens
+#             )
 
-        if not tokens:
-            continue
+#         if not tokens:
+#             continue
 
-        token = choice(tokens)
+#         token = choice(tokens)
 
-        # Handle sampled data extension
-        doc_tokens_number = len(doc.simulation_token_annotations.tokens)
-        _handle_sampled_token_into_sampled_data_mutable(
-            token,
-            doc,
-            sampled_data,
-            sampled_doc_ids_w_order_id.get(doc.orchid_id),
-        )
-        sampled_tokens_counter += (
-            len(doc.simulation_token_annotations.tokens) - doc_tokens_number
-        )
-        docs[docs_w_their_positions[doc.orchid_id]] = deepcopy(doc)
+#         # Handle sampled data extension
+#         doc_tokens_number = len(doc.simulation_token_annotations.tokens)
+#         _handle_sampled_token_into_sampled_data_mutable(
+#             token,
+#             doc,
+#             sampled_data,
+#             sampled_doc_ids_w_order_id.get(doc.orchid_id),
+#         )
+#         sampled_tokens_counter += (
+#             len(doc.simulation_token_annotations.tokens) - doc_tokens_number
+#         )
+#         docs[docs_w_their_positions[doc.orchid_id]] = deepcopy(doc)
 
-        counter = _counter_update(counter)
-    return _fill_sampled_data_indices(sampled_data, docs_w_their_positions)
+#         counter = _counter_update(counter)
+#     return _fill_sampled_data_indices(sampled_data, docs_w_their_positions)
 
 
-def _get_coref_if_token_in_cluster(
-    token: int, span_clusters: list[list[Tuple[int, int]]]
-) -> Optional[set[int]]:
-    """
-    If a chosen token is in a coreference cluster then return the span tokens and
-    the closest mention. If not, returns None
-    """
-    for cluster in span_clusters:
-        for i, span in enumerate(cluster):
-            start, end = span
-            if token in range(start, end):
-                if i == 0:
-                    closest_span = cluster[i + 1]
-                else:
-                    closest_span = cluster[i - 1]
-                return set(
-                    [
-                        token
-                        for start, end in [span, closest_span]
-                        for token in range(start, end)
-                    ]
-                )
-    return None
+# def _choose_the_doc_for_token_sampling(
+#     docs: list[Doc],
+#     sampled_data: SampledData,
+#     sampled_doc_ids_w_order_id: dict[str, int],
+#     docs_of_interest: int,
+# ) -> Optional[Doc]:
+#     """
+#     docs: list of Docs to sample from
+#     sampled_data: the docs that the tokens were already sampled from
+#     sampled_doc_ids_w_order_id: mapping of sampled doc ids to their
+#     order in the SampleData instances list
+#     docs_of_interest: strategy that will always prefer selection from the
+#     docs_of_interest indices.
+
+#     Returns doc and its id in the docs list
+
+#     Edge cases:
+#         - If all tokens were sampled from the doc, returns None
+#     """
+#     if not docs:
+#         return None
+#     doc_id = (
+#         choice(range(len(docs)))
+#         if len(docs) < docs_of_interest
+#         else choice(range(docs_of_interest))
+#     )
+#     doc = docs[doc_id]
+#     if doc.orchid_id in sampled_doc_ids_w_order_id and (
+#         set(range(len(doc.cased_words)))
+#         == sampled_data.instances[
+#             sampled_doc_ids_w_order_id[doc.orchid_id]
+#         ].simulation_token_annotations.tokens
+#     ):
+#         new_docs_of_interest = docs_of_interest - 1
+#         return _choose_the_doc_for_token_sampling(
+#             [d for i, d in enumerate(docs) if i != doc_id],
+#             sampled_data,
+#             sampled_doc_ids_w_order_id,
+#             new_docs_of_interest if new_docs_of_interest >= 1 else 1,
+#         )
+#     return doc
 
 
-def _choose_the_doc_for_token_sampling(
-    docs: list[Doc],
-    sampled_data: SampledData,
-    sampled_doc_ids_w_order_id: dict[str, int],
-    docs_of_interest: int,
-) -> Optional[Doc]:
-    """
-    docs: list of Docs to sample from
-    sampled_data: the docs that the tokens were already sampled from
-    sampled_doc_ids_w_order_id: mapping of sampled doc ids to their
-    order in the SampleData instances list
-    docs_of_interest: strategy that will always prefer selection from the
-    docs_of_interest indices.
+# def mentions_sampling(
+#     docs: list[Doc],
+#     token_batch: int,
+#     docs_of_interest: int,
+#     mentions: dict[str, Any],  # list[MentionType]
+# ) -> SampledData:
 
-    Returns doc and its id in the docs list
+#     """
+#     The method samples random tokens from mentions predicted by a rough scorer:
 
-    Edge cases:
-        - If all tokens were sampled from the doc, returns None
-    """
-    if not docs:
-        return None
-    doc_id = (
-        choice(range(len(docs)))
-        if len(docs) < docs_of_interest
-        else choice(range(docs_of_interest))
-    )
-    doc = docs[doc_id]
-    if doc.orchid_id in sampled_doc_ids_w_order_id and (
-        set(range(len(doc.cased_words)))
-        == sampled_data.instances[
-            sampled_doc_ids_w_order_id[doc.orchid_id]
-        ].simulation_token_annotations.tokens
-    ):
-        new_docs_of_interest = docs_of_interest - 1
-        return _choose_the_doc_for_token_sampling(
-            [d for i, d in enumerate(docs) if i != doc_id],
-            sampled_data,
-            sampled_doc_ids_w_order_id,
-            new_docs_of_interest if new_docs_of_interest >= 1 else 1,
-        )
-    return doc
+#     Repeat until # sampled tokens equals to the token_batch
+#         - Sample a doc (
+#             if docs_of_interest are set, then tokens will be
+#             preferred from first docs_of_interest docs
+#         )
+
+#         - Sample a token iteratively given mentions (until all mentions are exhausted)
+
+#         if a token belongs to a coreference span and has other coref mentions
+#             - take the full span and find the closest mention
+#         else
+#             - take the token as it is
+
+#         if the doc was already sampled before
+#             - extend the simulation tokens field and save a doc
+#         else
+#             - save a doc and write in simulation tokens
+
+#     return all created docs with sampled tokens
+#     """
+#     orchid_id_nullability_check(docs)
+#     mentions = {key: [i for i, _ in val] for key, val in mentions.items()}
+
+#     exhausted_doc_mentions: set[str] = {
+#         doc.orchid_id
+#         for doc in docs
+#         if doc.orchid_id
+#         and not set(mentions[doc.orchid_id]) - doc.simulation_token_annotations.tokens
+#     }
+#     all_docs_w_mentions = len(
+#         {
+#             doc.orchid_id
+#             for doc in docs
+#             if doc.orchid_id
+#             and set(mentions[doc.orchid_id]) - doc.simulation_token_annotations.tokens
+#         }
+#     )
+#     (
+#         sampled_tokens_counter,
+#         counter,
+#         sampled_data,
+#         docs_w_their_positions,
+#     ) = _setup(docs)
+#     while sampled_tokens_counter < token_batch:
+#         # sample the doc and solve the edge-cases
+#         sampled_doc_ids_w_order_id = {
+#             d.orchid_id: i for i, d in enumerate(sampled_data.instances) if d.orchid_id
+#         }
+#         docs_w_mentions_to_sample = [
+#             doc for doc in docs if doc.orchid_id not in exhausted_doc_mentions
+#         ]
+#         doc = deepcopy(
+#             _choose_the_doc_for_token_sampling(
+#                 docs_w_mentions_to_sample if docs_w_mentions_to_sample else docs,
+#                 sampled_data,
+#                 sampled_doc_ids_w_order_id,
+#                 docs_of_interest,
+#             )
+#         )
+#         # if no tokens to sample return what we already have
+#         if doc is None:
+#             return _fill_sampled_data_indices(sampled_data, docs_w_their_positions)
+
+#         if not doc.orchid_id:
+#             raise ValueError("No doc id. This is bad...")
+#         tokens_to_sample = (
+#             list(range(len(doc.cased_words)))
+#             if doc.orchid_id in exhausted_doc_mentions
+#             else mentions[doc.orchid_id]
+#         )
+
+#         # choose new tokens given that we already sampled from the doc
+#         if doc.orchid_id in sampled_doc_ids_w_order_id:
+#             sampled_tokens = sampled_data.instances[
+#                 sampled_doc_ids_w_order_id[doc.orchid_id]
+#             ].simulation_token_annotations.tokens
+#             # sample from mentions
+#             if docs_w_mentions_to_sample:
+#                 tokens = _filtered_tokens_to_sample(tokens_to_sample, sampled_tokens)
+#                 if not tokens:
+#                     exhausted_doc_mentions.add(doc.orchid_id)
+#                     continue
+#             # if no mention docs left sample ordinary token
+#             elif len(exhausted_doc_mentions) == all_docs_w_mentions:
+#                 tokens = _filtered_tokens_to_sample(
+#                     list(range(len(doc.cased_words))), sampled_tokens
+#                 )
+#             else:
+#                 continue
+#         else:
+#             # sample from mentions or if no mention docs left sample ordinary token
+#             if (
+#                 docs_w_mentions_to_sample
+#                 or len(exhausted_doc_mentions) == all_docs_w_mentions
+#             ):
+#                 tokens = _filtered_tokens_to_sample(
+#                     tokens_to_sample, doc.simulation_token_annotations.tokens
+#                 )
+#                 if not tokens:
+#                     exhausted_doc_mentions.add(doc.orchid_id)
+#                     continue
+#             else:
+#                 continue
+
+#         if not tokens:
+#             raise ValueError(
+#                 "No tokens available... This should never happened. Do your refactor bruv"
+#             )
+
+#         token = choice(tokens)
+
+#         # Handle sampled data extension
+#         doc_tokens_number = len(doc.simulation_token_annotations.tokens)
+#         _handle_sampled_token_into_sampled_data_mutable(
+#             token,
+#             doc,
+#             sampled_data,
+#             sampled_doc_ids_w_order_id.get(doc.orchid_id),
+#         )
+#         sampled_tokens_counter += (
+#             len(doc.simulation_token_annotations.tokens) - doc_tokens_number
+#         )
+#         docs[docs_w_their_positions[doc.orchid_id]] = deepcopy(doc)
+
+#         counter = _counter_update(counter)
+
+#     return _fill_sampled_data_indices(sampled_data, docs_w_their_positions)
 
 
 def mentions_sampling(
@@ -186,17 +296,17 @@ def mentions_sampling(
     docs_of_interest: int,
     mentions: dict[str, Any],  # list[MentionType]
 ) -> SampledData:
-
     """
-    The method samples random tokens from mentions predicted by a rough scorer:
+    The method samples tokens from mentions given scores:
 
     Repeat until # sampled tokens equals to the token_batch
-        - Sample a doc (
-            if docs_of_interest are set, then tokens will be
-            preferred from first docs_of_interest docs
-        )
+        - Get only mentions that are not sampled
 
-        - Sample a token iteratively given mentions (until all mentions are exhausted)
+        - Sort all mentions given scores, doc_id and then mention id
+
+        - Choose priority docs given the score
+
+        - Take a first mention in a priority list
 
         if a token belongs to a coreference span and has other coref mentions
             - take the full span and find the closest mention
@@ -210,131 +320,7 @@ def mentions_sampling(
 
     return all created docs with sampled tokens
     """
-    orchid_id_nullability_check(docs)
-    mentions = {key: [i for i, _ in val] for key, val in mentions.items()}
 
-    exhausted_doc_mentions: set[str] = {
-        doc.orchid_id
-        for doc in docs
-        if doc.orchid_id
-        and not set(mentions[doc.orchid_id])
-        - doc.simulation_token_annotations.tokens
-    }
-    all_docs_w_mentions = len(
-        {
-            doc.orchid_id
-            for doc in docs
-            if doc.orchid_id
-            and set(mentions[doc.orchid_id])
-            - doc.simulation_token_annotations.tokens
-        }
-    )
-    (
-        sampled_tokens_counter,
-        counter,
-        sampled_data,
-        docs_w_their_positions,
-    ) = _setup(docs)
-    while sampled_tokens_counter < token_batch:
-        # sample the doc and solve the edge-cases
-        sampled_doc_ids_w_order_id = {
-            d.orchid_id: i
-            for i, d in enumerate(sampled_data.instances)
-            if d.orchid_id
-        }
-        docs_w_mentions_to_sample = [
-            doc for doc in docs if doc.orchid_id not in exhausted_doc_mentions
-        ]
-        doc = deepcopy(
-            _choose_the_doc_for_token_sampling(
-                docs_w_mentions_to_sample
-                if docs_w_mentions_to_sample
-                else docs,
-                sampled_data,
-                sampled_doc_ids_w_order_id,
-                docs_of_interest,
-            )
-        )
-        # if no tokens to sample return what we already have
-        if doc is None:
-            return _fill_sampled_data_indices(
-                sampled_data, docs_w_their_positions
-            )
-
-        if not doc.orchid_id:
-            raise ValueError("No doc id. This is bad...")
-        tokens_to_sample = (
-            list(range(len(doc.cased_words)))
-            if doc.orchid_id in exhausted_doc_mentions
-            else mentions[doc.orchid_id]
-        )
-
-        # choose new tokens given that we already sampled from the doc
-        if doc.orchid_id in sampled_doc_ids_w_order_id:
-            sampled_tokens = sampled_data.instances[
-                sampled_doc_ids_w_order_id[doc.orchid_id]
-            ].simulation_token_annotations.tokens
-            # sample from mentions
-            if docs_w_mentions_to_sample:
-                tokens = _filtered_tokens_to_sample(
-                    tokens_to_sample, sampled_tokens
-                )
-                if not tokens:
-                    exhausted_doc_mentions.add(doc.orchid_id)
-                    continue
-            # if no mention docs left sample ordinary token
-            elif len(exhausted_doc_mentions) == all_docs_w_mentions:
-                tokens = _filtered_tokens_to_sample(
-                    list(range(len(doc.cased_words))), sampled_tokens
-                )
-            else:
-                continue
-        else:
-            # sample from mentions or if no mention docs left sample ordinary token
-            if (
-                docs_w_mentions_to_sample
-                or len(exhausted_doc_mentions) == all_docs_w_mentions
-            ):
-                tokens = _filtered_tokens_to_sample(
-                    tokens_to_sample, doc.simulation_token_annotations.tokens
-                )
-                if not tokens:
-                    exhausted_doc_mentions.add(doc.orchid_id)
-                    continue
-            else:
-                continue
-
-        if not tokens:
-            raise ValueError(
-                "No tokens available... This should never happened. Do your refactor bruv"
-            )
-
-        token = choice(tokens)
-
-        # Handle sampled data extension
-        doc_tokens_number = len(doc.simulation_token_annotations.tokens)
-        _handle_sampled_token_into_sampled_data_mutable(
-            token,
-            doc,
-            sampled_data,
-            sampled_doc_ids_w_order_id.get(doc.orchid_id),
-        )
-        sampled_tokens_counter += (
-            len(doc.simulation_token_annotations.tokens) - doc_tokens_number
-        )
-        docs[docs_w_their_positions[doc.orchid_id]] = deepcopy(doc)
-
-        counter = _counter_update(counter)
-
-    return _fill_sampled_data_indices(sampled_data, docs_w_their_positions)
-
-
-def entropy_mentions_sampling(
-    docs: list[Doc],
-    token_batch: int,
-    docs_of_interest: int,
-    mentions: dict[str, Any],  # list[MentionType]
-) -> SampledData:
     orchid_id_nullability_check(docs)
 
     # Get only mentions that are not sampled
@@ -356,15 +342,41 @@ def entropy_mentions_sampling(
     ) = _setup(docs)
 
     # Get a monstrous sorted array
-    ment_score_doc_id = sorted(
-        [
-            (score, ment, doc_id)
-            for doc_id, ments_w_scores in filtered_mentions.items()
-            for ment, score in ments_w_scores
-        ],
-        key=lambda x: (x[0], x[1], x[2]),
+    ment_score_doc_id_unsorted: list[Tuple[float, int, str]] = [
+        (score, ment, doc_id)
+        for doc_id, ments_w_scores in filtered_mentions.items()
+        for ment, score in ments_w_scores
+    ]
+    shuffle(ment_score_doc_id_unsorted)
+    ment_score_doc_id_sorted = sorted(
+        ment_score_doc_id_unsorted,
+        key=lambda x: x[0],  # lambda x: (x[0], x[2]) if doc exhaust
         reverse=True,
     )
+    del ment_score_doc_id_unsorted
+
+    # Choose priority docs given the score
+    priority_docs = set()
+    for _, _, doc_id in ment_score_doc_id_sorted:
+        if doc_id not in priority_docs:
+            priority_docs.add(doc_id)
+        if len(priority_docs) == docs_of_interest:
+            break
+
+    if docs_of_interest != 0:
+        ment_score_doc_id_prio = []
+        ment_score_doc_id_deprio = []
+        for score, token, doc_id in ment_score_doc_id_sorted:
+            if doc_id in priority_docs:
+                ment_score_doc_id_prio.append((score, token, doc_id))
+            else:
+                ment_score_doc_id_deprio.append((score, token, doc_id))
+
+        ment_score_doc_id = ment_score_doc_id_prio + ment_score_doc_id_deprio
+    elif docs_of_interest < 0:
+        raise ValueError(
+            f"Wrong input for docs of interest = {docs_of_interest}..."
+        )
 
     # Sample the data
     while sampled_tokens_counter < token_batch:
@@ -404,6 +416,31 @@ def orchid_id_nullability_check(docs: list[Doc]) -> None:
             raise ValueError(
                 "Its kinda has optional typing but it can't be None"
             )
+
+
+def _get_coref_if_token_in_cluster(
+    token: int, span_clusters: list[list[Tuple[int, int]]]
+) -> Optional[set[int]]:
+    """
+    If a chosen token is in a coreference cluster then return the span tokens and
+    the closest mention. If not, returns None
+    """
+    for cluster in span_clusters:
+        for i, span in enumerate(cluster):
+            start, end = span
+            if token in range(start, end):
+                if i == 0:
+                    closest_span = cluster[i + 1]
+                else:
+                    closest_span = cluster[i - 1]
+                return set(
+                    [
+                        token
+                        for start, end in [span, closest_span]
+                        for token in range(start, end)
+                    ]
+                )
+    return None
 
 
 def _handle_sampled_token_into_sampled_data_mutable(
@@ -461,15 +498,13 @@ def _setup(docs: list[Doc]) -> Tuple[int, int, SampledData, dict[str, int]]:
     return sampled_tokens_counter, counter, sampled_data, doc_w_their_position  # type: ignore
 
 
-def _filtered_tokens_to_sample(
-    token_ids: list[int], sampled_tokens: set[int]
-) -> list[int]:
-    """
-    returns a list of tokens filtered given already sampled tokens
-    """
-    return [
-        token_id for token_id in token_ids if token_id not in sampled_tokens
-    ]
+# def _filtered_tokens_to_sample(
+#     token_ids: list[int], sampled_tokens: set[int]
+# ) -> list[int]:
+#     """
+#     returns a list of tokens filtered given already sampled tokens
+#     """
+#     return [token_id for token_id in token_ids if token_id not in sampled_tokens]
 
 
 def _counter_update(
