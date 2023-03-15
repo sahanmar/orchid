@@ -489,17 +489,20 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         ):
             # Predicted mentions must be diluted with the rest of the mentions/tokens.
             # In order to give predicted mentions more weight we add score == 1
-            mentions = {
-                doc.orchid_id: [
-                    (token, 1 if pred_mention == token else 0.0)
-                    for pred_mention, _ in cast(
+            mentions = {}
+            for doc in documents:
+                pred_mentions = set(
+                    token
+                    for token, _ in cast(
                         list[Tuple[int, float]],
                         self.run(deepcopy(doc), return_mention=True),
                     )
-                    for token in range(len(doc.cased_words))
-                ]
-                for doc in documents
-            }
+                )
+                all_tokens = set(range(len(doc.cased_words)))
+                zero_score = all_tokens - pred_mentions
+                mentions[doc.orchid_id] = [
+                    (token, 1.0) for token in pred_mentions
+                ] + [(token, 0.0) for token in zero_score]
         elif (
             self.config.active_learning.instance_sampling
             == InstanceSampling.entropy_mention  # mentions with entropy prediction
