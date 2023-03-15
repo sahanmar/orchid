@@ -38,6 +38,7 @@ from coref.word_encoder import WordEncoder
 from uncertainty.uncertainty_metrics import pavpu_metric
 from coref.logging_utils import get_stream_logger
 from active_learning.uncertainty_functions import entropy
+from itertools import chain, repeat
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling, NaiveSampling
@@ -501,8 +502,12 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 all_tokens = set(range(len(doc.cased_words)))
                 zero_score = all_tokens - pred_mentions
                 mentions[doc.orchid_id] = [
-                    (token, 1.0) for token in pred_mentions
-                ] + [(token, 0.0) for token in zero_score]
+                    (token, score)
+                    for token, score in chain(
+                        zip(pred_mentions, repeat(1.0)),
+                        zip(zero_score, repeat(0.0)),
+                    )
+                ]
         elif (
             self.config.active_learning.instance_sampling
             == InstanceSampling.entropy_mention  # mentions with entropy prediction
