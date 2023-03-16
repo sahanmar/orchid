@@ -13,7 +13,8 @@ class JsonFormatter(logging.Formatter):
     @param fmt_dict: dict;
         key-value logging format attribute pairs.
         Defaults to {"message": "message"}.
-    @param time_format: str; time.strftime() format string. Default: "%Y-%m-%dT%H:%M:%S"
+    @param time_format: str; time.strftime() format string.
+        Default: "%Y-%m-%dT%H:%M:%S"
     """
 
     def __init__(
@@ -60,7 +61,7 @@ class JsonFormatter(logging.Formatter):
         if isinstance(msg_raw, str):
             message = record.getMessage()
         else:
-            # Does not supply user-supplied arguments
+            # Does not support user-supplied arguments
             # The below statement is reachable, e.g., in cases when a dictionary
             # is passed to the log message
             message = msg_raw  # type: ignore[unreachable]
