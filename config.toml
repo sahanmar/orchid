@@ -266,6 +266,7 @@
         device = "cuda"
     [reduced_dimensionality.manifold_learning]
         enable = true
+        loss_alpha = 5e-6
         reduction_ratio = 0.75
 
 [debug_gpu]
