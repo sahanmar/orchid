@@ -10,8 +10,9 @@ import torch
 
 
 class SpanPredictor(torch.nn.Module):
-    def __init__(self, input_size: int, config: Config):
+    def __init__(self, config: Config):
         super().__init__()
+        input_size: int = config.model_bank.encoder.config.hidden_size
         self.ffnn = torch.nn.Sequential(
             torch.nn.Linear(input_size * 2 + 64, input_size),
             torch.nn.ReLU(),

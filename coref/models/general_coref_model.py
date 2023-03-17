@@ -14,6 +14,7 @@ from typing import (
     cast,
     TYPE_CHECKING,
     TypeVar,
+    Union,
 )
 
 import numpy as np  # type: ignore
@@ -21,10 +22,11 @@ import torch
 import transformers  # type: ignore
 from tqdm import tqdm
 
-from config import Config
 from coref import bert, conll, utils
 from coref.anaphoricity_scorer import AnaphoricityScorer
 from coref.cluster_checker import ClusterChecker
+from config import Config
+from config.active_learning import InstanceSampling, SamplingStrategy
 from coref.const import CorefResult, Doc, SampledData
 from coref.logging_utils import get_stream_logger
 from coref.loss import CorefLoss
@@ -36,7 +38,7 @@ from coref.word_encoder import WordEncoder
 from uncertainty.uncertainty_metrics import pavpu_metric
 
 if TYPE_CHECKING:
-    from active_learning.exploration import GreedySampling
+    from active_learning.exploration import GreedySampling, NaiveSampling
 
 T = TypeVar("T")
 
@@ -48,9 +50,6 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         config (config.Config): the model's configuration,
             see config.toml for the details
         epochs_trained (int): number of epochs the model has been trained for
-        trainable (Dict[str, torch.nn.Module]): trainable submodules with their
-            names used as keys
-        training (bool): used to toggle train/eval modes
 
     Submodules (in the order of their usage in the pipeline):
         tokenizer (transformers.AutoTokenizer)
@@ -67,8 +66,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         A newly created model is set to evaluation mode.
 
         Args:
-            config_path (str): the path to the toml file with the configuration
-            section (str): the selected section of the config file
+            config (Config): config dataclass created from toml
             epochs_trained (int): the number of epochs finished
                 (useful for warm start)
         """
@@ -88,8 +86,11 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self._build_criteria()
 
         # Active Learning section
-        self.sampling_strategy: GreedySampling = (
-            config.active_learning.sampling_strategy
+        self.sampling_strategy_config: Union[
+            GreedySampling, NaiveSampling
+        ] = config.active_learning.sampling_strategy
+        self.sampling_strategy_type: SamplingStrategy = (
+            config.active_learning.strategy_type
         )
         self._logger.info(
             "Initialization of the general coreference model is complete"
@@ -138,7 +139,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         ):
             pbar = tqdm(docs, unit="docs", ncols=0)
             for doc in pbar:
-                res = self.run(deepcopy(doc), True)
+                res = cast(CorefResult, self.run(deepcopy(doc), True))
 
                 running_loss += self._coref_criterion(
                     res.coref_scores, res.coref_y
@@ -288,15 +289,17 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self,
         doc: Doc,
         normalize_anaphoras: bool = False,
-    ) -> CorefResult:
+        return_mention: bool = False,
+    ) -> Union[CorefResult, set[int]]:
         """
         This is a massive method, but it made sense to me to not split it into
         several ones to let one see the data flow.
 
         Args:
             doc (Doc): a dataframe with the document data.
-            normalize_anaphoras (bool) apply softmax or not
+            normalize_anaphoras (bool): apply softmax or not
             to anaphoras scorer
+            return_mentions (bool): return only rough scores
 
         Returns:
             CorefResult (see const.py)
@@ -305,12 +308,19 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         # Encode words with bert
         encoded_doc = self._bertify(doc)
 
-        # If token_sampling is on, then rewrite the doc to a pseudo doc. This will use
+        # If instance_sampling is `token` or `mention`, then rewrite the doc to a pseudo doc. This will use
         # only tokens, given in the simulation_token_annotations field. If the field
         # is empty, the method will use all available annotated tokens.
         # N.B. The quality of encoding is not damaged because it is done on the whole
         # article
-        if self.config.active_learning.token_sampling:
+        if (
+            self.config.active_learning.instance_sampling
+            in {
+                InstanceSampling.token,
+                InstanceSampling.mention,
+            }
+            and not return_mention
+        ):
             doc = doc.create_simulation_pseudodoc()
             encoded_doc = encoded_doc[
                 doc.simulation_token_annotations.original_subtokens_ids, :
@@ -323,7 +333,13 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         # Obtain bilinear scores and leave only top-k antecedents for each word
         # top_rough_scores  [n_words, n_ants]
         # top_indices       [n_words, n_ants]
-        top_rough_scores, top_indices = self.rough_scorer(words)
+        top_rough_scores, top_indices = cast(
+            Tuple[torch.Tensor, torch.Tensor], self.rough_scorer(words)
+        )
+        if return_mention:
+            return doc.subwords_2_words(
+                set(int(i) for i in top_indices.flatten().tolist())
+            )
 
         # Get pairwise features [n_words, n_ants, n_pw_features]
         pw = self.pw(top_indices, doc)
@@ -410,7 +426,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 for optim in self.optimizers.values():
                     optim.zero_grad()
 
-                res = self.run(deepcopy(doc))
+                res = cast(CorefResult, self.run(deepcopy(doc)))
 
                 c_loss = self._coref_criterion(res.coref_scores, res.coref_y)
                 if res.span_y and res.span_scores is not None:
@@ -461,14 +477,34 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 self.evaluate(docs=docs_dev)
 
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
-        return self.sampling_strategy.step(documents)
+        if (
+            self.config.active_learning.instance_sampling
+            == InstanceSampling.mention
+        ):
+            mentions = {
+                doc.orchid_id: list(
+                    cast(set[int], self.run(deepcopy(doc), return_mention=True))
+                )
+                for doc in documents
+            }
+        else:
+            mentions = {}
+
+        if SamplingStrategy.greedy_sampling == self.sampling_strategy_type:
+            return self.sampling_strategy_config.step(documents)  # type: ignore
+        if SamplingStrategy.naive_sampling == self.sampling_strategy_type:
+            return self.sampling_strategy_config.step(  # type: ignore
+                documents, cast(dict[str, list[int]], mentions)
+            )
+
+        raise ValueError("Wrong sampling strategy... Executor not likey...")
 
     def get_uncertainty_metrics(self, docs: List[Doc]) -> list[float]:
 
         metrics_vals: list[list[float]] = []
         pbar = tqdm(docs, unit="docs", ncols=0)
         for doc in pbar:
-            res = self.run(deepcopy(doc), True)
+            res = cast(CorefResult, self.run(deepcopy(doc), True))
             pavpu_output = pavpu_metric(
                 res.coref_scores, res.coref_y, self.config.metrics.pavpu
             )
@@ -533,13 +569,15 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(
             self.config.training_params.device
         )
-        self.we = WordEncoder(bert_emb, self.config).to(
+        self.we = WordEncoder(self.config).to(
             self.config.training_params.device
         )
-        self.rough_scorer = RoughScorer(bert_emb, self.config).to(
-            self.config.training_params.device
-        )
-        self.sp = SpanPredictor(bert_emb, self.config).to(
+        self.rough_scorer = RoughScorer(
+            bert_emb,
+            self.config.model_params.rough_k,
+            self.config.training_params.dropout_rate,
+        ).to(self.config.training_params.device)
+        self.sp = SpanPredictor(self.config).to(
             self.config.training_params.device
         )
 

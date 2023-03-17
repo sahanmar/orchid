@@ -118,8 +118,14 @@
         # Number of neural network parameters that will represent NN empirical distribution
         parameters_samples = 10
 
-        # Turn on span sampling instead of documents sampling
-        token_sampling = false
+        # Instance type to sample. Options to choose from {document, token, mention}
+        # document - sample the document to train
+        # token - sample tokens from documents to train
+        # mention - sample mentions from rough_scorer prediction to train
+        instance_sampling = "token" # options {token, mention}
+
+        # Sampling stratedy
+        strategy = "naive_sampling" # options: {naive_sampling, greedy_sampling}
 
         [DEFAULT.active_learning.simulation]
             # Simulation parameters (e.g. starting sample size, number of iterations, ...)
@@ -132,24 +138,44 @@
 
 
         [DEFAULT.active_learning.sampling_strategy]
-            # Active Learning sampling strategy. All AL related things will be put to a
-            # dedicated section later
-            # The function name to sample new data
-            acquisition_function_type = "random"
+            [DEFAULT.active_learning.sampling_strategy.naive_sampling]
+                # Active Learning sampling strategy based on naive sampling without any adaptive behaviour.
+                # This is just an abstraction on the top of direct usage of acquisition function with config
+                # values
 
-            # Batch size to sample
-            batch_size = 50
+                # The function name to sample new data
+                acquisition_function_type = "random_mention" # options: {random_mention, random}
 
-            # Prob[random_strategy|current_sampling_iteration/total_number_of_iterations] = 0.5
-            # In other words strategy flip is the number of iterations after which the acquisition function
-            # strategy will have higher probability to be chosen
-            strategy_flip = 0.3
+                # Batch size to sample
+                batch_size = 50
 
-            # the total number of planned samplings
-            total_number_of_iterations = 10
+                # the total number of planned samplings
+                total_number_of_iterations = 10
 
-            # Prioritize taking tokens from 0th to docs_of_interest-th idex, given the batch size
-            docs_of_interest = 100
+                # Prioritize taking tokens from 0th to docs_of_interest-th idex, given the batch size
+                docs_of_interest = 100
+
+
+            [DEFAULT.active_learning.sampling_strategy.greedy_sampling]
+                # Active Learning sampling strategy based on greedy sampling
+
+                # The function name to sample new data
+                acquisition_function_type = "random" # options: {random_mention, random}
+
+                # Batch size to sample
+                batch_size = 50
+
+                # Prob[random_strategy|current_sampling_iteration/total_number_of_iterations] = 0.5
+                # In other words strategy flip is the number of iterations after which the acquisition function
+                # strategy will have higher probability to be chosen
+                strategy_flip = 0.3
+
+                # the total number of planned samplings
+                total_number_of_iterations = 10
+
+                # Prioritize taking tokens from 0th to docs_of_interest-th idex, given the batch size
+                docs_of_interest = 100
+
 
     [DEFAULT.manifold_learning]
         enable = false
@@ -225,7 +251,10 @@
     [debug.training_params]
         device = "cpu"
         bert_finetune = false
-    [debug.active_learning.sampling_strategy]
+    [debug.active_learning]
+        instance_sampling = "token"
+        strategy = "greedy_sampling"
+    [debug.active_learning.sampling_strategy.greedy_sampling]
         batch_size = 1
         strategy_flip = 0.2
         total_number_of_iterations = 10
@@ -247,8 +276,22 @@
             epochs = 15
     [debug.logging]
         logger_name = "test_run"
-    [debug.active_learning]
-        token_sampling = true
+
+
+[debug_active_learning]
+    [debug_active_learning.logging]
+        logger_name = "test_run"
+    [debug_active_learning.data]
+        # path to the test file for a pipeline test
+        test_data = "data/english_pipeline_test_head.jsonlines"
+    [debug_active_learning.model_params]
+        bert_window_size = 384
+    [debug_active_learning.training_params]
+        device = "cpu"
+        bert_finetune = false
+    [debug_active_learning.active_learning]
+        instance_sampling = "mention"
+        strategy = "naive_sampling"
 
 
 [mc_dropout]
@@ -280,8 +323,10 @@
     [active_learning_simulation.model_params]
         bert_model = "roberta-large"
     [active_learning_simulation.active_learning]
-        token_sampling = true
-    [active_learning_simulation.active_learning.sampling_strategy]
+        instance_sampling = "mention" # token
+        strategy = "naive_sampling" # greedy_sampling
+    [active_learning_simulation.active_learning.sampling_strategy.naive_sampling]
+        acquisition_function_type = "random_mention" # random
         batch_size = 5000
         docs_of_interest = 100
         total_number_of_iterations = 10

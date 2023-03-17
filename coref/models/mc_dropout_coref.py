@@ -39,13 +39,16 @@ class MCDropoutCorefModel(GeneralCorefModel):
         self.a_scorer = MCDropoutAnaphoricityScorer(pair_emb, self.config).to(
             self.config.training_params.device
         )
-        self.we = WordEncoder(bert_emb, self.config).to(
+        self.we = WordEncoder(self.config).to(
             self.config.training_params.device
         )
-        self.rough_scorer = RoughScorer(bert_emb, self.config).to(
-            self.config.training_params.device
-        )
-        self.sp = SpanPredictor(bert_emb, self.config).to(
+        self.rough_scorer = RoughScorer(
+            bert_emb,
+            self.config.model_params.rough_k,
+            self.config.training_params.dropout_rate,
+            # self.config.active_learning.parameters_samples,
+        ).to(self.config.training_params.device)
+        self.sp = SpanPredictor(self.config).to(
             self.config.training_params.device
         )
 
