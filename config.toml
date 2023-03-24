@@ -115,6 +115,7 @@
         # random_token - random tokens sampling from documents to train
         # random_mention - random mentions samling from rough_scorer prediction to train
         # entropy_mention - entropy mentions samling from rough_scorer prediction to train
+        # hac_entropy_mention - hac entropy mentions samling from rough_scorer prediction to train
         instance_sampling = "random_token"
 
         # Sampling stratedy

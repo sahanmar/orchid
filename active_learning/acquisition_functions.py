@@ -227,15 +227,6 @@ def _setup(docs: list[Doc]) -> Tuple[int, int, SampledData, dict[str, int]]:
     return sampled_tokens_counter, counter, sampled_data, doc_w_their_position  # type: ignore
 
 
-# def _filtered_tokens_to_sample(
-#     token_ids: list[int], sampled_tokens: set[int]
-# ) -> list[int]:
-#     """
-#     returns a list of tokens filtered given already sampled tokens
-#     """
-#     return [token_id for token_id in token_ids if token_id not in sampled_tokens]
-
-
 def _counter_update(
     num_of_iters: int, max_num_of_iters: int = 1_000_000, step: int = 1
 ) -> int:
