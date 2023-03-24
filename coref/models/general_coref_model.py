@@ -491,7 +491,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             # Predicted mentions must be diluted with the rest of the mentions/tokens.
             # In order to give predicted mentions more weight we add score == 1
             mentions = {}
-            for doc in documents:
+            for doc in tqdm(documents):
                 pred_mentions = set(
                     token
                     for token, _ in cast(

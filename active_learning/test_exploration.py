@@ -55,18 +55,20 @@ def test_greedy_sampling(config: Config, dev_data: list[Doc]) -> None:
     )
 
 
-# def test_naive_sampling(al_config: Config, dev_data: list[Doc]) -> None:
+def test_naive_sampling(al_config: Config, dev_data: list[Doc]) -> None:
 
-#     assert isinstance(al_config.active_learning.sampling_strategy, NaiveSampling)  # type: ignore
+    assert isinstance(al_config.active_learning.sampling_strategy, NaiveSampling)  # type: ignore
 
-#     model = load_coref_model(al_config)
-#     sampled_data = model.sample_unlabled_data(deepcopy(dev_data))
+    model = load_coref_model(al_config)
+    sampled_data = model.sample_unlabled_data(deepcopy(dev_data))
 
-#     sampled_mentions = sampled_data.instances[0].simulation_token_annotations.tokens
+    sampled_mentions = sampled_data.instances[
+        0
+    ].simulation_token_annotations.tokens
 
-#     print(sampled_mentions)
+    print(sampled_mentions)
 
-#     assert (
-#         len(sampled_mentions)
-#         >= al_config.active_learning.sampling_strategy.batch_size  # type: ignore
-#     )
+    assert (
+        len(sampled_mentions)
+        >= al_config.active_learning.sampling_strategy.batch_size  # type: ignore
+    )

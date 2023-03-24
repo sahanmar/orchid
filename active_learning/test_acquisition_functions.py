@@ -1,9 +1,7 @@
 from coref.const import Doc
 from active_learning.acquisition_functions import (
     random_sampling,
-    # token_sampling,
     mentions_sampling,
-    # entropy_mentions_sampling,
 )
 from copy import deepcopy
 from typing import Tuple, Optional
