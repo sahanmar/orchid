@@ -6,12 +6,7 @@ from typing import Callable, Tuple
 from random import random
 
 from coref.const import Doc, SampledData
-from active_learning.acquisition_functions import (
-    # random_sampling,
-    # token_sampling,
-    mentions_sampling,
-    # entropy_mentions_sampling,
-)
+from active_learning.acquisition_functions import mentions_sampling
 
 
 class AcquisitionFunctionsType(Enum):
