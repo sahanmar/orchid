@@ -472,7 +472,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 self._logger.info(f"TRAINING | epoch {epoch} is finished")
                 self.evaluate(docs=docs_dev)
 
-    def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
+    def sample_unlabeled_data(self, documents: List[Doc]) -> SampledData:
         if (
             self.config.active_learning.instance_sampling
             == InstanceSampling.random_token  # random token
@@ -527,14 +527,13 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         ):
             # Encoding
             with torch.no_grad():
-                encoded_docs: list[torch.Tensor] = []
-                for doc in documents:
-                    encoded_docs.append(
-                        torch.mean(
-                            self._encode_pseudodoc(self._bertify(doc), doc),
-                            dim=0,
-                        )
+                encoded_docs: list[torch.Tensor] = [
+                    torch.mean(
+                        self._encode_pseudodoc(self._bertify(doc), doc),
+                        dim=0,
                     )
+                    for doc in tqdm(documents)
+                ]
 
             # perform clustering
             mentions = {
