@@ -11,7 +11,7 @@ def hac_sampling(
 ) -> list[int]:
 
     model = AgglomerativeClustering(linkage="average").fit(
-        torch.stack(instances).numpy()
+        torch.stack(instances).cpu().numpy()
     )
     cluster_tree = dict(enumerate(model.children_, model.n_leaves_))
 
