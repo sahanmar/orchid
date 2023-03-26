@@ -535,7 +535,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                     for doc in tqdm(documents)
                 ]
 
-            # perform clustering
+            # getting entropy mentions
             mentions = {
                 doc.orchid_id: cast(
                     list[Tuple[int, float]],
@@ -545,30 +545,14 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 )
                 for doc in documents
             }
-            doc_entropy_ordering = [
-                i
-                for i, _ in sorted(
-                    [
-                        (
-                            i,
-                            cast(
-                                float,
-                                np.mean(
-                                    [
-                                        score
-                                        for _, score in mentions[doc.orchid_id]
-                                    ]
-                                ),
-                            ),
-                        )
-                        for i, doc in enumerate(documents)
-                    ],
-                    key=lambda x: x[1],
-                )
-            ]
+            # avg document entropy
+            doc_entropy_ordering = _doc_entropy_ordering(
+                cast(dict[str, list[Tuple[int, float]]], mentions), documents
+            )
             docs_of_interest = (
                 self.config.active_learning.sampling_strategy.docs_of_interest
             )
+            # clustering
             hac_sampled_doc_ids = set(
                 hac_sampling(
                     encoded_docs,
@@ -576,6 +560,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                     docs_of_interest,
                 )
             )
+            # higher weight to priority documents
             for i, doc in enumerate(documents):
                 orchid_id = cast(str, doc.orchid_id)
                 if i in hac_sampled_doc_ids:
@@ -807,3 +792,27 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self._training = value
         for module in self.trainable.values():
             module.train(self._training)
+
+
+def _doc_entropy_ordering(
+    mentions: dict[str, list[Tuple[int, float]]], documents: list[Doc]
+) -> list[int]:
+    return [
+        i
+        for i, _ in sorted(
+            [
+                (
+                    i,
+                    cast(
+                        float,
+                        np.mean(
+                            [score for _, score in mentions[doc.orchid_id]]
+                        ),
+                    ),
+                )
+                for i, doc in enumerate(documents)
+                if doc.orchid_id
+            ],
+            key=lambda x: x[1],
+        )
+    ]
