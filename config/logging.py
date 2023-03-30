@@ -1,17 +1,15 @@
 import time
-
 from dataclasses import dataclass
+from enum import Enum
 from logging import (
     ERROR,
     WARNING,
     INFO,
     DEBUG,
 )
-
-from enum import Enum
 from pathlib import Path
+
 from config.config_utils import overwrite_config
-from typing import Any
 
 
 class LogVerbosityMapping(Enum):
@@ -26,6 +24,7 @@ class Logging:
     logger_name: str
     verbosity: LogVerbosityMapping
     stream_format: str
+    jsonl_format: dict[str, str]
     datetime_format: str
     log_folder: Path
     timestamp: int
@@ -36,6 +35,7 @@ class Logging:
         logger_name: str,
         verbosity: str,
         stream_format: str,
+        jsonl_format: dict[str, str],
         datetime_format: str,
         log_folder: str,
     ) -> "Logging":
@@ -44,6 +44,7 @@ class Logging:
             logger_name=logger_name,
             verbosity=LogVerbosityMapping[verbosity],
             stream_format=stream_format,
+            jsonl_format=jsonl_format,
             datetime_format=datetime_format,
             log_folder=Path(log_folder),
             timestamp=int(time.time()),

@@ -1,6 +1,7 @@
 import os
 import random
 import re
+from copy import deepcopy
 from datetime import datetime
 from typing import (
     Any,
@@ -15,7 +16,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from copy import deepcopy
 
 import numpy as np  # type: ignore
 import torch
@@ -28,6 +28,7 @@ from coref.cluster_checker import ClusterChecker
 from config import Config
 from config.active_learning import InstanceSampling, SamplingStrategy
 from coref.const import CorefResult, Doc, SampledData
+from coref.logging_utils import get_stream_logger
 from coref.loss import CorefLoss
 from coref.pairwise_encoder import PairwiseEncoder
 from coref.rough_scorer import RoughScorer
@@ -35,7 +36,6 @@ from coref.span_predictor import SpanPredictor
 from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
 from uncertainty.uncertainty_metrics import pavpu_metric
-from coref.logging_utils import get_stream_logger
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling, NaiveSampling
@@ -111,17 +111,19 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
     @torch.no_grad()
     def evaluate(
-        self, docs: List[Doc], word_level_conll: bool = False
-    ) -> Tuple[float, float, float, float]:
+        self,
+        docs: List[Doc],
+        word_level_conll: bool = False,
+    ) -> Tuple[float, ...]:
         """Evaluates the modes on the data split provided.
 
         Args:
-            data_split (str): one of 'dev'/'test'/'train'
+            docs (list): list of documents to evaluate
             word_level_conll (bool): if True, outputs conll files on word-level
 
         Returns:
             mean loss
-            span-level LEA: f1, precision, recal
+            span-level LEA: f1, precision, recall
         """
         self.training = False
         w_checker = ClusterChecker()
@@ -219,11 +221,19 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             print()
 
         avg_loss = float(running_loss / len(docs))
-        tot_f1, tot_prec, tot_rec = s_checker.total_lea
+        tot_f1, tot_precision, tot_recall = s_checker.total_lea
 
-        self._logger.info(
-            f"EVAL METRICS | loss: {avg_loss:<.5f} | f1: {tot_f1:.5f} prec: {tot_prec:.5f} recall: {tot_rec:.5f}\n"
-        )
+        # Log evaluation metrics
+        _eval_metrics = {
+            "eval_metrics": {
+                "loss": f"{avg_loss:<.5f}",
+                "f1_lea": f"{tot_f1:.5f}",
+                "precision_lea": f"{tot_precision:.5f}",
+                "recall_lea": f"{tot_recall:.5f}",
+                "epoch": f"{self.epochs_trained - 1}",
+            }
+        }
+        self._logger.info(_eval_metrics)
 
         return (
             float(running_loss / len(docs)),
@@ -438,8 +448,10 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 del res
 
                 (c_loss + s_loss).backward()
-                running_c_loss += c_loss.item()
-                running_s_loss += s_loss.item()
+                # Detaching the reported loss so that the computation
+                # graph can be cleared
+                running_c_loss += c_loss.detach().item()
+                running_s_loss += s_loss.detach().item()
 
                 del c_loss, s_loss
 
@@ -458,7 +470,10 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             self.epochs_trained += 1
             self.save_weights()
             if docs_dev is not None:
-                self._logger.info(f"TRAINING | epoch {epoch} is finished")
+                _train_msg = {
+                    "train_metrics": {"epoch": f"{self.epochs_trained - 1}"},
+                }
+                self._logger.info(_train_msg)
                 self.evaluate(docs=docs_dev)
 
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:

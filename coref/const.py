@@ -163,5 +163,4 @@ class CorefResult:
 
 @dataclass
 class ReducedDimensionalityCorefResult(CorefResult):
-    inputs: Optional[torch.Tensor] = None  # [n_subwords, initial_dim]
-    embeddings: Optional[torch.Tensor] = None  # [n_subwords, target_dim]
+    manifold_learning_loss: Optional[torch.Tensor] = None
