@@ -7,7 +7,8 @@ import torch
 
 from config import Config
 from coref.const import Doc
-from manifold import BasePCA
+from manifold.base import ManifoldLearningForwardOutput
+from manifold.linear import BasePCA
 
 
 class WordEncoder(
@@ -132,7 +133,17 @@ class WordEncoder(
 
 
 class ReducedDimensionalityWordEncoder(WordEncoder):
-    def __init__(self, config: Config):
+    """
+    Word Encoder with the ability to reduce input data dimensionality
+
+    @param features: int; input dimensionality; output dimensionality is
+        computed automatically based on the reduction_ratio specified
+        in the configuration
+    @param config: Config; current run configuration to use for initialization
+    """
+
+    def __init__(self, config: Config) -> None:
+        # Compute the output dimensionality
         self.features_in = config.model_bank.encoder.config.hidden_size
         self.features_out = max(
             0,
@@ -143,17 +154,29 @@ class ReducedDimensionalityWordEncoder(WordEncoder):
         )
         config.model_bank.encoder.config.hidden_size = self.features_out
         super().__init__(config=config)
+
+        # Initialize the manifold learning model parts
+        # TODO: Generalize the approach for multiple methods
         assert config.manifold.enable, f"Manifold Learning must be enabled"
         config.manifold.standalone.input_dimensionality = self.features_in
         config.manifold.standalone.output_dimensionality = self.features_out
         self.manifold: BasePCA = BasePCA.from_config(config=config)
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"input_dim={self.features_in},"
+            f"output_dim={self.features_out},"
+            f"manifold={self.manifold!r},"
+            f")"
+        )
 
     def run(
         self,
         doc: Doc,
         x: torch.Tensor,
     ) -> Tuple[torch.Tensor, ...]:
-        x_reduced: torch.Tensor = self.manifold(x)
+        output: ManifoldLearningForwardOutput = self.manifold(x)
         return super(ReducedDimensionalityWordEncoder, self).run(
-            doc=doc, x=x_reduced
-        ) + (x, x_reduced)
+            doc=doc, x=output.embeddings
+        ) + (output.loss,)

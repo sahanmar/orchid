@@ -7,7 +7,6 @@ from tqdm.auto import tqdm
 from config import Config
 from coref.anaphoricity_scorer import AnaphoricityScorer
 from coref.const import ReducedDimensionalityCorefResult, Doc
-from coref.loss import CorefLoss
 from coref.models.general_coref_model import GeneralCorefModel
 from coref.pairwise_encoder import PairwiseEncoder
 from coref.rough_scorer import RoughScorer
@@ -41,11 +40,12 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
         Returns:
             CorefResult (see const.py)
         """
+        res = ReducedDimensionalityCorefResult()
         # Encode words with bert
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
         # embeddings      [n_subwords, target_emb]
-        words, cluster_ids, inputs, embeddings = self.we(
+        words, cluster_ids, res.manifold_learning_loss = self.we(
             doc, self._bertify(doc)
         )
 
@@ -75,10 +75,6 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
                 top_rough_scores_batch=top_rough_scores_batch,
             )
             a_scores_lst.append(a_scores_batch)
-
-        res = ReducedDimensionalityCorefResult()
-        res.inputs = inputs
-        res.embeddings = embeddings
 
         # coref_scores   [n_spans, n_ants]
         cat_anaphora_scores = torch.cat(a_scores_lst, dim=0)
@@ -127,9 +123,10 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
 
                 # Evaluate losses
                 c_loss = self._coref_criterion(res.coref_scores, res.coref_y)
-                emb_loss = self.we.manifold.evaluate_criterion(
-                    inputs=res.inputs,
-                    embeddings=res.embeddings,
+                emb_loss = res.manifold_learning_loss
+                assert emb_loss is not None, (
+                    f"Manifold Learning loss is not allowed to be "
+                    f"None during training"
                 )
                 if res.span_y and res.span_scores is not None:
                     s_loss = (
@@ -150,9 +147,11 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
                 del res
 
                 (c_loss + s_loss + emb_loss).backward()
-                running_c_loss += c_loss.item()
-                running_s_loss += s_loss.item()
-                running_emb_loss += emb_loss
+                # Detaching the reported loss so that the computation
+                # graph can be cleared
+                running_c_loss += c_loss.detach().item()
+                running_s_loss += s_loss.detach().item()
+                running_emb_loss += emb_loss.detach().item()
 
                 del c_loss, s_loss, emb_loss
 
@@ -163,7 +162,7 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
 
                 pbar.set_description(
                     f"Epoch {epoch + 1}:"
-                    f" {doc['document_id']:26}"
+                    f" {doc.document_id:26}"
                     f" c_loss: {running_c_loss / (pbar.n + 1):<.5f}"
                     f" s_loss: {running_s_loss / (pbar.n + 1):<.5f}"
                     f" emb_loss: {running_emb_loss / (pbar.n + 1):<.5f}"
@@ -185,6 +184,7 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
         self.we = ReducedDimensionalityWordEncoder(
             config=self.config,
         ).to(self.config.training_params.device)
+        self._logger.info(f"Initialized {self.we!r}")
 
         self.rough_scorer = RoughScorer(
             self.we.features_out,
@@ -209,10 +209,3 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
             "a_scorer": self.a_scorer,
             "sp": self.sp,
         }
-
-    def _build_criteria(self) -> None:
-        self._coref_criterion = CorefLoss(
-            self.config.training_params.bce_loss_weight
-        )
-        self._span_criterion = torch.nn.CrossEntropyLoss(reduction="sum")
-        self._manifold_criterion = self.we.manifold.loss
