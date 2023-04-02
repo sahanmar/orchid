@@ -84,7 +84,6 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self._logger.info(f"Initializing the general coreference model")
 
         self.epochs_trained = epochs_trained
-        self._docs: Dict[str, List[Doc]] = {}
         self._build_model()
         self._build_optimizers()
         self._set_training(False)
@@ -113,6 +112,13 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self._set_training(new_value)
 
     # ========================================================== Public methods
+
+    def reset(self, epochs_trained: int = 0) -> None:
+        self.epochs_trained = epochs_trained
+        self._build_model()
+        self._build_optimizers()
+        self._set_training(False)
+        self._build_criteria()
 
     @torch.no_grad()
     def evaluate(
