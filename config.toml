@@ -100,10 +100,18 @@
         # Set up for logging
         logger_name = "coref-model"
         log_folder = "data/logs/"
-        stream_format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
         datetime_format = "%Y-%m-%dT%H:%M:%S%z"
         verbosity = "debug"
-
+        stream_format = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+        [DEFAULT.logging.jsonl_format]
+            timestamp="asctime"
+            level="levelname"
+            message="message"
+            loggerName="name"
+            processName="processName"
+            processID="process"
+            threadName="threadName"
+            threadID="thread"
 
     [DEFAULT.active_learning]
         # Active Learning parameters
@@ -166,11 +174,12 @@
 
 
     [DEFAULT.manifold_learning]
-        enable = true
+        enable = false
         # Manifold Learning parameters
         # Loss function to use
         loss_name = "sq_rec_loss"
-        loss_alpha = 5e-6
+        loss_in_forward = true
+        loss_alpha = 1e-6
         # Metrics to display
         verbose_outputs = ["loss"]
         reduction_ratio = 0.75
@@ -252,6 +261,7 @@
         enable = true
         # Manifold Learning parameters
         loss_name = "sq_rec_loss"
+        loss_in_forward = true
         verbose_outputs = ["loss"]
         [debug.manifold_learning.standalone]
             input_dimensionality = 10
@@ -293,6 +303,10 @@
         coref_model = "reduced_dimensionality"
     [reduced_dimensionality.training_params]
         device = "cuda"
+    [reduced_dimensionality.manifold_learning]
+        enable = true
+        loss_alpha = 5e-6
+        reduction_ratio = 0.75
 
 [debug_gpu]
     [debug_gpu.model_params]
