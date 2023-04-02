@@ -5,6 +5,7 @@ from typing import Tuple, Optional, Iterable
 import hashlib
 import torch
 import numpy as np
+from itertools import groupby
 
 EPSILON = 1e-7
 LARGE_VALUE = 1000  # used instead of inf due to bug #16762 in pytorch
@@ -142,9 +143,18 @@ class Doc:
             for i, (start, end) in enumerate(self.word2subword)
             for subtoken in range(start, end)
         }
-        res = [(words_2_subwords_map[s], p) for s, p in zip(subwords, payload)]
+        subword_w_payload = [
+            (words_2_subwords_map[s], p) for s, p in zip(subwords, payload)
+        ]
+        grouped_res = [
+            (key, [payload for _, payload in group])
+            for key, group in groupby(
+                sorted(subword_w_payload, key=lambda x: x[0]),
+                key=lambda x: x[0],
+            )
+        ]
 
-        return [(k, np.mean(group)) for k, group in res]
+        return [(token, np.mean(payload)) for token, payload in grouped_res]
 
 
 @dataclass
