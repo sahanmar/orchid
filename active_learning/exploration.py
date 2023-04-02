@@ -2,49 +2,35 @@ from enum import Enum
 import math
 
 from dataclasses import dataclass, field
-from typing import Callable, Union
+from typing import Callable, Tuple
 from random import random
 
 from coref.const import Doc, SampledData
-from active_learning.acquisition_functions import (
-    # random_sampling,
-    token_sampling,
-    mentions_sampling,
-)
+from active_learning.acquisition_functions import mentions_sampling
 
 
 class AcquisitionFunctionsType(Enum):
-    random = "random"
+    random_token = "random_token"
     random_mention = "random_mention"
+    entropy_mention = "entropy_mention"
 
 
 acquisition_func_typing = Callable[
-    [list[Doc], int, int, dict[str, list[int]]], SampledData
+    [list[Doc], int, int, dict[str, list[Tuple[int, float]]]], SampledData
 ]
-
-
-ACQUISITION_FUNCTION_MAPPER: dict[
-    AcquisitionFunctionsType, acquisition_func_typing
-] = {
-    AcquisitionFunctionsType.random: token_sampling,
-    AcquisitionFunctionsType.random_mention: mentions_sampling,
-}
 
 
 @dataclass
 class NaiveSampling:
     docs_of_interest: int
     batch_size: int
-    acquisition_function_type: AcquisitionFunctionsType
     total_number_of_iterations: int
 
     def __post_init__(self) -> None:
-        self.acquisition_function = ACQUISITION_FUNCTION_MAPPER[
-            self.acquisition_function_type
-        ]
+        self.acquisition_function = mentions_sampling
 
     def step(
-        self, instances: list[Doc], indices: dict[str, list[int]]
+        self, instances: list[Doc], indices: dict[str, list[Tuple[int, float]]]
     ) -> SampledData:
         return self.acquisition_function(
             instances, self.batch_size, self.docs_of_interest, indices
@@ -54,13 +40,11 @@ class NaiveSampling:
     def load_config(
         docs_of_interest: int,
         batch_size: int,
-        acquisition_function_type: str,
         total_number_of_iterations: int,
     ) -> "NaiveSampling":
         return NaiveSampling(
             docs_of_interest,
             batch_size,
-            AcquisitionFunctionsType(acquisition_function_type),
             total_number_of_iterations,
         )
 
@@ -79,8 +63,6 @@ class GreedySampling:
     The decaying occurs with the iterative change of the random strategy to another.
 
     args:
-        acquisition_function_type - the function name to sample new data
-
         docs_of_interest - strategy which prioritizes taking tokens from 0th to docs_of_interest-th
         idex, given the batch size
 
@@ -93,7 +75,6 @@ class GreedySampling:
         total_number_of_iterations - the total number of planned samplings
     """
 
-    acquisition_function_type: AcquisitionFunctionsType
     docs_of_interest: int
     batch_size: int
     strategy_flip: float
@@ -105,9 +86,7 @@ class GreedySampling:
     normalizing_coef: float = field(init=False)
 
     def __post_init__(self) -> None:
-        self.acquisition_function = ACQUISITION_FUNCTION_MAPPER[
-            self.acquisition_function_type
-        ]
+        self.acquisition_function = mentions_sampling
         self.epsilon_greedy_prob = 1.0
         self.current_sampling_iteration = 0
         self.flip_iteration = int(
@@ -117,7 +96,9 @@ class GreedySampling:
         # for current_sampling_iteration = 0
         self.normalizing_coef = 5 / self.flip_iteration
 
-    def step(self, instances: list[Doc]) -> SampledData:
+    def step(
+        self, instances: list[Doc], indices: dict[str, list[Tuple[int, float]]]
+    ) -> SampledData:
         ##### This check is done because of mypy #####
         if (
             self.epsilon_greedy_prob is None
@@ -132,11 +113,11 @@ class GreedySampling:
         self.current_sampling_iteration += 1
         self.epsilon_greedy_prob = 1 - self.sigmoid()
         if random() <= self.epsilon_greedy_prob:
-            return token_sampling(
-                instances, self.batch_size, self.docs_of_interest
+            return mentions_sampling(
+                instances, self.batch_size, self.docs_of_interest, indices
             )
         return self.acquisition_function(
-            instances, self.batch_size, self.docs_of_interest, {}
+            instances, self.batch_size, self.docs_of_interest, indices
         )
 
     def sigmoid(self) -> float:
@@ -150,14 +131,12 @@ class GreedySampling:
 
     @staticmethod
     def load_config(
-        acquisition_function_type: str,
         docs_of_interest: int,
         batch_size: int,
         strategy_flip: float,
         total_number_of_iterations: int,
     ) -> "GreedySampling":
         return GreedySampling(
-            AcquisitionFunctionsType(acquisition_function_type),
             docs_of_interest,
             batch_size,
             strategy_flip,

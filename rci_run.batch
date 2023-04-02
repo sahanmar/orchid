@@ -18,6 +18,6 @@ module load torchvision/0.12.0-foss-2021a-CUDA-11.3.1 torchaudio/0.11.0-foss-202
 
 echo "Running the job..."
 
-export EXPERIMENT=roberta
+export EXPERIMENT=active_learning_simulation
 
-python run.py train $EXPERIMENT
+python run.py simulation $EXPERIMENT

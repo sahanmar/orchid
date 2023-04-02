@@ -15,6 +15,7 @@ from typing import (
     TYPE_CHECKING,
     TypeVar,
     Union,
+    Callable,
 )
 
 import numpy as np  # type: ignore
@@ -36,6 +37,9 @@ from coref.span_predictor import SpanPredictor
 from coref.utils import GraphNode
 from coref.word_encoder import WordEncoder
 from uncertainty.uncertainty_metrics import pavpu_metric
+from coref.logging_utils import get_stream_logger
+from active_learning.uncertainty_functions import entropy
+from itertools import chain, repeat
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling, NaiveSampling
@@ -290,7 +294,8 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         doc: Doc,
         normalize_anaphoras: bool = False,
         return_mention: bool = False,
-    ) -> Union[CorefResult, set[int]]:
+        scoring_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+    ) -> Union[CorefResult, list[Tuple[int, float]]]:
         """
         This is a massive method, but it made sense to me to not split it into
         several ones to let one see the data flow.
@@ -316,8 +321,8 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         if (
             self.config.active_learning.instance_sampling
             in {
-                InstanceSampling.token,
-                InstanceSampling.mention,
+                InstanceSampling.random_token,
+                InstanceSampling.random_mention,
             }
             and not return_mention
         ):
@@ -330,19 +335,26 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         # cluster_ids     [n_words]
         words, cluster_ids = self.we(doc, encoded_doc)
 
-        # Obtain bilinear scores and leave only top-k antecedents for each word
-        # top_rough_scores  [n_words, n_ants]
-        # top_indices       [n_words, n_ants]
-        top_rough_scores, top_indices = cast(
-            Tuple[torch.Tensor, torch.Tensor], self.rough_scorer(words)
+        # If scoring_fn is None
+        #     Obtain bilinear scores and leave only top-k antecedents for each word
+        #     rough_scores         [n_words, n_ants]
+        #     rough_scores_indices [n_words, n_ants]
+        # Else
+        #     sorted scores given scoring fn and their original  positions
+        #     rough_scores         [n_words, 1]
+        #     rough_scores_indices [n_words, 1]
+        rough_scores, rough_scores_indices = cast(
+            Tuple[torch.Tensor, torch.Tensor],
+            self.rough_scorer(words, scoring_fn),
         )
         if return_mention:
-            return doc.subwords_2_words(
-                set(int(i) for i in top_indices.flatten().tolist())
+            return doc.subwords_2_words_w_payload(
+                [int(i) for i in rough_scores_indices.flatten().tolist()],
+                rough_scores.flatten().tolist(),
             )
 
         # Get pairwise features [n_words, n_ants, n_pw_features]
-        pw = self.pw(top_indices, doc)
+        pw = self.pw(rough_scores_indices, doc)
 
         batch_size = self.config.model_params.a_scoring_batch_size
         a_scores_lst: List[torch.Tensor] = []
@@ -350,8 +362,8 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         for i in range(0, len(words), batch_size):
             pw_batch = pw[i : i + batch_size]
             words_batch = words[i : i + batch_size]
-            top_indices_batch = top_indices[i : i + batch_size]
-            top_rough_scores_batch = top_rough_scores[i : i + batch_size]
+            top_indices_batch = rough_scores_indices[i : i + batch_size]
+            top_rough_scores_batch = rough_scores[i : i + batch_size]
 
             # a_scores_batch  [batch_size, n_ants]
             a_scores_batch = self.a_scorer(
@@ -374,9 +386,11 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         )
 
         res.coref_y = self._get_ground_truth(
-            cluster_ids, top_indices, (top_rough_scores > float("-inf"))
+            cluster_ids, rough_scores_indices, (rough_scores > float("-inf"))
         )
-        res.word_clusters = self._clusterize(doc, res.coref_scores, top_indices)
+        res.word_clusters = self._clusterize(
+            doc, res.coref_scores, rough_scores_indices
+        )
         res.span_scores, res.span_y = self.sp.get_training_data(doc, words)
 
         if not self.training:
@@ -479,25 +493,61 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
     def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
         if (
             self.config.active_learning.instance_sampling
-            == InstanceSampling.mention
+            == InstanceSampling.random_token  # random token
         ):
+            # Random token need all possible tokens/mentions with the same rank
             mentions = {
-                doc.orchid_id: list(
-                    cast(set[int], self.run(deepcopy(doc), return_mention=True))
+                doc.orchid_id: [(i, 0.0) for i in range(len(doc.cased_words))]
+                for doc in documents
+            }
+        elif (
+            self.config.active_learning.instance_sampling
+            == InstanceSampling.random_mention  # random predicted mention
+        ):
+            # Predicted mentions must be diluted with the rest of the mentions/tokens.
+            # In order to give predicted mentions more weight we add score == 1
+            mentions = {}
+            for doc in tqdm(documents):
+                pred_mentions = set(
+                    token
+                    for token, _ in cast(
+                        list[Tuple[int, float]],
+                        self.run(deepcopy(doc), return_mention=True),
+                    )
+                )
+                all_tokens = set(range(len(doc.cased_words)))
+                zero_score = all_tokens - pred_mentions
+                mentions[doc.orchid_id] = [
+                    (token, score)
+                    for token, score in chain(
+                        zip(pred_mentions, repeat(1.0)),
+                        zip(zero_score, repeat(0.0)),
+                    )
+                ]
+        elif (
+            self.config.active_learning.instance_sampling
+            == InstanceSampling.entropy_mention  # mentions with entropy prediction
+        ):
+            # Every mention gets entropy scoring. Unlike the previous case we get cores
+            # for every mention/token in the document. Hence, no need for dilution.
+            mentions = {
+                doc.orchid_id: cast(
+                    list[Tuple[int, float]],
+                    self.run(
+                        deepcopy(doc), return_mention=True, scoring_fn=entropy
+                    ),
                 )
                 for doc in documents
             }
         else:
-            mentions = {}
-
-        if SamplingStrategy.greedy_sampling == self.sampling_strategy_type:
-            return self.sampling_strategy_config.step(documents)  # type: ignore
-        if SamplingStrategy.naive_sampling == self.sampling_strategy_type:
-            return self.sampling_strategy_config.step(  # type: ignore
-                documents, cast(dict[str, list[int]], mentions)
+            instance_samp_type = self.config.active_learning.instance_sampling
+            raise ValueError(
+                f"None of InstanceSampling options matched {instance_samp_type}..."
             )
 
-        raise ValueError("Wrong sampling strategy... Executor not likey...")
+        return self.sampling_strategy_config.step(  # type: ignore
+            documents, cast(dict[str, list[Tuple[int, float]]], mentions)
+        )
 
     def get_uncertainty_metrics(self, docs: List[Doc]) -> list[float]:
 

@@ -3,7 +3,7 @@ Describes RoughScorer, a simple bilinear module to calculate rough
 anaphoricity scores.
 """
 
-from typing import Tuple
+from typing import Tuple, Callable, Optional, cast
 
 import torch
 
@@ -26,16 +26,28 @@ class RoughScorer(torch.nn.Module):
     def forward(
         self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
         mentions: torch.Tensor,
+        scoring_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Returns rough anaphoricity scores for candidates, which consist of
-        the bilinear output of the current model summed with mention scores.
+        If scoring function is None,
+            Returns rough anaphoricity scores for candidates, which consist of
+            the bilinear output of the current model summed with mention scores
+            with sizes [n_mentions, top_k_mentions] (both tensors).
+
+        Else,
+            Return a score of every mention with size [n_mentions, 1]
         """
         # [n_mentions, n_mentions]
         pair_mask = self._get_pair_mask(mentions)
 
         bilinear_scores = self.dropout(self.bilinear(mentions)).mm(mentions.T)
 
+        if scoring_fn:
+            # [n_mentions, 1]
+            scores = scoring_fn(torch.softmax(bilinear_scores, dim=1))
+            return cast(Tuple[torch.Tensor, torch.Tensor], torch.sort(scores))
+
+        # [n_mentions, top_k_mentions]
         rough_scores = pair_mask + bilinear_scores
 
         return self._prune(rough_scores)
@@ -84,6 +96,7 @@ class MCDropoutRoughScorer(RoughScorer):
     def forward(
         self,  # type: ignore  # pylint: disable=arguments-differ  #35566 in pytorch
         mentions: torch.Tensor,
+        scoring_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Returns rough anaphoricity scores for candidates, which consist of
@@ -102,6 +115,11 @@ class MCDropoutRoughScorer(RoughScorer):
             ),
             dim=0,
         )
+
+        if scoring_fn:
+            # [n_mentions, 1]
+            scores = scoring_fn(torch.softmax(bilinear_scores, dim=1))
+            return cast(Tuple[torch.Tensor, torch.Tensor], torch.sort(scores))
 
         rough_scores = pair_mask + bilinear_scores
 

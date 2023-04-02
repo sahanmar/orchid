@@ -1,5 +1,5 @@
 import random
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 
 import torch
 from tqdm.auto import tqdm
@@ -26,6 +26,7 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
         doc: Doc,
         normalize_anaphoras: bool = False,
         return_mention: bool = False,
+        scoring_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     ) -> ReducedDimensionalityCorefResult:
         """
         This is a massive method, but it made sense to me to not split it into
