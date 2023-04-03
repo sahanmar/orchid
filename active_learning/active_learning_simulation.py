@@ -65,7 +65,9 @@ def run_simulation(
 
     al_config = config.active_learning
     for al_loop in range(al_config.simulation.active_learning_loops):
-        model.reset()
+        if al_loop > 0:
+            config.reset()
+            model = load_coref_model(config)
         model._logger.info(f"loop {al_loop} in progress")
         simulation_train_docs = deepcopy(train_docs)
         for al_round in range(
