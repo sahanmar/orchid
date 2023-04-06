@@ -326,7 +326,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             }
             and not return_mention
         ):
-            encoded_doc = self._encode_pseudodoc(encoded_doc, doc)
+            encoded_doc, doc = self._encode_pseudodoc(encoded_doc, doc)
 
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
@@ -544,7 +544,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             with torch.no_grad():
                 encoded_docs: list[torch.Tensor] = [
                     torch.mean(
-                        self._encode_pseudodoc(self._bertify(doc), doc),
+                        self._encode_pseudodoc(self._bertify(doc), doc)[0],
                         dim=0,
                     )
                     for doc in tqdm(documents)
@@ -739,12 +739,17 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         )
 
     @staticmethod
-    def _encode_pseudodoc(encoded_doc: torch.Tensor, doc: Doc) -> torch.Tensor:
+    def _encode_pseudodoc(
+        encoded_doc: torch.Tensor, doc: Doc
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         pseudo_doc = doc.create_simulation_pseudodoc()
-        return encoded_doc[
-            pseudo_doc.simulation_token_annotations.original_subtokens_ids,
-            :,
-        ]
+        return (
+            encoded_doc[
+                pseudo_doc.simulation_token_annotations.original_subtokens_ids,
+                :,
+            ],
+            pseudo_doc,
+        )
 
     def _clusterize(
         self, doc: Doc, scores: torch.Tensor, top_indices: torch.Tensor
