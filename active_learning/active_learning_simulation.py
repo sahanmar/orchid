@@ -38,7 +38,12 @@ def run_training(
 
 
 def get_logging_info(
-    model: GeneralCorefModel, training_data: list[Doc], round: int, loop: int
+    model: GeneralCorefModel,
+    training_data: list[Doc],
+    round: int,
+    loop: int,
+    docs_of_interest: int,
+    acquisition_function: str,
 ) -> None:
     tokens = sum(
         len(doc.simulation_token_annotations.tokens) for doc in training_data
@@ -50,6 +55,8 @@ def get_logging_info(
                 "round": str(round),
                 "documents": str(len(training_data)),
                 "tokens": str(tokens),
+                "docs_of_interest": str(docs_of_interest),
+                "acquisition_function": acquisition_function,
             }
         }
     )
@@ -66,7 +73,6 @@ def run_simulation(
     al_config = config.active_learning
     for al_loop in range(al_config.simulation.active_learning_loops):
         if al_loop > 0:
-            config.reset()
             model = load_coref_model(config)
         model._logger.info(f"loop {al_loop} in progress")
         simulation_train_docs = deepcopy(train_docs)
@@ -77,5 +83,12 @@ def run_simulation(
                 model, simulation_train_docs
             )
             model = load_coref_model(config)
-            get_logging_info(model, training_data, round=al_round, loop=al_loop)
+            get_logging_info(
+                model,
+                training_data,
+                round=al_round,
+                loop=al_loop,
+                docs_of_interest=al_config.sampling_strategy.docs_of_interest,
+                acquisition_function=al_config.instance_sampling.value,
+            )
             run_training(model, training_data, dev_docs, test_data)
