@@ -44,6 +44,7 @@ def get_logging_info(
     loop: int,
     docs_of_interest: int,
     acquisition_function: str,
+    coref_model: str,
 ) -> None:
     tokens = sum(
         len(doc.simulation_token_annotations.tokens) for doc in training_data
@@ -57,6 +58,7 @@ def get_logging_info(
                 "tokens": str(tokens),
                 "docs_of_interest": str(docs_of_interest),
                 "acquisition_function": acquisition_function,
+                "coref_model": coref_model,
             }
         }
     )
@@ -71,6 +73,7 @@ def run_simulation(
 ) -> None:
 
     al_config = config.active_learning
+    coref_model = config.model_params.coref_model
     for al_loop in range(al_config.simulation.active_learning_loops):
         if al_loop > 0:
             model = load_coref_model(config)
@@ -90,5 +93,6 @@ def run_simulation(
                 loop=al_loop,
                 docs_of_interest=al_config.sampling_strategy.docs_of_interest,
                 acquisition_function=al_config.instance_sampling.value,
+                coref_model=coref_model,
             )
             run_training(model, training_data, dev_docs, test_data)
