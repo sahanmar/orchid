@@ -41,6 +41,7 @@ from coref.logging_utils import get_stream_logger
 from active_learning.uncertainty_functions import entropy
 from itertools import chain, repeat
 from active_learning.utils import hac_sampling
+from coref.bert import load_bert
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling, NaiveSampling
@@ -594,7 +595,6 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         )
 
     def get_uncertainty_metrics(self, docs: List[Doc]) -> list[float]:
-
         metrics_vals: list[list[float]] = []
         pbar = tqdm(docs, unit="docs", ncols=0)
         for doc in pbar:
@@ -650,8 +650,13 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         return out.last_hidden_state[subword_mask_tensor]
 
     def _build_model(self) -> None:
-        self.bert = self.config.model_bank.encoder
-        self.tokenizer = self.config.model_bank.tokenizer
+        encoder, tokenizer = load_bert(
+            self.config.model_params.bert_model,
+            self.config.tokenizer_kwargs,
+            self.config.training_params.device,
+        )
+        self.bert = encoder
+        self.tokenizer = tokenizer
         self.pw = PairwiseEncoder(self.config).to(
             self.config.training_params.device
         )
@@ -663,7 +668,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(
             self.config.training_params.device
         )
-        self.we = WordEncoder(self.config).to(
+        self.we = WordEncoder(bert_emb, self.config).to(
             self.config.training_params.device
         )
         self.rough_scorer = RoughScorer(
@@ -671,7 +676,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             self.config.model_params.rough_k,
             self.config.training_params.dropout_rate,
         ).to(self.config.training_params.device)
-        self.sp = SpanPredictor(self.config).to(
+        self.sp = SpanPredictor(bert_emb, self.config).to(
             self.config.training_params.device
         )
 

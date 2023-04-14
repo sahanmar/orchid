@@ -12,6 +12,7 @@ from coref.pairwise_encoder import PairwiseEncoder
 from coref.rough_scorer import RoughScorer
 from coref.span_predictor import SpanPredictor
 from coref.word_encoder import ReducedDimensionalityWordEncoder
+from coref.bert import load_bert
 
 
 class ReducedDimensionalityCorefModel(GeneralCorefModel):
@@ -174,14 +175,20 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
                 self.evaluate(docs=docs_dev)
 
     def _build_model(self) -> None:
-        self.bert = self.config.model_bank.encoder
-        self.tokenizer = self.config.model_bank.tokenizer
+        encoder, tokenizer = load_bert(
+            self.config.model_params.bert_model,
+            self.config.tokenizer_kwargs,
+            self.config.training_params.device,
+        )
+        self.bert = encoder
+        self.tokenizer = tokenizer
         self.pw = PairwiseEncoder(self.config).to(
             self.config.training_params.device
         )
 
         bert_emb = self.bert.config.hidden_size
         self.we = ReducedDimensionalityWordEncoder(
+            bert_emb,
             config=self.config,
         ).to(self.config.training_params.device)
         self._logger.info(f"Initialized {self.we!r}")
@@ -197,7 +204,7 @@ class ReducedDimensionalityCorefModel(GeneralCorefModel):
             self.config.training_params.device
         )
 
-        self.sp = SpanPredictor(self.config).to(
+        self.sp = SpanPredictor(bert_emb, self.config).to(
             self.config.training_params.device
         )
 

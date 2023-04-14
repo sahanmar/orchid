@@ -164,19 +164,9 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     # Manifold Learning
     manifold: ManifoldLearningParams
 
-    model_bank: ModelBank = field(init=False)
-
     metrics: Metrics
 
     logging: Logging
-
-    def __post_init__(self) -> None:
-        encoder, tokenizer = load_bert(
-            self.model_params.bert_model,
-            self.tokenizer_kwargs,
-            self.training_params.device,
-        )
-        self.model_bank = ModelBank(encoder, tokenizer)
 
     @staticmethod
     def load_config(config_path: str, section: str = "roberta") -> "Config":

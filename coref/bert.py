@@ -1,6 +1,6 @@
 """Functions related to BERT or similar models"""
 
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, cast
 
 import numpy as np  # type: ignore
 from transformers import AutoModel, AutoTokenizer  # type: ignore
@@ -71,3 +71,16 @@ def load_bert(
     print("Bert successfully loaded.")
 
     return model, tokenizer
+
+
+def load_tokenizer(
+    bert_model: str, tokenizer_kwargs: Dict[str, str]
+) -> AutoTokenizer:
+    print(f"Loading {bert_model}...")
+
+    if tokenizer_kwargs:
+        print(f"Using tokenizer kwargs: {tokenizer_kwargs}")
+    return cast(
+        AutoTokenizer,
+        AutoTokenizer.from_pretrained(bert_model, **tokenizer_kwargs),
+    )
