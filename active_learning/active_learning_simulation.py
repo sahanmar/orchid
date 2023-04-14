@@ -18,11 +18,11 @@ def get_training_iteration_docs(
 
 
 def train_split(
-    model: GeneralCorefModel, train_docs: list[Doc]
+    model: GeneralCorefModel, docs: list[Doc]
 ) -> Tuple[list[Doc], list[Doc]]:
-    shuffle(train_docs)
-    sampled_data = model.sample_unlabeled_data(train_docs)
-    return get_training_iteration_docs(deepcopy(train_docs), sampled_data)
+    shuffle(docs)
+    sampled_data = model.sample_unlabeled_data(docs)
+    return get_training_iteration_docs(deepcopy(docs), sampled_data)
 
 
 def run_training(
@@ -31,20 +31,36 @@ def run_training(
     dev_docs: list[Doc],
     test_data: list[Doc],
 ) -> None:
-    model._logger.info("Training\n")
+    model._logger.info("training")
     model.train(docs=training_data, docs_dev=dev_docs)
-    model._logger.info("Evaluation\n")
+    model._logger.info("evaluation")
     model.evaluate(docs=test_data)
 
 
 def get_logging_info(
-    model: GeneralCorefModel, training_data: list[Doc], round: int
+    model: GeneralCorefModel,
+    training_data: list[Doc],
+    round: int,
+    loop: int,
+    docs_of_interest: int,
+    acquisition_function: str,
+    coref_model: str,
 ) -> None:
     tokens = sum(
         len(doc.simulation_token_annotations.tokens) for doc in training_data
     )
     model._logger.info(
-        f" AL SIMULATION | round: {round}, Documents: {len(training_data)}, Tokens: {tokens}\n"
+        {
+            "al_simulation": {
+                "loop": str(loop),
+                "round": str(round),
+                "documents": str(len(training_data)),
+                "tokens": str(tokens),
+                "docs_of_interest": str(docs_of_interest),
+                "acquisition_function": acquisition_function,
+                "coref_model": coref_model,
+            }
+        }
     )
 
 
@@ -55,11 +71,27 @@ def run_simulation(
     test_data: list[Doc],
     dev_docs: list[Doc],
 ) -> None:
-
     al_config = config.active_learning
-
-    for i in range(al_config.sampling_strategy.total_number_of_iterations):
-        training_data, train_docs = train_split(model, train_docs)
-        model = load_coref_model(config)
-        get_logging_info(model, training_data, round=i)
-        run_training(model, training_data, dev_docs, test_data)
+    coref_model = config.model_params.coref_model
+    for al_loop in range(al_config.simulation.active_learning_loops):
+        if al_loop > 0:
+            model = load_coref_model(config)
+        model._logger.info(f"loop {al_loop} in progress")
+        simulation_train_docs = deepcopy(train_docs)
+        for al_round in range(
+            al_config.sampling_strategy.total_number_of_iterations
+        ):
+            training_data, simulation_train_docs = train_split(
+                model, simulation_train_docs
+            )
+            model = load_coref_model(config)
+            get_logging_info(
+                model,
+                training_data,
+                round=al_round,
+                loop=al_loop,
+                docs_of_interest=al_config.sampling_strategy.docs_of_interest,
+                acquisition_function=al_config.instance_sampling.value,
+                coref_model=coref_model,
+            )
+            run_training(model, training_data, dev_docs, test_data)
