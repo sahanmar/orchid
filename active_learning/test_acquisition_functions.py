@@ -5,6 +5,10 @@ from active_learning.acquisition_functions import (
 )
 from copy import deepcopy
 from typing import Tuple, Optional
+from config import Config
+from coref.models import load_coref_model
+from config.active_learning import InstanceSampling
+from itertools import chain, repeat
 
 BATCH_SIZE = 7
 TOO_LARGE_BATCH_SIZE = 11
@@ -188,4 +192,33 @@ def test_entropy_sampling(dev_data: list[Doc]) -> None:
         sampled_tokens.instances[2].simulation_token_annotations.tokens
     ) == len(
         mentions[sampled_tokens.instances[2].orchid_id]  # type:ignore
+    )
+
+
+def test_hac_entropy_sampling(dev_data: list[Doc], al_config: Config) -> None:
+    config = deepcopy(al_config)
+    config.active_learning.instance_sampling = (
+        InstanceSampling.hac_entropy_mention
+    )
+    model = load_coref_model(config)
+
+    # Test multiple docs
+    new_docs = []
+    for i, doc in zip(range(5), repeat(dev_data[0])):
+        new_doc = deepcopy(doc)
+        new_doc.orchid_id = f"id_{i}"
+        new_docs.append(new_doc)
+
+    sampled_data = model.sample_unlabeled_data(new_docs)
+    sampled_tokens = list(
+        chain.from_iterable(
+            [
+                doc.simulation_token_annotations.tokens
+                for doc in sampled_data.instances
+            ]
+        )
+    )
+    assert (
+        len(sampled_tokens)
+        >= al_config.active_learning.sampling_strategy.batch_size  # type: ignore
     )

@@ -40,6 +40,7 @@ from uncertainty.uncertainty_metrics import pavpu_metric
 from coref.logging_utils import get_stream_logger
 from active_learning.uncertainty_functions import entropy
 from itertools import chain, repeat
+from active_learning.utils import hac_sampling
 
 if TYPE_CHECKING:
     from active_learning.exploration import GreedySampling, NaiveSampling
@@ -326,10 +327,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             }
             and not return_mention
         ):
-            doc = doc.create_simulation_pseudodoc()
-            encoded_doc = encoded_doc[
-                doc.simulation_token_annotations.original_subtokens_ids, :
-            ]
+            encoded_doc = self._encode_pseudodoc(encoded_doc, doc)
 
         # words           [n_words, span_emb]
         # cluster_ids     [n_words]
@@ -490,7 +488,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 self._logger.info(_train_msg)
                 self.evaluate(docs=docs_dev)
 
-    def sample_unlabled_data(self, documents: List[Doc]) -> SampledData:
+    def sample_unlabeled_data(self, documents: List[Doc]) -> SampledData:
         if (
             self.config.active_learning.instance_sampling
             == InstanceSampling.random_token  # random token
@@ -539,6 +537,53 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 )
                 for doc in documents
             }
+        elif (
+            self.config.active_learning.instance_sampling
+            == InstanceSampling.hac_entropy_mention  # mentions with hac entropy prediction
+        ):
+            # Encoding
+            with torch.no_grad():
+                encoded_docs: list[torch.Tensor] = [
+                    torch.mean(
+                        self._encode_pseudodoc(self._bertify(doc), doc),
+                        dim=0,
+                    )
+                    for doc in tqdm(documents)
+                ]
+
+            # getting entropy mentions
+            mentions = {
+                doc.orchid_id: cast(
+                    list[Tuple[int, float]],
+                    self.run(
+                        deepcopy(doc), return_mention=True, scoring_fn=entropy
+                    ),
+                )
+                for doc in documents
+            }
+            # avg document entropy
+            doc_entropy_ordering = _doc_entropy_ordering(
+                cast(dict[str, list[Tuple[int, float]]], mentions), documents
+            )
+            docs_of_interest = (
+                self.config.active_learning.sampling_strategy.docs_of_interest
+            )
+            # clustering
+            hac_sampled_doc_ids = set(
+                hac_sampling(
+                    encoded_docs,
+                    doc_entropy_ordering[: docs_of_interest * 3],
+                    docs_of_interest,
+                )
+            )
+            # higher weight to priority documents
+            for i, doc in enumerate(documents):
+                orchid_id = cast(str, doc.orchid_id)
+                if i in hac_sampled_doc_ids:
+                    mentions[orchid_id] = [
+                        (token, score + 100)
+                        for token, score in mentions[orchid_id]
+                    ]
         else:
             instance_samp_type = self.config.active_learning.instance_sampling
             raise ValueError(
@@ -694,6 +739,14 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             n_docs * self.config.training_params.train_epochs,
         )
 
+    @staticmethod
+    def _encode_pseudodoc(encoded_doc: torch.Tensor, doc: Doc) -> torch.Tensor:
+        pseudo_doc = doc.create_simulation_pseudodoc()
+        return encoded_doc[
+            pseudo_doc.simulation_token_annotations.original_subtokens_ids,
+            :,
+        ]
+
     def _clusterize(
         self, doc: Doc, scores: torch.Tensor, top_indices: torch.Tensor
     ) -> List[List[int]]:
@@ -755,3 +808,27 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         self._training = value
         for module in self.trainable.values():
             module.train(self._training)
+
+
+def _doc_entropy_ordering(
+    mentions: dict[str, list[Tuple[int, float]]], documents: list[Doc]
+) -> list[int]:
+    return [
+        i
+        for i, _ in sorted(
+            [
+                (
+                    i,
+                    cast(
+                        float,
+                        np.mean(
+                            [score for _, score in mentions[doc.orchid_id]]
+                        ),
+                    ),
+                )
+                for i, doc in enumerate(documents)
+                if doc.orchid_id
+            ],
+            key=lambda x: x[1],
+        )
+    ]

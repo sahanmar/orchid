@@ -21,7 +21,7 @@ def train_split(
     model: GeneralCorefModel, train_docs: list[Doc]
 ) -> Tuple[list[Doc], list[Doc]]:
     shuffle(train_docs)
-    sampled_data = model.sample_unlabled_data(train_docs)
+    sampled_data = model.sample_unlabeled_data(train_docs)
     return get_training_iteration_docs(deepcopy(train_docs), sampled_data)
 
 
