@@ -87,7 +87,7 @@ class MCDropoutRoughScorer(RoughScorer):
         self,
         features: int,
         rough_k: int,
-        dropout_rate: int,
+        dropout_rate: float,
         parameters_samples: int,
     ):
         self.parameters_samples = parameters_samples
