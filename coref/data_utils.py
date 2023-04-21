@@ -13,7 +13,6 @@ import jsonlines
 from config import Config
 from coref.const import Doc
 from coref.tokenizer_customization import TOKENIZER_FILTERS, TOKENIZER_MAPS
-from coref.bert import load_tokenizer
 
 
 class DataType(Enum):
@@ -29,10 +28,6 @@ def tokenize_docs(path: Path, config: Config) -> List[Doc]:
         config.model_params.bert_model, lambda _: True
     )
     token_map = TOKENIZER_MAPS.get(config.model_params.bert_model, {})
-    tokenizer = load_tokenizer(
-        config.model_params.bert_model,
-        config.tokenizer_kwargs,
-    )
     with jsonlines.open(path, mode="r") as data_f:
         for doc in data_f:
             doc["span_clusters"] = [
@@ -46,7 +41,7 @@ def tokenize_docs(path: Path, config: Config) -> List[Doc]:
                 tokenized_word = (
                     token_map[word]
                     if word in token_map
-                    else tokenizer.tokenize(word)
+                    else config.model_bank.tokenizer.tokenize(word)
                 )
                 tokenized_word = list(filter(filter_func, tokenized_word))
                 word2subword.append(

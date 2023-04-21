@@ -10,7 +10,6 @@ from coref.pairwise_encoder import PairwiseEncoder
 from coref.word_encoder import WordEncoder
 from coref.rough_scorer import MCDropoutRoughScorer
 from coref.span_predictor import SpanPredictor
-from coref.bert import load_bert
 
 
 class MCDropoutCorefModel(GeneralCorefModel):
@@ -27,13 +26,8 @@ class MCDropoutCorefModel(GeneralCorefModel):
                 module.train(True)
 
     def _build_model(self) -> None:
-        encoder, tokenizer = load_bert(
-            self.config.model_params.bert_model,
-            self.config.tokenizer_kwargs,
-            self.config.training_params.device,
-        )
-        self.bert = encoder
-        self.tokenizer = tokenizer
+        self.bert = self.config.model_bank.encoder
+        self.tokenizer = self.config.model_bank.tokenizer
         self.pw = PairwiseEncoder(self.config).to(
             self.config.training_params.device
         )
@@ -45,7 +39,7 @@ class MCDropoutCorefModel(GeneralCorefModel):
         self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(
             self.config.training_params.device
         )
-        self.we = WordEncoder(bert_emb, self.config).to(
+        self.we = WordEncoder(self.config).to(
             self.config.training_params.device
         )
         self.rough_scorer = MCDropoutRoughScorer(
@@ -54,7 +48,7 @@ class MCDropoutCorefModel(GeneralCorefModel):
             self.config.training_params.dropout_rate,
             self.config.active_learning.parameters_samples,
         ).to(self.config.training_params.device)
-        self.sp = SpanPredictor(bert_emb, self.config).to(
+        self.sp = SpanPredictor(self.config).to(
             self.config.training_params.device
         )
 
