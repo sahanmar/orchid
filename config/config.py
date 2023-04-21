@@ -180,6 +180,7 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
         self.model_bank = ModelBank(encoder, tokenizer)
 
     def reset(self) -> None:
+        del self.model_bank
         torch.cuda.empty_cache()
         encoder, tokenizer = load_bert(
             self.model_params.bert_model,
