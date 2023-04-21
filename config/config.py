@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List
 
 import toml  # type: ignore
+import torch
 from transformers import AutoTokenizer, AutoModel
 
 from config.active_learning import ActiveLearning
@@ -171,6 +172,15 @@ class Config:  # pylint: disable=too-many-instance-attributes, too-few-public-me
     logging: Logging
 
     def __post_init__(self) -> None:
+        encoder, tokenizer = load_bert(
+            self.model_params.bert_model,
+            self.tokenizer_kwargs,
+            self.training_params.device,
+        )
+        self.model_bank = ModelBank(encoder, tokenizer)
+
+    def reset(self) -> None:
+        torch.cuda.empty_cache()
         encoder, tokenizer = load_bert(
             self.model_params.bert_model,
             self.tokenizer_kwargs,
