@@ -6,6 +6,8 @@ from typing import Tuple
 from copy import deepcopy
 from random import shuffle
 
+DEFAULT_CFG = "config.toml"
+
 
 def get_training_iteration_docs(
     docs: list[Doc], sampled_docs: SampledData
@@ -72,9 +74,18 @@ def run_simulation(
     dev_docs: list[Doc],
 ) -> None:
     al_config = config.active_learning
+    section = config.section
+    timestamp = config.logging.timestamp
+
     coref_model = config.model_params.coref_model
     for al_loop in range(al_config.simulation.active_learning_loops):
         if al_loop > 0:
+            # Workaround of how to recreate simulation and write in the same logging file.
+            # It could be done easier without deleting variables but it always failed on OOM
+            del config
+            del model
+            config = Config.load_config(DEFAULT_CFG, section)
+            config.logging.timestamp = timestamp
             model = load_coref_model(config)
         model._logger.info(f"loop {al_loop} in progress")
         simulation_train_docs = deepcopy(train_docs)
