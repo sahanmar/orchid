@@ -1,3 +1,4 @@
+import torch
 from coref.models import GeneralCorefModel
 from coref.const import Doc, SampledData
 from coref.models import load_coref_model, GeneralCorefModel
@@ -82,6 +83,7 @@ def run_simulation(
         if al_loop > 0:
             # Workaround of how to recreate simulation and write in the same logging file.
             # It could be done easier without deleting variables but it always failed on OOM
+            torch.cuda.empty_cache()
             del config
             del model
             config = Config.load_config(DEFAULT_CFG, section)
