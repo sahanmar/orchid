@@ -15,7 +15,7 @@ from coref.bert import load_bert
 
 class MCDropoutCorefModel(GeneralCorefModel):
     def __init__(self, config: Config, epochs_trained: int = 0):
-        self.keep_dropout: List[str] = ["we", "rough_scorer"]
+        self.keep_dropout: List[str] = ["we", "a_scorer"]
         super().__init__(config, epochs_trained)
 
     def _set_training(self, value: bool) -> None:
