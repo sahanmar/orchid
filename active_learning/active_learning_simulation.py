@@ -83,9 +83,9 @@ def run_simulation(
         if al_loop > 0:
             # Workaround of how to recreate simulation and write in the same logging file.
             # It could be done easier without deleting variables but it always failed on OOM
-            torch.cuda.empty_cache()
             del config
             del model
+            torch.cuda.empty_cache()
             config = Config.load_config(DEFAULT_CFG, section)
             config.logging.timestamp = timestamp
             model = load_coref_model(config)
@@ -97,6 +97,8 @@ def run_simulation(
             training_data, simulation_train_docs = train_split(
                 model, simulation_train_docs
             )
+            del model
+            # torch.cuda.empty_cache()
             model = load_coref_model(config)
             get_logging_info(
                 model,
