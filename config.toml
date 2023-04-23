@@ -324,6 +324,5 @@
     [active_learning_simulation.active_learning.sampling_strategy.naive_sampling]
         batch_size = 5000
         docs_of_interest = 100
-        total_number_of_iterations = 10
     [active_learning_simulation.training_params]
-        train_epochs = 2
+        train_epochs = 4

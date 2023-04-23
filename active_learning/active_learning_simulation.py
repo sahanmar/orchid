@@ -44,10 +44,6 @@ def get_logging_info(
     model: GeneralCorefModel,
     training_data: list[Doc],
     round: int,
-    loop: int,
-    docs_of_interest: int,
-    acquisition_function: str,
-    coref_model: str,
 ) -> None:
     tokens = sum(
         len(doc.simulation_token_annotations.tokens) for doc in training_data
@@ -55,13 +51,9 @@ def get_logging_info(
     model._logger.info(
         {
             "al_simulation": {
-                "loop": str(loop),
-                "round": str(round),
-                "documents": str(len(training_data)),
-                "tokens": str(tokens),
-                "docs_of_interest": str(docs_of_interest),
-                "acquisition_function": acquisition_function,
-                "coref_model": coref_model,
+                "round": round,
+                "documents": len(training_data),
+                "tokens": tokens,
             }
         }
     )
@@ -75,38 +67,33 @@ def run_simulation(
     dev_docs: list[Doc],
 ) -> None:
     al_config = config.active_learning
-    section = config.section
-    timestamp = config.logging.timestamp
-
     coref_model = config.model_params.coref_model
-    for al_loop in range(al_config.simulation.active_learning_loops):
-        if al_loop > 0:
-            # Workaround of how to recreate simulation and write in the same logging file.
-            # It could be done easier without deleting variables but it always failed on OOM
-            del config
-            del model
-            torch.cuda.empty_cache()
-            config = Config.load_config(DEFAULT_CFG, section)
-            config.logging.timestamp = timestamp
-            model = load_coref_model(config)
-        model._logger.info(f"loop {al_loop} in progress")
-        simulation_train_docs = deepcopy(train_docs)
-        for al_round in range(
-            al_config.sampling_strategy.total_number_of_iterations
-        ):
-            training_data, simulation_train_docs = train_split(
-                model, simulation_train_docs
-            )
-            del model
-            # torch.cuda.empty_cache()
-            model = load_coref_model(config)
-            get_logging_info(
-                model,
-                training_data,
-                round=al_round,
-                loop=al_loop,
-                docs_of_interest=al_config.sampling_strategy.docs_of_interest,
-                acquisition_function=al_config.instance_sampling.value,
-                coref_model=coref_model,
-            )
-            run_training(model, training_data, dev_docs, test_data)
+
+    # Information about the run
+    model._logger.info(
+        {
+            "metadata": {
+                "type": "Active Learning simulation",
+                "docs_of_interest": al_config.sampling_strategy.docs_of_interest,
+                "acquisition_function": al_config.instance_sampling.value,
+                "batch_size": al_config.sampling_strategy.batch_size,
+                "train_epochs": config.training_params.train_epochs,
+                "coref_model": coref_model,
+                "bert_model": config.model_params.bert_model,
+                "bert_finetune": config.training_params.bert_finetune,
+            }
+        }
+    )
+
+    for al_round in range(
+        al_config.sampling_strategy.total_number_of_iterations
+    ):
+        training_data, train_docs = train_split(model, train_docs)
+        del model
+        model = load_coref_model(config)
+        get_logging_info(
+            model,
+            training_data,
+            round=al_round,
+        )
+        run_training(model, training_data, dev_docs, test_data)
