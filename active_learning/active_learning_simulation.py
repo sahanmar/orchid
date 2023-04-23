@@ -8,27 +8,22 @@ from copy import deepcopy
 from random import shuffle
 from dataclasses import dataclass
 
-DEFAULT_CFG = "config.toml"
-
 
 @dataclass
 class DocumentsStats:
     avg_labels_per_doc: float
     max_labels_per_doc: float
     min_labels_per_doc: float
-    labels_per_doc_var: float
     labels_per_doc_std: float
 
     avg_labels_ratio_per_doc: float
     min_labels_ratio_per_doc: float
     max_labels_ratio_per_doc: float
-    labels_ratio_per_doc_var: float
     labels_ratio_per_doc_std: float
 
     avg_distance_from_labels: float
     max_distance_from_labels: float
     min_distance_from_labels: float
-    distance_from_labels_var: float
     distance_from_labels_std: float
 
     @staticmethod
@@ -37,7 +32,6 @@ class DocumentsStats:
             avg_labels_per_doc,
             max_labels_per_doc,
             min_labels_per_doc,
-            labels_per_doc_var,
             labels_per_doc_std,
         ) = get_decriminative_stats(
             [
@@ -51,7 +45,6 @@ class DocumentsStats:
             avg_labels_ratio_per_doc,
             max_labels_ratio_per_doc,
             min_labels_ratio_per_doc,
-            labels_ratio_per_doc_var,
             labels_ratio_per_doc_std,
         ) = get_decriminative_stats(
             [
@@ -79,7 +72,6 @@ class DocumentsStats:
             avg_distance_from_labels,
             max_distance_from_labels,
             min_distance_from_labels,
-            distance_from_labels_var,
             distance_from_labels_std,
         ) = get_decriminative_stats(labels_distance_diff)
 
@@ -87,17 +79,14 @@ class DocumentsStats:
             avg_labels_per_doc,
             max_labels_per_doc,
             min_labels_per_doc,
-            labels_per_doc_var,
             labels_per_doc_std,
             avg_labels_ratio_per_doc,
             min_labels_ratio_per_doc,
             max_labels_ratio_per_doc,
-            labels_ratio_per_doc_var,
             labels_ratio_per_doc_std,
             avg_distance_from_labels,
             max_distance_from_labels,
             min_distance_from_labels,
-            distance_from_labels_var,
             distance_from_labels_std,
         )
 
@@ -153,13 +142,12 @@ def get_logging_info(
 
 def get_decriminative_stats(
     values: list[float],
-) -> Tuple[float, float, float, float, float]:
+) -> Tuple[float, float, float, float]:
     return (
-        np.mean(values),
-        max(values),
-        min(values),
-        np.var(values),
-        np.std(values),
+        round(np.mean(values), 3),
+        round(max(values), 3),
+        round(min(values), 3),
+        round(np.std(values), 3),
     )
 
 
@@ -171,17 +159,14 @@ def get_documents_stats(model: GeneralCorefModel, docs: list[Doc]) -> None:
                 "avg_labels_per_doc": stats.avg_labels_per_doc,
                 "max_labels_per_doc": stats.max_labels_per_doc,
                 "min_labels_per_doc": stats.min_labels_per_doc,
-                "labels_per_doc_var": stats.labels_per_doc_var,
                 "labels_per_doc_std": stats.labels_per_doc_std,
                 "avg_labels_ratio_per_doc": stats.avg_labels_ratio_per_doc,
                 "max_labels_ratio_per_doc": stats.max_labels_ratio_per_doc,
                 "min_labels_ratio_per_doc": stats.min_labels_ratio_per_doc,
-                "labels_ratio_per_doc_var": stats.labels_ratio_per_doc_var,
                 "labels_ratio_per_doc_std": stats.labels_ratio_per_doc_std,
                 "avg_distance_from_labels": stats.avg_distance_from_labels,
                 "max_distance_from_labels": stats.max_distance_from_labels,
                 "min_distance_from_labels": stats.min_distance_from_labels,
-                "distance_from_labels_var": stats.distance_from_labels_var,
                 "distance_from_labels_std": stats.distance_from_labels_std,
             }
         }
@@ -203,7 +188,6 @@ def run_simulation(
         avg_doc_tokens,
         max_doc_tokens,
         min_doc_tokens,
-        doc_tokens_var,
         doc_tokens_std,
     ) = get_decriminative_stats([len(doc.cased_words) for doc in train_docs])
 
@@ -213,7 +197,6 @@ def run_simulation(
                 "avg_doc_tokens": avg_doc_tokens,
                 "max_doc_tokens": max_doc_tokens,
                 "min_doc_tokens": min_doc_tokens,
-                "doc_tokens_var": doc_tokens_var,
                 "doc_tokens_std": doc_tokens_std,
             }
         }
