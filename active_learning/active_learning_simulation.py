@@ -26,6 +26,11 @@ class DocumentsStats:
     min_distance_from_labels: float
     distance_from_labels_std: float
 
+    avg_furthest_labels: float
+    max_furthest_labels: float
+    min_furthest_labels: float
+    furthest_labels_std: float
+
     @staticmethod
     def calculate(docs: list[Doc]) -> "DocumentsStats":
         (
@@ -56,24 +61,37 @@ class DocumentsStats:
         )
 
         labels_distance_diff: list[float] = []
+        furthest_labels: list[float] = []
         for doc in docs:
             sorted_sampled_tokens = sorted(
                 doc.simulation_token_annotations.tokens
             )
-            labels_distance_diff.extend(
-                [
-                    float(
-                        sorted_sampled_tokens[i + 1] - sorted_sampled_tokens[i]
-                    )
-                    for i in range(len(sorted_sampled_tokens) - 1)
-                ]
-            )
+            if len(sorted_sampled_tokens) > 0:
+                labels_distance_diff.extend(
+                    [
+                        float(
+                            sorted_sampled_tokens[i + 1]
+                            - sorted_sampled_tokens[i]
+                        )
+                        for i in range(len(sorted_sampled_tokens) - 1)
+                    ]
+                )
+                furthest_labels.append(
+                    float(sorted_sampled_tokens[-1] - sorted_sampled_tokens[0])
+                )
         (
             avg_distance_from_labels,
             max_distance_from_labels,
             min_distance_from_labels,
             distance_from_labels_std,
         ) = get_decriminative_stats(labels_distance_diff)
+
+        (
+            avg_furthest_labels,
+            max_furthest_labels,
+            min_furthest_labels,
+            furthest_labels_std,
+        ) = get_decriminative_stats(furthest_labels)
 
         return DocumentsStats(
             avg_labels_per_doc,
@@ -88,6 +106,10 @@ class DocumentsStats:
             max_distance_from_labels,
             min_distance_from_labels,
             distance_from_labels_std,
+            avg_furthest_labels,
+            max_furthest_labels,
+            min_furthest_labels,
+            furthest_labels_std,
         )
 
 
@@ -168,6 +190,10 @@ def get_documents_stats(model: GeneralCorefModel, docs: list[Doc]) -> None:
                 "max_distance_from_labels": stats.max_distance_from_labels,
                 "min_distance_from_labels": stats.min_distance_from_labels,
                 "distance_from_labels_std": stats.distance_from_labels_std,
+                "avg_furthest_labels": stats.avg_furthest_labels,
+                "max_furthest_labels": stats.max_furthest_labels,
+                "min_furthest_labels": stats.min_furthest_labels,
+                "furthest_labels_std": stats.furthest_labels_std,
             }
         }
     )
