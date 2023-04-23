@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 from coref.models import GeneralCorefModel
 from coref.const import Doc, SampledData
 from coref.models import load_coref_model, GeneralCorefModel
@@ -6,8 +6,100 @@ from config import Config
 from typing import Tuple
 from copy import deepcopy
 from random import shuffle
+from dataclasses import dataclass
 
 DEFAULT_CFG = "config.toml"
+
+
+@dataclass
+class DocumentsStats:
+    avg_labels_per_doc: float
+    max_labels_per_doc: float
+    min_labels_per_doc: float
+    labels_per_doc_var: float
+    labels_per_doc_std: float
+
+    avg_labels_ratio_per_doc: float
+    min_labels_ratio_per_doc: float
+    max_labels_ratio_per_doc: float
+    labels_ratio_per_doc_var: float
+    labels_ratio_per_doc_std: float
+
+    avg_distance_from_labels: float
+    max_distance_from_labels: float
+    min_distance_from_labels: float
+    distance_from_labels_var: float
+    distance_from_labels_std: float
+
+    @staticmethod
+    def calculate(docs: list[Doc]) -> "DocumentsStats":
+        (
+            avg_labels_per_doc,
+            max_labels_per_doc,
+            min_labels_per_doc,
+            labels_per_doc_var,
+            labels_per_doc_std,
+        ) = get_decriminative_stats(
+            [
+                len(doc.simulation_token_annotations.tokens)
+                for doc in docs
+                if doc.simulation_token_annotations.tokens
+            ]
+        )
+
+        (
+            avg_labels_ratio_per_doc,
+            max_labels_ratio_per_doc,
+            min_labels_ratio_per_doc,
+            labels_ratio_per_doc_var,
+            labels_ratio_per_doc_std,
+        ) = get_decriminative_stats(
+            [
+                len(doc.simulation_token_annotations.tokens)
+                / len(doc.cased_words)
+                for doc in docs
+                if doc.simulation_token_annotations.tokens
+            ]
+        )
+
+        labels_distance_diff: list[float] = []
+        for doc in docs:
+            sorted_sampled_tokens = sorted(
+                doc.simulation_token_annotations.tokens
+            )
+            labels_distance_diff.extend(
+                [
+                    float(
+                        sorted_sampled_tokens[i + 1] - sorted_sampled_tokens[i]
+                    )
+                    for i in range(len(sorted_sampled_tokens) - 1)
+                ]
+            )
+        (
+            avg_distance_from_labels,
+            max_distance_from_labels,
+            min_distance_from_labels,
+            distance_from_labels_var,
+            distance_from_labels_std,
+        ) = get_decriminative_stats(labels_distance_diff)
+
+        return DocumentsStats(
+            avg_labels_per_doc,
+            max_labels_per_doc,
+            min_labels_per_doc,
+            labels_per_doc_var,
+            labels_per_doc_std,
+            avg_labels_ratio_per_doc,
+            min_labels_ratio_per_doc,
+            max_labels_ratio_per_doc,
+            labels_ratio_per_doc_var,
+            labels_ratio_per_doc_std,
+            avg_distance_from_labels,
+            max_distance_from_labels,
+            min_distance_from_labels,
+            distance_from_labels_var,
+            distance_from_labels_std,
+        )
 
 
 def get_training_iteration_docs(
@@ -59,6 +151,43 @@ def get_logging_info(
     )
 
 
+def get_decriminative_stats(
+    values: list[float],
+) -> Tuple[float, float, float, float, float]:
+    return (
+        np.mean(values),
+        max(values),
+        min(values),
+        np.var(values),
+        np.std(values),
+    )
+
+
+def get_documents_stats(model: GeneralCorefModel, docs: list[Doc]) -> None:
+    stats = DocumentsStats.calculate(docs)
+    model._logger.info(
+        {
+            "sampling_stats": {
+                "avg_labels_per_doc": stats.avg_labels_per_doc,
+                "max_labels_per_doc": stats.max_labels_per_doc,
+                "min_labels_per_doc": stats.min_labels_per_doc,
+                "labels_per_doc_var": stats.labels_per_doc_var,
+                "labels_per_doc_std": stats.labels_per_doc_std,
+                "avg_labels_ratio_per_doc": stats.avg_labels_ratio_per_doc,
+                "max_labels_ratio_per_doc": stats.max_labels_ratio_per_doc,
+                "min_labels_ratio_per_doc": stats.min_labels_ratio_per_doc,
+                "labels_ratio_per_doc_var": stats.labels_ratio_per_doc_var,
+                "labels_ratio_per_doc_std": stats.labels_ratio_per_doc_std,
+                "avg_distance_from_labels": stats.avg_distance_from_labels,
+                "max_distance_from_labels": stats.max_distance_from_labels,
+                "min_distance_from_labels": stats.min_distance_from_labels,
+                "distance_from_labels_var": stats.distance_from_labels_var,
+                "distance_from_labels_std": stats.distance_from_labels_std,
+            }
+        }
+    )
+
+
 def run_simulation(
     model: GeneralCorefModel,
     config: Config,
@@ -68,6 +197,27 @@ def run_simulation(
 ) -> None:
     al_config = config.active_learning
     coref_model = config.model_params.coref_model
+
+    # Article stats
+    (
+        avg_doc_tokens,
+        max_doc_tokens,
+        min_doc_tokens,
+        doc_tokens_var,
+        doc_tokens_std,
+    ) = get_decriminative_stats([len(doc.cased_words) for doc in train_docs])
+
+    model._logger.info(
+        {
+            "article_stats": {
+                "avg_doc_tokens": avg_doc_tokens,
+                "max_doc_tokens": max_doc_tokens,
+                "min_doc_tokens": min_doc_tokens,
+                "doc_tokens_var": doc_tokens_var,
+                "doc_tokens_std": doc_tokens_std,
+            }
+        }
+    )
 
     # Information about the run
     model._logger.info(
@@ -96,4 +246,5 @@ def run_simulation(
             training_data,
             round=al_round,
         )
+        get_documents_stats(model, training_data)
         run_training(model, training_data, dev_docs, test_data)
