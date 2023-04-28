@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from coref.models import GeneralCorefModel
 from coref.const import Doc, SampledData
 from coref.models import load_coref_model, GeneralCorefModel
@@ -244,7 +245,7 @@ def run_simulation(
         }
     )
 
-    path = "/data/al_init_weights.pt"
+    path = os.path.join(config.data.data_dir, "al_init_weights.pt")
     model.save_weights(path=path)
 
     for al_round in range(
