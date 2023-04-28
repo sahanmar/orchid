@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List
 
 import toml  # type: ignore
+import torch
 from transformers import AutoTokenizer, AutoModel
 
 from config.active_learning import ActiveLearning
