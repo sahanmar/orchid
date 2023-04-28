@@ -244,12 +244,15 @@ def run_simulation(
         }
     )
 
+    path = "/data/al_init_weights.pt"
+    model.save_weights(path=path)
+
     for al_round in range(
         al_config.sampling_strategy.total_number_of_iterations
     ):
         training_data, train_docs = train_split(model, train_docs)
-        del model
         model = load_coref_model(config)
+        model.load_weights(path=path)
         get_logging_info(
             model,
             training_data,
