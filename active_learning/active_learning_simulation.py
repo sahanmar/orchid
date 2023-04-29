@@ -8,6 +8,7 @@ from typing import Tuple
 from copy import deepcopy
 from random import shuffle
 from dataclasses import dataclass
+from copy import deepcopy
 
 
 @dataclass
@@ -148,6 +149,7 @@ def get_logging_info(
     model: GeneralCorefModel,
     training_data: list[Doc],
     round: int,
+    loop: int,
 ) -> None:
     tokens = sum(
         len(doc.simulation_token_annotations.tokens) for doc in training_data
@@ -155,6 +157,7 @@ def get_logging_info(
     model._logger.info(
         {
             "al_simulation": {
+                "loop": loop,
                 "round": round,
                 "documents": len(training_data),
                 "tokens": tokens,
@@ -241,23 +244,23 @@ def run_simulation(
                 "coref_model": coref_model,
                 "bert_model": config.model_params.bert_model,
                 "bert_finetune": config.training_params.bert_finetune,
+                "active_learning_loops": al_config.simulation.active_learning_loops,
             }
         }
     )
 
     path = os.path.join(config.data.data_dir, "al_init_weights.pt")
     model.save_weights(path=path)
-
-    for al_round in range(
-        al_config.sampling_strategy.total_number_of_iterations
-    ):
-        training_data, train_docs = train_split(model, train_docs)
-        model = load_coref_model(config)
-        model.load_weights(path=path)
-        get_logging_info(
-            model,
-            training_data,
-            round=al_round,
-        )
-        get_documents_stats(model, training_data)
-        run_training(model, training_data, dev_docs, test_data)
+    for loop in range(al_config.simulation.active_learning_loops):
+        simulation_training_docs = deepcopy(train_docs)
+        for al_round in range(
+            al_config.sampling_strategy.total_number_of_iterations
+        ):
+            training_data, simulation_training_docs = train_split(
+                model, simulation_training_docs
+            )
+            model = load_coref_model(config)
+            model.load_weights(path=path)
+            get_logging_info(model, training_data, round=al_round, loop=loop)
+            get_documents_stats(model, training_data)
+            run_training(model, training_data, dev_docs, test_data)
