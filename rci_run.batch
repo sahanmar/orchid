@@ -1,8 +1,8 @@
 #!/bin/sh
-#SBATCH --time=20:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH --mem=48G
 #SBATCH --nodes=1 --ntasks-per-node=1 --cpus-per-task=1
-#SBATCH --partition=amdgpu --gres=gpu:1
+#SBATCH --partition=amdgpulong --gres=gpu:1
 
 echo "Preparing environment..."
 
