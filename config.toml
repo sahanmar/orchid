@@ -322,8 +322,10 @@
         instance_sampling = "entropy_mention" # "random_mention"
         strategy = "naive_sampling" # greedy_sampling
     [active_learning_simulation.active_learning.sampling_strategy.naive_sampling]
-        batch_size = 5000
+        batch_size = 20000
         docs_of_interest = 100
-        total_number_of_iterations = 20
+        total_number_of_iterations = 50
     [active_learning_simulation.training_params]
         train_epochs = 4
+    [active_learning_simulation.simulation]
+        active_learning_loops = 1

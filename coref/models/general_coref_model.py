@@ -395,7 +395,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
 
         return res
 
-    def save_weights(self) -> None:
+    def save_weights(self, path: Optional[str] = None) -> None:
         """Saves trainable models as state dicts."""
         to_save: List[Tuple[str, Any]] = [
             (key, value)
@@ -406,10 +406,11 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         to_save.extend(self.schedulers.items())
 
         time = datetime.strftime(datetime.now(), "%Y.%m.%d_%H.%M")
-        path = os.path.join(
-            self.config.data.data_dir,
-            f"{self.config.section}" f"_(e{self.epochs_trained}_{time}).pt",
-        )
+        if path is None:
+            path = os.path.join(
+                self.config.data.data_dir,
+                f"{self.config.section}" f"_(e{self.epochs_trained}_{time}).pt",
+            )
         savedict = {name: module.state_dict() for name, module in to_save}
         savedict["epochs_trained"] = self.epochs_trained  # type: ignore
         torch.save(savedict, path)
@@ -594,7 +595,6 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         )
 
     def get_uncertainty_metrics(self, docs: List[Doc]) -> list[float]:
-
         metrics_vals: list[list[float]] = []
         pbar = tqdm(docs, unit="docs", ncols=0)
         for doc in pbar:
