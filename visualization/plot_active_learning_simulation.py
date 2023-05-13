@@ -22,9 +22,9 @@ def format_data(data: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "round": int(row["round"]),
             "documents": int(row["documents"]),
             "tokens": int(row["tokens"]),
-            "docs_of_interest": int(row["docs_of_interest"]),
-            "acquisition_function": row["acquisition_function"],
-            "coref_model": row["coref_model"],
+            # "docs_of_interest": int(row["docs_of_interest"]),
+            # "acquisition_function": row["acquisition_function"],
+            # "coref_model": row["coref_model"],
             "training": {
                 "loss": [float(m["loss"]) for m in row["eval_metrics"][:-1]],
                 "f1_lea": [
@@ -92,17 +92,30 @@ def get_data(path: Path) -> dict[str, list[Any]]:
 
 def plot_evolutions(ax: plt.Axes, f1_data: dict[str, Any]) -> None:
     ax.grid(alpha=0.2)
+    max_f1 = 0
     for simulation, results in f1_data.items():
         avg_f1 = np.mean(results, axis=0)
-
+        max_f1_candidate = max(avg_f1)
+        if max_f1_candidate > max_f1:
+            max_f1 = max_f1_candidate
         ax.plot(
             list(range(1, len(avg_f1) + 1)),
             avg_f1,
-            linestyle="--",
+            linestyle="-",
             marker="*",
             lw=1,
             label=simulation,
         )
+
+    ax.plot(
+        list(range(0, len(avg_f1) + 2)),
+        [max_f1 for i in range(0, len(avg_f1) + 2)],
+        linestyle="--",
+        lw=0.3,
+        color="k",
+    )
+
+    ax.set_yticks(sorted(list(ax.get_yticks()) + [max_f1]))
 
     ax.set_xlabel("Active learning iterations")
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
