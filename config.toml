@@ -126,6 +126,9 @@
         # hac_entropy_mention - hac entropy mentions samling from rough_scorer prediction to train
         instance_sampling = "random_token"
 
+        # Cold start means a fresh initialization of the weights in every iteration
+        cold_start = false
+
         # Sampling stratedy
         strategy = "naive_sampling" # options: {naive_sampling, greedy_sampling}
 
