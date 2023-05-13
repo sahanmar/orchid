@@ -127,7 +127,7 @@
         instance_sampling = "random_token"
 
         # Cold start means a fresh initialization of the weights in every iteration
-        cold_start = false
+        cold_start = true
 
         # Sampling stratedy
         strategy = "naive_sampling" # options: {naive_sampling, greedy_sampling}
