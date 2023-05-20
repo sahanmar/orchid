@@ -246,6 +246,7 @@ def run_simulation(
                 "bert_model": config.model_params.bert_model,
                 "bert_finetune": config.training_params.bert_finetune,
                 "active_learning_loops": al_config.simulation.active_learning_loops,
+                "hot_start": not al_config.cold_start,
             }
         }
     )
