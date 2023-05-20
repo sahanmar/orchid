@@ -324,6 +324,7 @@
     [active_learning_simulation.active_learning]
         instance_sampling = "entropy_mention" # "random_mention"
         strategy = "naive_sampling" # greedy_sampling
+        cold_start = false
     [active_learning_simulation.active_learning.sampling_strategy.naive_sampling]
         batch_size = 20000
         docs_of_interest = 200
