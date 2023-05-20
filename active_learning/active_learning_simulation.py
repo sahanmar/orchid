@@ -268,6 +268,8 @@ def run_simulation(
             if al_config.cold_start:
                 model = load_coref_model(config)
                 model.load_weights(path=path)
+            else:
+                model.epochs_trained = 0
 
             get_logging_info(model, training_data, round=al_round, loop=loop)
             get_documents_stats(model, training_data)
