@@ -126,6 +126,9 @@
         # hac_entropy_mention - hac entropy mentions samling from rough_scorer prediction to train
         instance_sampling = "random_token"
 
+        # Cold start means a fresh initialization of the weights in every iteration
+        cold_start = true
+
         # Sampling stratedy
         strategy = "naive_sampling" # options: {naive_sampling, greedy_sampling}
 
@@ -321,11 +324,12 @@
     [active_learning_simulation.active_learning]
         instance_sampling = "entropy_mention" # "random_mention"
         strategy = "naive_sampling" # greedy_sampling
+        cold_start = false
     [active_learning_simulation.active_learning.sampling_strategy.naive_sampling]
         batch_size = 20000
-        docs_of_interest = 100
+        docs_of_interest = 200
         total_number_of_iterations = 50
     [active_learning_simulation.training_params]
-        train_epochs = 4
-    [active_learning_simulation.simulation]
-        active_learning_loops = 1
+        train_epochs = 10
+    [active_learning_simulation.active_learning.simulation]
+        active_learning_loops = 2

@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import time
 from coref.models import GeneralCorefModel
 from coref.const import Doc, SampledData
 from coref.models import load_coref_model, GeneralCorefModel
@@ -245,22 +246,32 @@ def run_simulation(
                 "bert_model": config.model_params.bert_model,
                 "bert_finetune": config.training_params.bert_finetune,
                 "active_learning_loops": al_config.simulation.active_learning_loops,
+                "hot_start": not al_config.cold_start,
             }
         }
     )
 
-    path = os.path.join(config.data.data_dir, "al_init_weights.pt")
+    timestamp = int(time.time())
+    path = os.path.join(config.data.data_dir, f"al_init_weights_{timestamp}.pt")
     model.save_weights(path=path)
     for loop in range(al_config.simulation.active_learning_loops):
         simulation_training_docs = deepcopy(train_docs)
+        model = load_coref_model(config)
+        model.load_weights(path=path)
+
         for al_round in range(
             al_config.sampling_strategy.total_number_of_iterations
         ):
             training_data, simulation_training_docs = train_split(
                 model, simulation_training_docs
             )
-            model = load_coref_model(config)
-            model.load_weights(path=path)
+
+            if al_config.cold_start:
+                model = load_coref_model(config)
+                model.load_weights(path=path)
+            else:
+                model.epochs_trained = 0
+
             get_logging_info(model, training_data, round=al_round, loop=loop)
             get_documents_stats(model, training_data)
             run_training(model, training_data, dev_docs, test_data)

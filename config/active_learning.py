@@ -34,6 +34,8 @@ class ActiveLearning:
     # Active Learning parameters
     parameters_samples: int
 
+    cold_start: bool
+
     strategy_type: SamplingStrategy
 
     # Active Learning sampling strategy.
@@ -46,6 +48,7 @@ class ActiveLearning:
     def load_config(
         instance_sampling: str,
         parameters_samples: int,
+        cold_start: bool,
         strategy: str,
         sampling_strategy: dict[str, Any],
         simulation: dict[str, Any],
@@ -65,6 +68,7 @@ class ActiveLearning:
         return ActiveLearning(
             InstanceSampling(instance_sampling),
             parameters_samples,
+            cold_start,
             strategy_type,
             strategy_config,
             Simulation(**simulation),
