@@ -265,7 +265,7 @@ def run_simulation(
                 model, simulation_training_docs
             )
 
-            if al_config.cold_start or al_round == 0:
+            if al_config.cold_start:
                 model = load_coref_model(config)
                 model.load_weights(path=path)
 
