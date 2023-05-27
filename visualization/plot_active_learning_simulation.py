@@ -90,32 +90,51 @@ def get_data(path: Path) -> dict[str, list[Any]]:
     return combined_data
 
 
-def plot_evolutions(ax: plt.Axes, f1_data: dict[str, Any]) -> None:
+def plot_evolutions(
+    ax: plt.Axes, f1_data: dict[str, Any], colors: list[str]
+) -> None:
     ax.grid(alpha=0.2)
-    max_f1 = 0
-    for simulation, results in f1_data.items():
-        avg_f1 = np.mean(results, axis=0)
+    absolute_max_f1 = 0
+    for c, (simulation, results) in zip(colors, f1_data.items()):
+        avg_f1 = np.median(results, axis=0)
+        max_f1 = np.partition(results, -2, axis=0)[-2]
+        min_f1 = np.partition(results, 1, axis=0)[1]
+
+        x_axis = list(range(1, len(avg_f1) + 1))
+
+        ax.plot(x_axis, max_f1, linestyle="-", color=c, alpha=0.1)
+        ax.plot(x_axis, min_f1, linestyle="-", color=c, alpha=0.1)
+
+        ax.fill_between(
+            x_axis,
+            min_f1,
+            max_f1,
+            alpha=0.05,
+            color=c,
+        )
+
         max_f1_candidate = max(avg_f1)
-        if max_f1_candidate > max_f1:
-            max_f1 = max_f1_candidate
+        if max_f1_candidate > absolute_max_f1:
+            absolute_max_f1 = max_f1_candidate
         ax.plot(
-            list(range(1, len(avg_f1) + 1)),
+            x_axis,
             avg_f1,
             linestyle="-",
             marker="*",
             lw=1,
             label=simulation,
+            color=c,
         )
 
     ax.plot(
         list(range(0, len(avg_f1) + 2)),
-        [max_f1 for i in range(0, len(avg_f1) + 2)],
+        [absolute_max_f1 for _ in range(0, len(avg_f1) + 2)],
         linestyle="--",
         lw=0.3,
         color="k",
     )
 
-    ax.set_yticks(sorted(list(ax.get_yticks()) + [max_f1]))
+    ax.set_yticks(sorted(list(ax.get_yticks()) + [absolute_max_f1]))
 
     ax.set_xlabel("Active learning iterations")
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -124,15 +143,15 @@ def plot_evolutions(ax: plt.Axes, f1_data: dict[str, Any]) -> None:
     ax.set_ylabel("F1 Lea")
     ax.yaxis.set_major_formatter(FormatStrFormatter("%.2f"))
 
-    ax.set_title("Coreference resolution AL F1 evaluation, 5 training epochs")
+    ax.set_title("Coreference resolution AL F1 evaluation")
     ax.legend(loc="lower right")
 
 
 def plot_documents_to_read(
-    ax: plt.Axes, documents_stats: dict[str, Any]
+    ax: plt.Axes, documents_stats: dict[str, Any], colors: list[str]
 ) -> None:
     ax.grid(alpha=0.2)
-    for simulation, results in documents_stats.items():
+    for c, (simulation, results) in zip(colors, documents_stats.items()):
         avg_f1 = np.mean(results, axis=0)
 
         ax.plot(
@@ -142,6 +161,7 @@ def plot_documents_to_read(
             marker="+",
             lw=1,
             label=simulation,
+            color=c,
         )
 
     ax.set_xlabel("Active learning iterations")
@@ -157,8 +177,9 @@ def plot_documents_to_read(
 def visualize(f1: dict[str, Any], documents_stats: dict[str, Any]) -> None:
     f, (ax1, ax2) = plt.subplots(1, 2, sharex=False, sharey=False)
 
-    plot_evolutions(ax1, f1)
-    plot_documents_to_read(ax2, documents_stats)
+    colors = ["b", "orange", "g", "r"]
+    plot_evolutions(ax1, f1, colors)
+    plot_documents_to_read(ax2, documents_stats, colors)
 
     plt.show()
 
