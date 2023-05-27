@@ -152,11 +152,26 @@ def plot_documents_to_read(
 ) -> None:
     ax.grid(alpha=0.2)
     for c, (simulation, results) in zip(colors, documents_stats.items()):
-        avg_f1 = np.mean(results, axis=0)
+        avg_docs = np.mean(results, axis=0)
+        max_docs = np.max(results, axis=0)
+        min_docs = np.min(results, axis=0)
+
+        x_axis = list(range(1, len(avg_docs) + 1))
+
+        ax.plot(x_axis, max_docs, linestyle="-", color=c, alpha=0.1)
+        ax.plot(x_axis, min_docs, linestyle="-", color=c, alpha=0.1)
+
+        ax.fill_between(
+            x_axis,
+            min_docs,
+            max_docs,
+            alpha=0.05,
+            color=c,
+        )
 
         ax.plot(
-            list(range(1, len(avg_f1) + 1)),
-            avg_f1,
+            x_axis,
+            avg_docs,
             linestyle="--",
             marker="+",
             lw=1,
@@ -166,7 +181,7 @@ def plot_documents_to_read(
 
     ax.set_xlabel("Active learning iterations")
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-    ax.set_xlim(0, len(avg_f1) + 1)
+    ax.set_xlim(0, len(avg_docs) + 1)
 
     ax.set_ylabel("Documents to read")
 
