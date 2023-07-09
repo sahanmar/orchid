@@ -22,6 +22,9 @@ def format_data(data: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "round": int(row["round"]),
             "documents": int(row["documents"]),
             "tokens": int(row["tokens"]),
+            "avg_labels_ratio_per_doc": float(
+                row["sampling_stats"]["avg_labels_ratio_per_doc"]
+            ),
             # "docs_of_interest": int(row["docs_of_interest"]),
             # "acquisition_function": row["acquisition_function"],
             # "coref_model": row["coref_model"],
@@ -72,6 +75,7 @@ def get_data(path: Path) -> dict[str, list[Any]]:
                                 {
                                     **al_simulation,
                                     **{"eval_metrics": eval_metrics},
+                                    **{"sampling_stats": sampling_stats},
                                 }
                             )
                             eval_metrics = []
@@ -80,8 +84,16 @@ def get_data(path: Path) -> dict[str, list[Any]]:
 
                     elif "eval_metrics" in json_line:
                         eval_metrics.append(json_line["eval_metrics"])
+                    elif "sampling_stats" in json_line:
+                        sampling_stats = json_line["sampling_stats"]
 
-                data.append({**al_simulation, **{"eval_metrics": eval_metrics}})
+                data.append(
+                    {
+                        **al_simulation,
+                        **{"eval_metrics": eval_metrics},
+                        **{"sampling_stats": sampling_stats},
+                    }
+                )
 
             if file.stem in combined_data:
                 raise KeyError("Date will be overwritten... Its bad...")
@@ -189,12 +201,59 @@ def plot_documents_to_read(
     ax.legend(loc="lower right")
 
 
-def visualize(f1: dict[str, Any], documents_stats: dict[str, Any]) -> None:
-    f, (ax1, ax2) = plt.subplots(1, 2, sharex=False, sharey=False)
+def plot_labels_ratio_per_doc(
+    ax: plt.Axes, labels_stats: dict[str, Any], colors: list[str]
+):
+    ax.grid(alpha=0.2)
+    for c, (simulation, results) in zip(colors, labels_stats.items()):
+        avg_labels = np.mean(results, axis=0)
+        max_labels = np.max(results, axis=0)
+        min_labels = np.min(results, axis=0)
+
+        x_axis = list(range(1, len(avg_labels) + 1))
+
+        ax.plot(x_axis, max_labels, linestyle="-", color=c, alpha=0.1)
+        ax.plot(x_axis, min_labels, linestyle="-", color=c, alpha=0.1)
+
+        ax.fill_between(
+            x_axis,
+            min_labels,
+            max_labels,
+            alpha=0.05,
+            color=c,
+        )
+
+        ax.plot(
+            x_axis,
+            avg_labels,
+            linestyle="--",
+            marker="+",
+            lw=1,
+            label=simulation,
+            color=c,
+        )
+
+    ax.set_xlabel("Active learning iterations")
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.set_xlim(0, len(avg_labels) + 1)
+
+    ax.set_ylabel("Annotated token labels / all tokens in a document")
+
+    ax.set_title("Average annotated tokens to all tokens in a document ratio")
+    ax.legend(loc="lower right")
+
+
+def visualize(
+    f1: dict[str, Any],
+    documents_stats: dict[str, Any],
+    labels_stats: dict[str, Any],
+) -> None:
+    f, (ax1, ax2, ax3) = plt.subplots(1, 3, sharex=False, sharey=False)
 
     colors = ["b", "orange", "g", "r"]
     plot_evolutions(ax1, f1, colors)
     plot_documents_to_read(ax2, documents_stats, colors)
+    plot_labels_ratio_per_doc(ax3, labels_stats, colors)
 
     plt.show()
 
@@ -233,5 +292,8 @@ if __name__ == "__main__":
     docs_of_interest = get_state_given_key(
         simulation_results, lambda x: x["documents"]
     )
+    labels_stats = get_state_given_key(
+        simulation_results, lambda x: x["avg_labels_ratio_per_doc"]
+    )
 
-    visualize(f1, docs_of_interest)
+    visualize(f1, docs_of_interest, labels_stats)
