@@ -152,6 +152,7 @@ class MCDropoutAnaphoricityScorer(AnaphoricityScorer):
         pw_batch: torch.Tensor,
         top_indices_batch: torch.Tensor,
         top_rough_scores_batch: torch.Tensor,
+        scoring_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     ) -> torch.Tensor:
         return torch.mean(
             torch.stack(
@@ -162,6 +163,7 @@ class MCDropoutAnaphoricityScorer(AnaphoricityScorer):
                         pw_batch,
                         top_indices_batch,
                         top_rough_scores_batch,
+                        scoring_fn,
                     )
                     for _ in range(self.parameters_samples)
                 ]
