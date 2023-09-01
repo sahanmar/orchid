@@ -21,3 +21,4 @@ dependencies:
       - toml
       - transformers==4.18.0
       - types-toml
+      - tabulate
