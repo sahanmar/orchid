@@ -602,6 +602,55 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                     mentions[orchid_id] = [
                         (token, score + 100) for token, score in mentions[orchid_id]
                     ]
+        elif (
+            self.config.active_learning.instance_sampling
+            == InstanceSampling.hac_entropy_anaphora  # mentions with hac entropy prediction
+        ):
+            # Encoding
+            with torch.no_grad():
+                encoded_docs: list[torch.Tensor] = [
+                    torch.mean(
+                        self._encode_pseudodoc(self._bertify(doc), doc)[0],
+                        dim=0,
+                    )
+                    for doc in tqdm(documents)
+                ]
+
+            # getting entropy mentions
+            mentions = {
+                doc.orchid_id: cast(
+                    list[Tuple[int, float]],
+                    self.run(
+                        deepcopy(doc),
+                        return_mention=False,
+                        return_anaphoras=True,
+                        scoring_fn=entropy,
+                    ),
+                )
+                for doc in documents
+            }
+            # avg document entropy
+            doc_entropy_ordering = _doc_entropy_ordering(
+                cast(dict[str, list[Tuple[int, float]]], mentions), documents
+            )
+            docs_of_interest = (
+                self.config.active_learning.sampling_strategy.docs_of_interest
+            )
+            # clustering
+            hac_sampled_doc_ids = set(
+                hac_sampling(
+                    encoded_docs,
+                    doc_entropy_ordering[: docs_of_interest * 3],
+                    docs_of_interest,
+                )
+            )
+            # higher weight to priority documents
+            for i, doc in enumerate(documents):
+                orchid_id = cast(str, doc.orchid_id)
+                if i in hac_sampled_doc_ids:
+                    mentions[orchid_id] = [
+                        (token, score + 100) for token, score in mentions[orchid_id]
+                    ]
         else:
             instance_samp_type = self.config.active_learning.instance_sampling
             raise ValueError(

@@ -18,6 +18,7 @@ class InstanceSampling(Enum):
     entropy_mention = "entropy_mention"
     hac_entropy_mention = "hac_entropy_mention"
     entropy_anaphora = "entropy_anaphora"
+    hac_entropy_anaphora = "hac_entropy_anaphora"
 
 
 @dataclass
