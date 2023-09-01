@@ -5,6 +5,7 @@ import torch
 
 from coref import utils
 from config import Config
+from typing import Optional, Callable, cast, Tuple
 
 
 class AnaphoricityScorer(torch.nn.Module):
@@ -19,9 +20,7 @@ class AnaphoricityScorer(torch.nn.Module):
         for i in range(config.model_params.n_hidden_layers):
             layers.extend(
                 [
-                    torch.nn.Linear(
-                        hidden_size if i else in_features, hidden_size
-                    ),
+                    torch.nn.Linear(hidden_size if i else in_features, hidden_size),
                     torch.nn.LeakyReLU(),
                     torch.nn.Dropout(config.training_params.dropout_rate),
                 ]
@@ -36,6 +35,7 @@ class AnaphoricityScorer(torch.nn.Module):
         pw_batch: torch.Tensor,
         top_indices_batch: torch.Tensor,
         top_rough_scores_batch: torch.Tensor,
+        scoring_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     ) -> torch.Tensor:
         """Builds a pairwise matrix, scores the pairs and returns the scores.
 
@@ -59,6 +59,10 @@ class AnaphoricityScorer(torch.nn.Module):
         scores = top_rough_scores_batch + self._ffnn(pair_matrix)
         scores = utils.add_dummy(scores, eps=True)
 
+        if scoring_fn:
+            # [n_mentions, 1]
+            return scoring_fn(torch.softmax(scores, dim=1))
+
         return scores
 
     def forward(
@@ -68,6 +72,7 @@ class AnaphoricityScorer(torch.nn.Module):
         pw_batch: torch.Tensor,
         top_indices_batch: torch.Tensor,
         top_rough_scores_batch: torch.Tensor,
+        scoring_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     ) -> torch.Tensor:
         return self.run(
             all_mentions,
@@ -75,6 +80,7 @@ class AnaphoricityScorer(torch.nn.Module):
             pw_batch,
             top_indices_batch,
             top_rough_scores_batch,
+            scoring_fn,
         )
 
     def _ffnn(self, x: torch.Tensor) -> torch.Tensor:

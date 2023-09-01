@@ -283,6 +283,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         doc: Doc,
         normalize_anaphoras: bool = False,
         return_mention: bool = False,
+        return_anaphoras: bool = False,
         scoring_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
     ) -> Union[CorefResult, list[Tuple[int, float]]]:
         """
@@ -331,7 +332,7 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
         #     rough_scores_indices [n_words, 1]
         rough_scores, rough_scores_indices = cast(
             Tuple[torch.Tensor, torch.Tensor],
-            self.rough_scorer(words, scoring_fn),
+            self.rough_scorer(words, scoring_fn if not return_anaphoras else None),
         )
         if return_mention:
             return doc.subwords_2_words_w_payload(
@@ -358,8 +359,15 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 pw_batch=pw_batch,
                 top_indices_batch=top_indices_batch,
                 top_rough_scores_batch=top_rough_scores_batch,
+                scoring_fn=scoring_fn,
             )
             a_scores_lst.append(a_scores_batch)
+
+        if return_anaphoras:
+            return doc.subwords_2_words_w_payload(
+                list(range(len(words))),
+                torch.cat(a_scores_lst, dim=0).flatten().tolist(),
+            )
 
         res = CorefResult()
 
@@ -518,7 +526,30 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             mentions = {
                 doc.orchid_id: cast(
                     list[Tuple[int, float]],
-                    self.run(deepcopy(doc), return_mention=True, scoring_fn=entropy),
+                    self.run(
+                        deepcopy(doc),
+                        return_mention=True,
+                        return_anaphoras=False,
+                        scoring_fn=entropy,
+                    ),
+                )
+                for doc in documents
+            }
+        elif (
+            self.config.active_learning.instance_sampling
+            == InstanceSampling.entropy_anaphora  # anaphora with entropy prediction
+        ):
+            # Every mention gets entropy scoring. Unlike the previous case we get cores
+            # for every mention/token in the document. Hence, no need for dilution.
+            mentions = {
+                doc.orchid_id: cast(
+                    list[Tuple[int, float]],
+                    self.run(
+                        deepcopy(doc),
+                        return_mention=False,
+                        return_anaphoras=True,
+                        scoring_fn=entropy,
+                    ),
                 )
                 for doc in documents
             }
@@ -540,7 +571,12 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
             mentions = {
                 doc.orchid_id: cast(
                     list[Tuple[int, float]],
-                    self.run(deepcopy(doc), return_mention=True, scoring_fn=entropy),
+                    self.run(
+                        deepcopy(doc),
+                        return_mention=True,
+                        return_anaphoras=False,
+                        scoring_fn=entropy,
+                    ),
                 )
                 for doc in documents
             }

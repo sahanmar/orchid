@@ -289,8 +289,12 @@
         device = "cpu"
         bert_finetune = false
     [debug_active_learning.active_learning]
-        instance_sampling = "random_mention"
+        instance_sampling = "entropy_anaphora"
         strategy = "naive_sampling"
+        cold_start = false
+    [debug_active_learning.active_learning.sampling_strategy.naive_sampling]
+        batch_size = 100
+        docs_of_interest = 1
 
 
 [mc_dropout]

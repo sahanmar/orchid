@@ -81,15 +81,15 @@ def test_token_sampling(dev_data: list[Doc]) -> None:
 
     sampled_tokens = mentions_sampling(new_docs, 1_000_000, 100_000, mentions)
 
-    assert len(
-        sampled_tokens.instances[0].simulation_token_annotations.tokens
-    ) == len(new_docs[sampled_tokens.indices[0]].cased_words)
-    assert len(
-        sampled_tokens.instances[1].simulation_token_annotations.tokens
-    ) == len(new_docs[sampled_tokens.indices[1]].cased_words)
-    assert len(
-        sampled_tokens.instances[2].simulation_token_annotations.tokens
-    ) == len(new_docs[sampled_tokens.indices[2]].cased_words)
+    assert len(sampled_tokens.instances[0].simulation_token_annotations.tokens) == len(
+        new_docs[sampled_tokens.indices[0]].cased_words
+    )
+    assert len(sampled_tokens.instances[1].simulation_token_annotations.tokens) == len(
+        new_docs[sampled_tokens.indices[1]].cased_words
+    )
+    assert len(sampled_tokens.instances[2].simulation_token_annotations.tokens) == len(
+        new_docs[sampled_tokens.indices[2]].cased_words
+    )
 
 
 def test_mentions_sampling(dev_data: list[Doc]) -> None:
@@ -127,15 +127,15 @@ def test_mentions_sampling(dev_data: list[Doc]) -> None:
 
     sampled_tokens = mentions_sampling(new_docs, 1_000_000, 100_000, mentions)
 
-    assert len(
-        sampled_tokens.instances[0].simulation_token_annotations.tokens
-    ) == len(new_docs[sampled_tokens.indices[0]].cased_words)
-    assert len(
-        sampled_tokens.instances[1].simulation_token_annotations.tokens
-    ) == len(new_docs[sampled_tokens.indices[1]].cased_words)
-    assert len(
-        sampled_tokens.instances[2].simulation_token_annotations.tokens
-    ) == len(new_docs[sampled_tokens.indices[2]].cased_words)
+    assert len(sampled_tokens.instances[0].simulation_token_annotations.tokens) == len(
+        new_docs[sampled_tokens.indices[0]].cased_words
+    )
+    assert len(sampled_tokens.instances[1].simulation_token_annotations.tokens) == len(
+        new_docs[sampled_tokens.indices[1]].cased_words
+    )
+    assert len(sampled_tokens.instances[2].simulation_token_annotations.tokens) == len(
+        new_docs[sampled_tokens.indices[2]].cased_words
+    )
 
 
 def test_entropy_sampling(dev_data: list[Doc]) -> None:
@@ -178,28 +178,20 @@ def test_entropy_sampling(dev_data: list[Doc]) -> None:
 
     sampled_tokens = mentions_sampling(new_docs, 1_000_000, 100_000, mentions)
 
-    assert len(
-        sampled_tokens.instances[0].simulation_token_annotations.tokens
-    ) == len(
+    assert len(sampled_tokens.instances[0].simulation_token_annotations.tokens) == len(
         mentions[sampled_tokens.instances[0].orchid_id]  # type:ignore
     )
-    assert len(
-        sampled_tokens.instances[1].simulation_token_annotations.tokens
-    ) == len(
+    assert len(sampled_tokens.instances[1].simulation_token_annotations.tokens) == len(
         mentions[sampled_tokens.instances[1].orchid_id]  # type:ignore
     )
-    assert len(
-        sampled_tokens.instances[2].simulation_token_annotations.tokens
-    ) == len(
+    assert len(sampled_tokens.instances[2].simulation_token_annotations.tokens) == len(
         mentions[sampled_tokens.instances[2].orchid_id]  # type:ignore
     )
 
 
 def test_hac_entropy_sampling(dev_data: list[Doc], al_config: Config) -> None:
     config = deepcopy(al_config)
-    config.active_learning.instance_sampling = (
-        InstanceSampling.hac_entropy_mention
-    )
+    config.active_learning.instance_sampling = InstanceSampling.hac_entropy_mention
     model = load_coref_model(config)
 
     # Test multiple docs
@@ -212,10 +204,7 @@ def test_hac_entropy_sampling(dev_data: list[Doc], al_config: Config) -> None:
     sampled_data = model.sample_unlabeled_data(new_docs)
     sampled_tokens = list(
         chain.from_iterable(
-            [
-                doc.simulation_token_annotations.tokens
-                for doc in sampled_data.instances
-            ]
+            [doc.simulation_token_annotations.tokens for doc in sampled_data.instances]
         )
     )
     assert (
