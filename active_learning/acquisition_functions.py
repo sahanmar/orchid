@@ -79,7 +79,7 @@ def mentions_sampling(
     shuffle(ment_score_doc_id_unsorted)
     ment_score_doc_id_sorted = sorted(
         ment_score_doc_id_unsorted,
-        key=lambda x: x[0],  # lambda x: (x[0], x[2]) if doc exhaust
+        key=lambda x: x[0],  # lambda x: (x[2], x[0]) if doc exhaust
         reverse=True,
     )
     del ment_score_doc_id_unsorted
@@ -101,6 +101,11 @@ def mentions_sampling(
             else:
                 ment_score_doc_id_deprio.append((score, token, doc_id))
 
+        ment_score_doc_id_deprio = sorted(
+            ment_score_doc_id_deprio,
+            key=lambda x: (x[2], x[0]),
+            reverse=True,
+        )
         ment_score_doc_id = ment_score_doc_id_prio + ment_score_doc_id_deprio
     elif docs_of_interest < 0:
         raise ValueError(
@@ -216,7 +221,6 @@ def _fill_sampled_data_indices(
 
 
 def _setup(docs: list[Doc]) -> Tuple[int, int, SampledData, dict[str, int]]:
-
     # initial setup for acquisition functions
 
     orchid_id_nullability_check(docs)
