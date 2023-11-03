@@ -121,7 +121,7 @@ class MCDropoutRoughScorer(RoughScorer):
             scores = scoring_fn(torch.softmax(bilinear_scores, dim=1))
             return cast(Tuple[torch.Tensor, torch.Tensor], torch.sort(scores))
         else:
-            bilinear_scores = self.bilinear(mentions).mm(mentions.T)
+            bilinear_scores = self.dropout(self.bilinear(mentions)).mm(mentions.T)
 
         rough_scores = pair_mask + bilinear_scores
 

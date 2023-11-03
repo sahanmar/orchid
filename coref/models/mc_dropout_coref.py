@@ -17,20 +17,18 @@ class MCDropoutCorefModel(GeneralCorefModel):
         self.keep_dropout: List[str] = ["bert", "we", "rough_scorer"]
         super().__init__(config, epochs_trained)
 
-    def _set_training(self, value: bool) -> None:
-        self._training = value
-        for name, module in self.trainable.items():
-            if name not in self.keep_dropout:
-                module.train(self._training)
-            else:
-                module.train(True)
+    # def _set_training(self, value: bool) -> None:
+    #     self._training = value
+    #     for name, module in self.trainable.items():
+    #         if name not in self.keep_dropout:
+    #             module.train(self._training)
+    #         else:
+    #             module.train(True)
 
     def _build_model(self) -> None:
         self.bert = self.config.model_bank.encoder
         self.tokenizer = self.config.model_bank.tokenizer
-        self.pw = PairwiseEncoder(self.config).to(
-            self.config.training_params.device
-        )
+        self.pw = PairwiseEncoder(self.config).to(self.config.training_params.device)
 
         bert_emb = self.bert.config.hidden_size
         pair_emb = bert_emb * 3 + self.pw.shape
@@ -39,18 +37,14 @@ class MCDropoutCorefModel(GeneralCorefModel):
         self.a_scorer = AnaphoricityScorer(pair_emb, self.config).to(
             self.config.training_params.device
         )
-        self.we = WordEncoder(self.config).to(
-            self.config.training_params.device
-        )
+        self.we = WordEncoder(self.config).to(self.config.training_params.device)
         self.rough_scorer = MCDropoutRoughScorer(
             bert_emb,
             self.config.model_params.rough_k,
             self.config.training_params.dropout_rate,
             self.config.active_learning.parameters_samples,
         ).to(self.config.training_params.device)
-        self.sp = SpanPredictor(self.config).to(
-            self.config.training_params.device
-        )
+        self.sp = SpanPredictor(self.config).to(self.config.training_params.device)
 
         self.trainable: Dict[str, torch.nn.Module] = {
             "bert": self.bert,

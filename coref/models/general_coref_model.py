@@ -476,6 +476,8 @@ class GeneralCorefModel:  # pylint: disable=too-many-instance-attributes
                 self.evaluate(docs=docs_dev)
 
     def sample_unlabeled_data(self, documents: List[Doc]) -> SampledData:
+        self.training = True
+
         if (
             self.config.active_learning.instance_sampling
             == InstanceSampling.random_token  # random token
