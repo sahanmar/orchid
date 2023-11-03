@@ -320,6 +320,7 @@
 # Active Learning
 [active_learning_simulation]
     [active_learning_simulation.model_params]
+        coref_model = "mc_dropout"
         bert_model = "roberta-large"
     [active_learning_simulation.active_learning]
         instance_sampling = "entropy_mention" # "random_mention"
