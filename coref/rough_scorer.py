@@ -61,9 +61,7 @@ class RoughScorer(torch.nn.Module):
         pair_mask = pair_mask.to(mentions.device)
         return pair_mask
 
-    def _prune(
-        self, rough_scores: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _prune(self, rough_scores: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Selects top-k rough antecedent scores for each mention.
 
@@ -104,22 +102,26 @@ class MCDropoutRoughScorer(RoughScorer):
         """
         pair_mask = self._get_pair_mask(mentions)
 
-        # Average over empirical distribution samples
-        # TODO return all 10 samples with words
-        bilinear_scores = torch.mean(
-            torch.stack(
-                [
-                    self.dropout(self.bilinear(mentions)).mm(mentions.T)
-                    for _ in range(self.parameters_samples)
-                ]
-            ),
-            dim=0,
-        )
-
         if scoring_fn:
+            # Turn on dropout only when sampling is happening
+
+            # Average over empirical distribution samples
+            # TODO return all 10 samples with words
+            bilinear_scores = torch.mean(
+                torch.stack(
+                    [
+                        self.dropout(self.bilinear(mentions)).mm(mentions.T)
+                        for _ in range(self.parameters_samples)
+                    ]
+                ),
+                dim=0,
+            )
+
             # [n_mentions, 1]
             scores = scoring_fn(torch.softmax(bilinear_scores, dim=1))
             return cast(Tuple[torch.Tensor, torch.Tensor], torch.sort(scores))
+        else:
+            bilinear_scores = self.bilinear(mentions).mm(mentions.T)
 
         rough_scores = pair_mask + bilinear_scores
 
