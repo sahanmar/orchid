@@ -23,3 +23,14 @@ def test_mc_dropout_pipeline(config: Config, dev_data: list[Doc]) -> None:
     # no weights are loaded. Random init to test forward step
     with output_running_time():
         model.evaluate(dev_data, word_level_conll=word_level)
+
+
+def test_al_pipeline(al_config: Config, dev_data: list[Doc]) -> None:
+    word_level = False
+
+    mc_dropout_conf = deepcopy(al_config)
+    mc_dropout_conf.model_params.coref_model = "mc_dropout"
+    model = load_coref_model(al_config)
+    # no weights are loaded. Random init to test forward step
+    with output_running_time():
+        model.sample_unlabeled_data(dev_data)

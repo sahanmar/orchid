@@ -289,7 +289,7 @@
         device = "cpu"
         bert_finetune = false
     [debug_active_learning.active_learning]
-        instance_sampling = "entropy_anaphora"
+        instance_sampling = "hac_entropy_anaphora"
         strategy = "naive_sampling"
         cold_start = false
     [debug_active_learning.active_learning.sampling_strategy.naive_sampling]
